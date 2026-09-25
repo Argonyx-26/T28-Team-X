@@ -4,6 +4,8 @@ The frontend calls **`/backend/<path>`**, and `next.config` rewrites that to `${
 - **Local API:** `http://localhost:8000` (the interactive docs are at `/docs`).
 - **Deployed API (Cloud Run, Mumbai):** `https://gurugraph-api-215071922486.asia-south1.run.app`. Try `/health` or `/docs`.
 
+**Rate limits** (per IP, per minute): join 30, answers 120, photos 60, stack 5, analyze 10, review 60, approve 30, parent message 20. Over the limit: 429 `slow_down`.
+
 **Conventions:**
 - All bodies are JSON unless marked *multipart*.
 - IDs go in the body or query string, never in the path.
@@ -176,9 +178,9 @@ export interface JudgesSummary {
 | `GET /topic` | – | `TopicResponse` |
 | `POST /sessions/create` | `{class_name, code?}` | `SessionLookup & {join_url}` |
 | `GET /sessions/lookup` | `?code=7B` | `SessionLookup` (404 if the code is unknown) |
-| `POST /students/join` | `{code, nickname, language}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha |
+| `POST /students/join` | `{code, nickname, language}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 30 joins per minute per IP |
 | `POST /agents/examiner/next` | `{student_id}` | `NextResponse` (5 questions per quiz) |
-| `POST /agents/diagnostician/answer` | `{student_id, question_id, answer}`. For an MCQ, send the option text exactly | `AnswerResponse` |
+| `POST /agents/diagnostician/answer` | `{student_id, question_id, answer, phase?}`. For an MCQ, send the option text exactly. `phase` is `"quiz"` (default) or `"photo"`: the teacher typing the final answer from an unreadable page, which never counts toward the student's quiz | `AnswerResponse` |
 | `POST /agents/diagnostician/photo` | *multipart*: `student_id`, `question_id` (P1–P4), `image` | `PhotoResponse` (≈3–8 s) |
 | `POST /agents/diagnostician/stack` | *multipart*: `question_id`, repeated `student_ids`, repeated `images` (same order, ≤40) | `{results: (PhotoResponse \| {student_id, error})[]}`. Reads 6 at a time (SHOULD: the notebook pile) |
 | `POST /agents/curator/lesson` | `{student_id}` | `LessonResponse`. Poll while `generating` |
@@ -193,6 +195,9 @@ export interface JudgesSummary {
 | `POST /agents/coach/parent-message` | `{student_id}` | `ParentMessage` (text at once; the voice note is generated in the background) |
 | `GET /media/voice` | `?id=` | `audio/mpeg` (waits until the voice note is ready) |
 | `POST /admin/reset` | header `X-Admin-Token` | `{ok:true}`: reseeds 7B and a fresh Asha |
+| `GET /admin/health` | header `X-Admin-Token` | `{ok, version, demo_mode, providers, vision_model, text_model, cache:{llm, lessons}, demo_class:{students, real_joins}, last_photo_ms:number[]}` |
+| `POST /admin/remove-student` | header `X-Admin-Token`; `{student_id}` | `{ok:true}`: removes a student and their answers from the class (409 `demo_student` for Asha) |
+| `GET /admin/cache-export` | header `X-Admin-Token` | `{rows:[{key, agent, provider, model, response_json, created_at}]}`: the LLM cache, saved as `data/llm_cache_seed.jsonl` and loaded at boot so a fresh deploy starts warm |
 | `GET /judges/summary` | – | `JudgesSummary` |
 
 ## The demo path (the thing we're judged on)

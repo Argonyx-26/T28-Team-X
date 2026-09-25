@@ -1,0 +1,13 @@
+{
+  "name": "gurugraph-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The golden-path browser test: the judged demo, end to end, against a running GuruGraph (BASE_URL).",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0"
+  }
+}

@@ -18,7 +18,7 @@ import {
 import s from "../../../teacher/[code]/_dashboard/dashboard.module.css";
 import { fontVars } from "../../../teacher/[code]/_dashboard/fonts";
 import k from "./student.module.css";
-import { LANGS, WORDS } from "./words";
+import { LANGS, WORDS, errorText } from "./words";
 
 type Me = { studentId: string; nickname: string; language: Lang };
 type Phase =
@@ -32,6 +32,7 @@ type Phase =
   | { name: "done"; caughtUp: boolean };
 
 const storeKey = (code: string) => `gurugraph:${code.toUpperCase()}`;
+const DEMO_SESSION_ID = "ses_7b";
 
 function load(code: string): Me | null {
   try {
@@ -114,7 +115,7 @@ export function Student({ code }: { code: string }) {
   const words = WORDS[me?.language ?? lang];
 
   const fail = useCallback((e: unknown, language: Lang = "en") => {
-    setError(e instanceof ApiError ? e.message : WORDS[language].offline);
+    setError(e instanceof ApiError ? errorText(WORDS[language], e.code, e.message) : WORDS[language].offline);
     setRetryLesson(false);
     setBusy(false);
   }, []);
@@ -140,7 +141,7 @@ export function Student({ code }: { code: string }) {
         // still being written after 45 s: say so and offer a retry instead of leaving a spinner up
         setError(WORDS[who.language].slow);
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : WORDS[who.language].offline);
+        setError(e instanceof ApiError ? errorText(WORDS[who.language], e.code, e.message) : WORDS[who.language].offline);
       }
       setRetryLesson(true);
     },
@@ -193,11 +194,12 @@ export function Student({ code }: { code: string }) {
         const session = await api.lookup(code);
         if (!live) return;
         setClassName(session.class_name);
-        if (asAsha) {
+        const stored = load(code);
+        // "?as=asha" resumes the demo student on the demo class only; anywhere else it must not create a student per visit
+        if (asAsha && session.session_id === DEMO_SESSION_ID) {
           await join("Asha", "kn");
           return;
         }
-        const stored = load(code);
         if (stored) {
           setMe(stored);
           await nextQuestion(stored);
@@ -206,7 +208,7 @@ export function Student({ code }: { code: string }) {
         }
       } catch (e) {
         if (!live) return;
-        setError(e instanceof ApiError ? WORDS.en.noClass : WORDS.en.offline);
+        setError(e instanceof ApiError ? errorText(WORDS[lang], e.code, WORDS[lang].noClass) : WORDS[lang].offline);
         setPhase({ name: "join" });
       }
     })();

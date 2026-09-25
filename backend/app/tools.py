@@ -3,11 +3,14 @@
 python -m app.tools warm-lessons     pre-generate lessons into data/lessons_cache.json (then a native reader checks)
 python -m app.tools lessons-review   write docs/research/LESSONS_REVIEW.md for Risheeth
 python -m app.tools smoke <api-url>  run the demo path against a deployed API and print PASS/FAIL per beat
+python -m app.tools cache-seed <api-url>  save the live API's LLM cache as data/llm_cache_seed.jsonl (needs
+                                     PROD_ADMIN_TOKEN in the environment or backend/.env; the token is never printed)
 """
 
 import asyncio
 import io
 import json
+import os
 import sys
 import time
 
@@ -153,9 +156,28 @@ def smoke(base: str) -> int:
     return 0 if all(ok for _, ok, _ in results) else 1
 
 
+def cache_seed(base: str) -> int:
+    token = os.getenv("PROD_ADMIN_TOKEN") or settings.admin_token
+    r = httpx.get(f"{base.rstrip('/')}/admin/cache-export", headers={"X-Admin-Token": token}, timeout=60)
+    r.raise_for_status()
+    rows = r.json()["rows"]
+    path = settings.data_dir / "llm_cache_seed.jsonl"
+    with open(path, "w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    by_agent: dict[str, int] = {}
+    for row in rows:
+        agent = row.get("agent") or "?"
+        by_agent[agent] = by_agent.get(agent, 0) + 1
+    print(f"saved {len(rows)} cached answers to {path}: {by_agent}")
+    return 0
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-    if cmd == "warm-lessons":
+    if cmd == "cache-seed":
+        sys.exit(cache_seed(sys.argv[2]))
+    elif cmd == "warm-lessons":
         asyncio.run(warm_lessons())
     elif cmd == "lessons-review":
         lessons_review()

@@ -25,7 +25,15 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="GuruGraph API", version=settings.version, lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# The web app proxies every call through its own origin (/backend/*), so only that origin and local dev need CORS.
+_origins = {settings.public_app_url.rstrip("/"), "http://localhost:3000", "http://127.0.0.1:3000"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=sorted(o for o in _origins if o),
+    allow_origin_regex=r"https://gurugraph-web-[a-z0-9-]+\.asia-south1\.run\.app",
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.middleware("http")

@@ -40,9 +40,27 @@ const en = {
   offline: "Can't reach the class. Check your internet and try again.",
   slow: "Your lesson is taking longer than usual. Try again.",
   tryAgain: "Try again",
+  errors: {
+    class_not_found: "No class has this code. Ask your teacher for the class code.",
+    student_not_found: "We can't find you in this class. Join again.",
+    slow_down: "Too fast! Wait a minute and try again.",
+    class_full: "This class is full. Ask your teacher to make room.",
+    nickname_too_short: "Please type a name with at least 2 letters.",
+    nickname_too_long: "Please use a shorter name.",
+    nickname_characters: "Please use only letters and numbers in your name.",
+    nickname_not_allowed: "That name can't go on the class board. Please pick another.",
+    not_an_option: "Please pick one of the answers.",
+    invalid_request: "Something in the answer wasn't right. Try again.",
+    internal: "Something went wrong on our side. Try again.",
+  } as Record<string, string>,
 };
 
 type Words = typeof en;
+
+/** The message for an API error in the student's language; unknown codes keep the server's English message. */
+export function errorText(words: Words, code: string, fallback: string): string {
+  return words.errors[code] ?? (code === "offline" ? words.offline : fallback);
+}
 
 const hi: Words = {
   welcome: "अपनी कक्षा से जुड़ें",
@@ -77,6 +95,19 @@ const hi: Words = {
   offline: "कक्षा से जुड़ नहीं पा रहे। इंटरनेट जाँचो और फिर से कोशिश करो।",
   slow: "तुम्हारा पाठ बनने में सामान्य से ज़्यादा समय लग रहा है। फिर से कोशिश करो।",
   tryAgain: "फिर से कोशिश करो",
+  errors: {
+    class_not_found: "इस कोड की कोई कक्षा नहीं है। अपने शिक्षक से कोड पूछो।",
+    student_not_found: "इस कक्षा में तुम नहीं मिले। फिर से जुड़ो।",
+    slow_down: "बहुत तेज़! एक मिनट रुककर फिर कोशिश करो।",
+    class_full: "यह कक्षा भर गई है। अपने शिक्षक से जगह बनाने को कहो।",
+    nickname_too_short: "कम से कम 2 अक्षर का नाम लिखो।",
+    nickname_too_long: "थोड़ा छोटा नाम लिखो।",
+    nickname_characters: "नाम में सिर्फ़ अक्षर और अंक लिखो।",
+    nickname_not_allowed: "यह नाम कक्षा के बोर्ड पर नहीं जा सकता। दूसरा नाम चुनो।",
+    not_an_option: "दिए गए उत्तरों में से एक चुनो।",
+    invalid_request: "उत्तर में कुछ ठीक नहीं था। फिर से कोशिश करो।",
+    internal: "हमारी तरफ़ से कुछ गड़बड़ हुई। फिर से कोशिश करो।",
+  },
 };
 
 const kn: Words = {
@@ -112,6 +143,19 @@ const kn: Words = {
   offline: "ತರಗತಿಗೆ ಸಂಪರ್ಕವಾಗುತ್ತಿಲ್ಲ. ಇಂಟರ್ನೆಟ್ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   slow: "ನಿಮ್ಮ ಪಾಠ ಸಿದ್ಧವಾಗಲು ಸಾಮಾನ್ಯಕ್ಕಿಂತ ಹೆಚ್ಚು ಸಮಯ ಹಿಡಿಯುತ್ತಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   tryAgain: "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+  errors: {
+    class_not_found: "ಈ ಕೋಡ್‌ನ ತರಗತಿ ಇಲ್ಲ. ನಿಮ್ಮ ಶಿಕ್ಷಕರಿಂದ ಕೋಡ್ ಕೇಳಿ.",
+    student_not_found: "ಈ ತರಗತಿಯಲ್ಲಿ ನೀವು ಸಿಗಲಿಲ್ಲ. ಮತ್ತೆ ಸೇರಿ.",
+    slow_down: "ತುಂಬಾ ವೇಗ! ಒಂದು ನಿಮಿಷ ಕಾದು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    class_full: "ಈ ತರಗತಿ ತುಂಬಿದೆ. ಜಾಗ ಮಾಡಲು ಶಿಕ್ಷಕರನ್ನು ಕೇಳಿ.",
+    nickname_too_short: "ಕನಿಷ್ಠ 2 ಅಕ್ಷರಗಳ ಹೆಸರು ಬರೆಯಿರಿ.",
+    nickname_too_long: "ಸ್ವಲ್ಪ ಚಿಕ್ಕ ಹೆಸರು ಬರೆಯಿರಿ.",
+    nickname_characters: "ಹೆಸರಿನಲ್ಲಿ ಅಕ್ಷರ ಮತ್ತು ಅಂಕಿ ಮಾತ್ರ ಬಳಸಿ.",
+    nickname_not_allowed: "ಈ ಹೆಸರು ತರಗತಿಯ ಬೋರ್ಡ್‌ಗೆ ಹೋಗಲಾರದು. ಬೇರೆ ಹೆಸರು ಆರಿಸಿ.",
+    not_an_option: "ಕೊಟ್ಟಿರುವ ಉತ್ತರಗಳಲ್ಲಿ ಒಂದನ್ನು ಆರಿಸಿ.",
+    invalid_request: "ಉತ್ತರದಲ್ಲಿ ಏನೋ ಸರಿಯಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    internal: "ನಮ್ಮ ಕಡೆಯಿಂದ ಏನೋ ತಪ್ಪಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  },
 };
 
 export const WORDS: Record<Lang, Words> = { en, hi, kn };

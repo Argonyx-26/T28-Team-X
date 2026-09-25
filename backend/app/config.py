@@ -46,6 +46,7 @@ class Settings:
     status_page_url: str = field(default_factory=lambda: _env("STATUS_PAGE_URL"))
 
     quiz_length: int = 5
+    max_students_per_class: int = field(default_factory=lambda: int(_env("MAX_STUDENTS_PER_CLASS", "60")))
     version: str = "0.1.0"
 
 

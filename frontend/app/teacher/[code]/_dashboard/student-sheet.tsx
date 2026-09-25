@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-import { API_BASE, ApiError, type ConceptStat, type ParentMessage, type StudentDetail, api } from "./api";
+import { API_BASE, ApiError, type ConceptStat, type ParentMessage, type StudentDetail, admin, adminToken, api } from "./api";
 import s from "./dashboard.module.css";
 import { fontVars } from "./fonts";
 import { BAND_COLOR, BAND_WORDS, TelemetryChip, band, isIndic } from "./shared";
@@ -93,13 +93,29 @@ export function StudentSheet({
   studentId,
   concepts,
   onOpenChange,
+  onRemoved,
 }: {
   studentId: string | null;
   concepts: ConceptStat[];
   onOpenChange: (open: boolean) => void;
+  onRemoved?: () => void;
 }) {
   const [detail, setDetail] = useState<StudentDetail | null>(null);
   const [error, setError] = useState("");
+  const [removing, setRemoving] = useState<"" | "confirm" | "busy" | "failed">("");
+  const canRemove = adminToken.get().length > 0;
+
+  async function remove(id: string) {
+    setRemoving("busy");
+    try {
+      await admin.removeStudent(id);
+      onRemoved?.();
+      onOpenChange(false);
+      setRemoving("");
+    } catch {
+      setRemoving("failed");
+    }
+  }
 
   useEffect(() => {
     if (!studentId) return;
@@ -203,6 +219,31 @@ export function StudentSheet({
               <h3 className="mb-2 font-semibold">Tell the family</h3>
               <ParentMessageCard key={current.id} studentId={current.id} />
             </section>
+
+            {canRemove && current.kind === "real" && (
+              <section aria-label="Remove student" className="border-t border-dashed border-[var(--rule)] pt-4">
+                {removing === "confirm" || removing === "busy" ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[0.9em]">Remove {current.nickname} and their answers from the class?</span>
+                    <button type="button" className={`${s.button} ${s.primary}`} disabled={removing === "busy"} onClick={() => void remove(current.id)}>
+                      {removing === "busy" ? "Removing…" : "Yes, remove"}
+                    </button>
+                    <button type="button" className={s.button} disabled={removing === "busy"} onClick={() => setRemoving("")}>
+                      Keep
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className={`${s.button} text-[0.9em]`} onClick={() => setRemoving("confirm")}>
+                    Remove from the class
+                  </button>
+                )}
+                {removing === "failed" && (
+                  <p className="mt-1 text-[0.9em]" style={{ color: "var(--red-pen)" }}>
+                    Couldn&apos;t remove them. Check the admin token on /present.
+                  </p>
+                )}
+              </section>
+            )}
           </div>
         )}
       </SheetContent>

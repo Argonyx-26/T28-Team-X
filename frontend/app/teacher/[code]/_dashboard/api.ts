@@ -275,6 +275,53 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 const post = <T>(path: string, body: unknown) =>
   call<T>(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
+export interface AdminHealth {
+  ok: boolean;
+  version: string;
+  demo_mode: string;
+  providers: Record<string, boolean>;
+  vision_model: string;
+  text_model: string;
+  cache: { llm: number; lessons: number };
+  demo_class: { students: number; real_joins: number };
+  last_photo_ms: number[];
+}
+
+const ADMIN_KEY = "gurugraph:admin";
+
+/** The presenter's admin token, typed once on /present and kept in this browser only. Never put in a URL. */
+export const adminToken = {
+  get: (): string => {
+    try {
+      return localStorage.getItem(ADMIN_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  },
+  set: (token: string) => {
+    try {
+      if (token) localStorage.setItem(ADMIN_KEY, token);
+      else localStorage.removeItem(ADMIN_KEY);
+    } catch {
+      // private mode
+    }
+  },
+};
+
+const adminCall = <T>(path: string, method: "GET" | "POST", body?: unknown) =>
+  call<T>(path, {
+    method,
+    headers: { "content-type": "application/json", "X-Admin-Token": adminToken.get() },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+export const admin = {
+  health: () => adminCall<AdminHealth>("/admin/health", "GET"),
+  reset: () => adminCall<{ ok: true }>("/admin/reset", "POST", {}),
+  removeStudent: (studentId: string) =>
+    adminCall<{ ok: true }>("/admin/remove-student", "POST", { student_id: studentId }),
+};
+
 export const api = {
   lookup: (code: string) => call<SessionLookup>(`/sessions/lookup?code=${encodeURIComponent(code)}`),
   dashboard: (sessionId: string) => call<Dashboard>(`/teacher/dashboard?session_id=${encodeURIComponent(sessionId)}`),
@@ -309,10 +356,11 @@ export const api = {
     form.append("image", image, "notebook.jpg");
     return call<PhotoResult>("/agents/diagnostician/photo", { method: "POST", body: form });
   },
+  /** The teacher types the final answer from an unreadable page; phase "photo" keeps it out of the student's quiz. */
   typedAnswer: (studentId: string, questionId: string, answer: string) =>
     post<{ correct: boolean; misconception_tag: string | null; label_en: string | null; correct_answer: string }>(
       "/agents/diagnostician/answer",
-      { student_id: studentId, question_id: questionId, answer },
+      { student_id: studentId, question_id: questionId, answer, phase: "photo" },
     ),
   review: (studentId: string, questionId: string, verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) =>
     post<{ ok: true; correct: boolean; misconception_tag: string | null; error_step: number | null }>(

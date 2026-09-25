@@ -34,15 +34,17 @@ def _question_block(q: Question) -> str:
     )
 
 
-async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
+async def answer(student_id: str, question_id: str, answer_text: str, phase: str = "quiz") -> dict:
+    """phase "quiz" is the student's own quiz; "photo" is the teacher typing the final answer from an unreadable page,
+    which must not shorten the student's quiz."""
     topic = get_topic()
     q = state.require_question(question_id, ("mcq", "text", "photo"))
     with get_conn() as conn:
         student = state.require_student(conn, student_id)
         previous = row(
             conn,
-            "SELECT * FROM response WHERE student_id = ? AND question_id = ? AND phase = 'quiz' ORDER BY id DESC",
-            (student_id, question_id),
+            "SELECT * FROM response WHERE student_id = ? AND question_id = ? AND phase = ? ORDER BY id DESC",
+            (student_id, question_id, phase),
         )
         mastery_now = state.mastery_map(conn, student_id).get(q.concept_id, rules.START_MASTERY)
         gap_open_before = state.has_open_gap(conn, student_id, q.concept_id)
@@ -105,7 +107,7 @@ async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
             tag=tag,
             source=source,
             confidence=confidence,
-            phase="quiz",
+            phase=phase,
         )
         if student["kind"] != "simulated":
             verdict = "correct" if correct else f"{tag} ({topic.tag(tag).label()})"
@@ -115,7 +117,8 @@ async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
                 student["session_id"],
                 "Diagnostician",
                 "diagnose",
-                f"{student['nickname']} · {q.id} '{answer_text}': {verdict} [{source}]{gap_note}",
+                f"{student['nickname']} · {q.id} '{answer_text}'"
+                f"{' (typed by the teacher)' if phase == 'photo' else ''}: {verdict} [{source}]{gap_note}",
                 student_id,
                 telemetry,
             )

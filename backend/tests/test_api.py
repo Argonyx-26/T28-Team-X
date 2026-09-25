@@ -294,3 +294,84 @@ def test_photo_diagnosis_no_vision_provider_returns_clear_error(client, monkeypa
     assert r.status_code == 503
     assert r.json()["error"]["code"] == "no_vision_provider"
     assert "vision provider" in r.json()["error"]["message"].lower()
+
+
+def test_teacher_typed_answer_after_unreadable_photo_does_not_shorten_the_quiz(client):
+    j = client.post("/students/join", json={"code": "7B", "nickname": "Ravi", "language": "en"}).json()
+    sid = j["student_id"]
+    a = client.post(
+        "/agents/diagnostician/answer",
+        json={"student_id": sid, "question_id": "P1", "answer": "4/8", "phase": "photo"},
+    ).json()
+    assert a["misconception_tag"] == "add_denominators" and a["source"] == "rule"
+    n = client.post("/agents/examiner/next", json={"student_id": sid}).json()
+    assert n["index"] == 1  # the teacher's typed answer counted as a photo reading, not as quiz question 1
+    detail = client.get("/teacher/student", params={"student_id": sid}).json()
+    assert detail["responses"][0]["phase"] == "photo"
+
+
+def test_nickname_rules_and_class_cap(client, monkeypatch):
+    from app.config import settings
+
+    for bad, code in [("x", "nickname_too_short"), ("bolimaga", "nickname_not_allowed"), ("??", "nickname_characters")]:
+        r = client.post("/students/join", json={"code": "7B", "nickname": bad, "language": "kn"})
+        assert r.status_code == 422 and r.json()["error"]["code"] == code, bad
+    ok = client.post("/students/join", json={"code": "7B", "nickname": "  Ravi   Kumar ", "language": "kn"}).json()
+    assert ok["nickname"] == "Ravi Kumar"
+    monkeypatch.setattr(settings, "max_students_per_class", 32)
+    r = client.post("/students/join", json={"code": "7B", "nickname": "Meena", "language": "hi"})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "class_full"
+    # Asha always resumes, even in a full class
+    assert client.post("/students/join", json={"code": "7B", "nickname": "Asha", "language": "hi"}).json()["resumed"]
+
+
+def test_admin_remove_student_health_and_cache_export(client):
+    j = client.post("/students/join", json={"code": "7B", "nickname": "Troll", "language": "en"}).json()
+    r = client.post("/admin/remove-student", json={"student_id": j["student_id"]})
+    assert r.status_code == 401
+    headers = {"X-Admin-Token": "secret"}
+    assert client.post("/admin/remove-student", json={"student_id": j["student_id"]}, headers=headers).json()["ok"]
+    d = client.get("/teacher/dashboard", params={"session_id": DEMO_SESSION_ID}).json()
+    assert all(s["nickname"] != "Troll" for s in d["heatmap"]["students"])
+    r = client.post("/admin/remove-student", json={"student_id": ASHA_ID}, headers=headers)
+    assert r.status_code == 409
+    h = client.get("/admin/health", headers=headers).json()
+    assert h["ok"] and h["demo_class"]["students"] == 31 and "llm" in h["cache"]
+    client.post("/agents/analyst/analyze", json={"session_id": DEMO_SESSION_ID})
+    rows = client.get("/admin/cache-export", headers=headers).json()["rows"]
+    assert rows and {"key", "agent", "response_json"} <= set(rows[0])
+
+
+def test_cache_seed_loads_at_boot(tmp_path, monkeypatch):
+    import json
+
+    from app import seed
+    from app.config import settings
+    from app.db import get_conn, init_db
+
+    seed_file = tmp_path / "llm_cache_seed.jsonl"
+    seed_file.write_text(
+        json.dumps({"key": "k1", "agent": "Coach", "provider": "vertex", "model": "m", "response_json": "{}"}) + "\n",
+        encoding="utf-8",
+    )
+    real_data = settings.data_dir
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    (tmp_path / "fractions.json").write_bytes((real_data / "fractions.json").read_bytes())
+    init_db()
+    assert seed.load_cache_seed() == 1
+    assert seed.load_cache_seed() == 0  # idempotent
+    with get_conn() as conn:
+        assert conn.execute("SELECT count(*) FROM llm_cache WHERE key = 'k1'").fetchone()[0] == 1
+
+
+def test_cors_is_not_a_wildcard(client):
+    r = client.options(
+        "/health",
+        headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"},
+    )
+    assert r.headers.get("access-control-allow-origin") != "*"
+    r = client.options(
+        "/health",
+        headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
+    )
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"

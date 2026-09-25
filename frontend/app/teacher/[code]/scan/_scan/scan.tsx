@@ -388,7 +388,7 @@ export function Scan({ code }: { code: string }) {
             {result.needs_typed_answer ? (
               <div className={`${s.sheet} flex flex-col gap-2 p-4`}>
                 <p className="font-semibold">This photo wasn&apos;t clear enough to read.</p>
-                <p className={s.muted}>Type the final answer from the notebook instead:</p>
+                <p className={s.muted}>Type the final answer from the notebook instead. It is saved as a notebook reading, not as a quiz answer.</p>
                 <div className="flex gap-2">
                   <input
                     className={`${s.button} ${s.focusable} flex-1 text-base`}

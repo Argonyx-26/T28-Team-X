@@ -1,6 +1,7 @@
 """HTTP routes. One endpoint per agent action; IDs travel in the body or query string, never in the path."""
 
 import asyncio
+import json
 import secrets
 import time
 from collections import defaultdict, deque
@@ -15,6 +16,7 @@ from .config import settings
 from .db import get_conn, log_event, new_id, now, transaction
 from .errors import ApiError
 from .llm.providers import providers_status
+from .nicknames import clean_nickname
 from .topic import get_topic
 
 router = APIRouter()
@@ -41,6 +43,8 @@ class Answer(BaseModel):
     student_id: str
     question_id: str
     answer: str = Field(min_length=1, max_length=120)
+    # "photo": the teacher typed the final answer from an unreadable page; it never counts toward the student's quiz
+    phase: Literal["quiz", "photo"] = "quiz"
 
 
 class RetryAnswer(BaseModel):
@@ -72,6 +76,10 @@ class Review(BaseModel):
 
 class Approve(BaseModel):
     recommendation_id: str
+
+
+class RemoveStudent(BaseModel):
+    student_id: str
 
 
 # a small per-IP limiter for the endpoints that cost money
@@ -144,10 +152,11 @@ def lookup(code: str) -> dict:
 
 
 @router.post("/students/join")
-def join(body: Join) -> dict:
-    nickname = body.nickname.strip()
+def join(body: Join, request: Request) -> dict:
+    _limit(request, "join", 30)
     with get_conn() as conn:
         session = state.session_by_code(conn, body.code)
+        nickname = clean_nickname(body.nickname)
         if session["id"] == seed.DEMO_SESSION_ID and nickname.lower() == "asha":
             if not conn.execute("SELECT 1 FROM student WHERE id = ?", (seed.ASHA_ID,)).fetchone():
                 with transaction(conn):
@@ -159,6 +168,9 @@ def join(body: Join) -> dict:
                 "language": "kn",
                 "resumed": True,
             }
+        n_students = conn.execute("SELECT count(*) FROM student WHERE session_id = ?", (session["id"],)).fetchone()[0]
+        if n_students >= settings.max_students_per_class:
+            raise ApiError(409, "class_full", "This class is full. Ask your teacher to make room.")
         student_id = new_id("stu")
         with transaction(conn):
             conn.execute(
@@ -183,8 +195,8 @@ def examiner_next(body: StudentRef) -> dict:
 
 @router.post("/agents/diagnostician/answer")
 async def diagnostician_answer(body: Answer, request: Request) -> dict:
-    _limit(request, "answer", 60)
-    return await diagnostician.answer(body.student_id, body.question_id, body.answer.strip())
+    _limit(request, "answer", 120)
+    return await diagnostician.answer(body.student_id, body.question_id, body.answer.strip(), body.phase)
 
 
 @router.post("/agents/diagnostician/photo")
@@ -255,13 +267,15 @@ async def analyst_analyze(body: SessionRef, request: Request) -> dict:
 
 
 @router.post("/teacher/approve")
-def teacher_approve(body: Approve) -> dict:
+def teacher_approve(body: Approve, request: Request) -> dict:
+    _limit(request, "approve", 30)
     return coach.approve(body.recommendation_id)
 
 
 @router.post("/teacher/review")
-def teacher_review(body: Review) -> dict:
+def teacher_review(body: Review, request: Request) -> dict:
     """The teacher confirms or corrects a diagnosis. The teacher always has the last word."""
+    _limit(request, "review", 60)
     return review.review(body.student_id, body.question_id, body.verdict, body.tag, body.step)
 
 
@@ -314,6 +328,71 @@ def admin_reset(x_admin_token: str | None = Header(default=None)) -> dict:
     _check_admin(x_admin_token)
     seed.reset()
     return {"ok": True}
+
+
+@router.post("/admin/remove-student")
+def admin_remove_student(body: RemoveStudent, x_admin_token: str | None = Header(default=None)) -> dict:
+    """Takes a student off the class list and heatmap (an abusive or accidental join during a live class)."""
+    _check_admin(x_admin_token)
+    with get_conn() as conn, transaction(conn):
+        student = state.require_student(conn, body.student_id)
+        if student["id"] == seed.ASHA_ID:
+            raise ApiError(409, "demo_student", "Asha is the demo student; reset the class instead.")
+        for table in ("review", "response", "mastery", "gap"):
+            conn.execute(f"DELETE FROM {table} WHERE student_id = ?", (body.student_id,))  # noqa: S608
+        conn.execute("DELETE FROM student WHERE id = ?", (body.student_id,))
+        log_event(
+            conn, student["session_id"], "Teacher", "remove_student", f"Removed {student['nickname']} from the class"
+        )
+    return {"ok": True}
+
+
+@router.get("/admin/health")
+def admin_health(x_admin_token: str | None = Header(default=None)) -> dict:
+    """What the presenter checks before the demo: the API, the providers, the caches and the demo class."""
+    _check_admin(x_admin_token)
+    with get_conn() as conn:
+        llm_cache = conn.execute("SELECT count(*) FROM llm_cache").fetchone()[0]
+        lesson_cache = conn.execute("SELECT count(*) FROM lesson_cache").fetchone()[0]
+        students = conn.execute(
+            "SELECT count(*) FROM student WHERE session_id = ?", (seed.DEMO_SESSION_ID,)
+        ).fetchone()[0]
+        real = conn.execute(
+            "SELECT count(*) FROM student WHERE session_id = ? AND kind = 'real'", (seed.DEMO_SESSION_ID,)
+        ).fetchone()[0]
+        photo_ms = [
+            t["ms"]
+            for (tj,) in conn.execute(
+                "SELECT telemetry_json FROM agent_event WHERE action = 'diagnose_photo' ORDER BY seq DESC LIMIT 50"
+            )
+            for t in json.loads(tj or "[]")
+            if t.get("ok") and not t.get("cached")
+        ]
+    return {
+        "ok": True,
+        "version": settings.version,
+        "demo_mode": settings.demo_mode,
+        "providers": providers_status(),
+        "vision_model": settings.vertex_vision_model,
+        "text_model": settings.vertex_model,
+        "cache": {"llm": llm_cache, "lessons": lesson_cache},
+        "demo_class": {"students": students, "real_joins": real},
+        "last_photo_ms": photo_ms[:10],
+    }
+
+
+@router.get("/admin/cache-export")
+def admin_cache_export(x_admin_token: str | None = Header(default=None)) -> dict:
+    """The LLM cache as rows, so the demo-critical answers can be saved as data/llm_cache_seed.jsonl."""
+    _check_admin(x_admin_token)
+    with get_conn() as conn:
+        items = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT key, agent, provider, model, response_json, created_at FROM llm_cache ORDER BY created_at"
+            ).fetchall()
+        ]
+    return {"rows": items}
 
 
 @router.post("/admin/warm-lessons")

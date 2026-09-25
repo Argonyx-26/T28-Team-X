@@ -50,7 +50,7 @@ async def measure(repeats: int = 3) -> dict:
     def add(action: str, telemetry: list[dict]):
         out.setdefault(action, []).extend(t["cost_paise"] for t in telemetry if t["ok"] and not t["cached"])
 
-    photo = prepare_image((samples / "asha-p1.jpg").read_bytes())
+    photo = prepare_image((samples / "asha-p1-photo.jpg").read_bytes())
     for _ in range(repeats):
         _, tel = await read_photo(topic.question("P1"), photo, use_cache=False)
         add("diagnose_photo", tel)

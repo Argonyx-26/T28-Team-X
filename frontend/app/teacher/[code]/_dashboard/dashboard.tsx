@@ -334,6 +334,7 @@ export function Dashboard({ code }: { code: string }) {
         studentId={student}
         concepts={data?.concepts ?? []}
         onOpenChange={(open) => !open && setStudent(null)}
+        onRemoved={() => void loadDashboard()}
       />
       <JoinDialog code={code} open={joinOpen} onOpenChange={setJoinOpen} />
     </main>
