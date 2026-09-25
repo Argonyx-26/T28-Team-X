@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, GitBranch, Play, QrCode, Sparkles } from "lucide-react";
+import { ArrowRight, GitBranch, Play, Sparkles } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const features = [
   {
@@ -161,7 +162,7 @@ export default function Home() {
                 Demo video
               </a>
               <a
-                href="https://github.com/"
+                href="https://github.com/Argonyx-26/T28-Team-X"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-[#D6DDE9] px-4 py-2 text-sm font-medium"
@@ -179,12 +180,16 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3 rounded-xl border border-[#D6DDE9] p-4">
-            <QrCode className="h-8 w-8" />
-            <div>
-              <div className="text-xs text-[#616874]">Student demo</div>
-              <div className="font-semibold">7B · Asha</div>
-            </div>
-          </div>
+  <QRCodeSVG
+    value="/join/7B?as=asha"
+    size={72}
+    level="M"
+  />
+  <div>
+    <div className="text-xs text-[#616874]">Scan to try</div>
+    <div className="font-semibold">7B · Asha</div>
+  </div>
+</div>
         </div>
       </section>
 
