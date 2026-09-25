@@ -189,3 +189,16 @@ def test_analyst_accepts_a_practice_group_without_a_mistake_check():
     first = {**rec, "misconception_tag": "add_denominators", "audience": "reteach_group"}
     verdict, reason = rules.critique(TOPIC, a, [first, rec], 1)
     assert verdict == "accept" and reason.startswith("Fits the data")
+
+
+def test_analyst_rejects_a_duplicate_plan():
+    a = rules.aggregate(TOPIC, *_class())
+    rec = {
+        "concept_id": "C4",
+        "misconception_tag": "add_denominators",
+        "audience": "reteach_group",
+        "plan_5min": ["a", "b", "c"],
+        "worked_example": "x",
+    }
+    verdict, reason = rules.critique(TOPIC, a, [rec, dict(rec)], 1)
+    assert verdict == "revise" and "repeats plan 1" in reason and "other 21 students" in reason

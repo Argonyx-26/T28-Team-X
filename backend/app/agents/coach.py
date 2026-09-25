@@ -24,7 +24,12 @@ MAX_ROUNDS = 2
 def _teacher_view(analysis) -> str:
     """What a mark book shows: averages and gap counts, but not which child made which mistake."""
     concepts = [
-        {"concept_id": c.id, "name": c.name, "average_mastery": c.avg, "open_gaps": c.open_gaps}
+        {
+            "concept_id": c.id,
+            "name": c.name,
+            "average_mastery_percent": None if c.avg is None else round(c.avg * 100),
+            "open_gaps": c.open_gaps,
+        }
         for c in analysis.concepts
     ]
     return json.dumps(
@@ -175,7 +180,7 @@ async def analyze(session_id: str) -> dict:
             f"{fs.open_gaps if fs else 0} open gaps{top}",
         )
 
-    tag_list = "\n".join(f"- {t.tag}: {t.definition}" for t in topic.tags.values())
+    tag_list = "\n".join(f"- {t.tag} (say: '{t.label()}'): {t.definition}" for t in topic.tags.values())
     plan, tel = await generate(
         "Coach",
         "propose",

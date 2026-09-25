@@ -38,6 +38,11 @@ CURATOR = (
     "Reply with JSON only."
 )
 
+STYLE = (
+    "In headline, plan steps and why, name a mistake by the plain words given after 'say:', never by its tag id, "
+    "and write mastery as a percentage. Reply with JSON only."
+)
+
 COACH_PROPOSE = (
     "You are an instructional coach helping a Class 7 maths teacher plan the first 5 minutes of tomorrow's class. "
     "You get the class summary a teacher's mark book shows: average mastery per concept, the number of open "
@@ -47,7 +52,7 @@ COACH_PROPOSE = (
     "one of whole_class, reteach_group, practice_group, extend_group, individuals), a short group_label, concept_id, "
     "misconception_tag (from the list given), a headline of at most 15 words, plan_5min with 3 to 5 concrete teacher "
     "actions, one worked_example with plain digits in a/b form, and why (at most 40 words, citing the numbers you "
-    "were given). Reply with JSON only."
+    "were given). " + STYLE
 )
 
 COACH_REVISE = (
@@ -58,7 +63,7 @@ COACH_REVISE = (
     "reteach_group for the students who show the mistake, and add a second plan with audience practice_group for "
     "the rest; if the Analyst says no student shows a mistake, switch misconception_tag to the mistake the counts "
     "show most. Keep 3 to 5 steps and one worked example. In why, use only numbers that appear in the input, copied "
-    "exactly. Return at most 2 plans. Reply with JSON only."
+    "exactly. Return at most 2 plans. " + STYLE
 )
 
 PARENT = (

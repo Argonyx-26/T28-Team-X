@@ -296,6 +296,14 @@ def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int
     stats = analysis.stats(cid)
     concept = topic.concept(cid)
     n = analysis.n_students
+    same = ("audience", "concept_id", "misconception_tag")
+    for j, earlier in enumerate(recs[:index]):
+        if all(earlier.get(key) == rec.get(key) for key in same):
+            k = stats.affected_by_tag.get(tag, 0) if stats else 0
+            return "revise", (
+                f"Plan {index + 1} repeats plan {j + 1} for the same students; give the other {n - k} students "
+                "practice instead."
+            )
     steps = rec.get("plan_5min") or []
     if len(steps) > 5:
         return "revise", f"The plan has {len(steps)} steps; a 5-minute plan needs 5 or fewer."
