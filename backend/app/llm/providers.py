@@ -93,8 +93,8 @@ def _get_vertex_client():
     return _vertex_client
 
 
-async def _call_vertex(
-    system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int = 0
+async def _vertex_generate(
+    model: str, system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int
 ):
     from google.genai import types
 
@@ -111,7 +111,6 @@ async def _call_vertex(
         thinking_config=types.ThinkingConfig(thinking_budget=thinking),
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
-    model = settings.vertex_vision_model if image else settings.vertex_model
     resp = await client.aio.models.generate_content(model=model, contents=contents, config=config)
     usage = resp.usage_metadata
     in_t = int(getattr(usage, "prompt_token_count", 0) or 0)
@@ -119,13 +118,27 @@ async def _call_vertex(
     return resp.text or "", (in_t, out_t), model
 
 
-CALLERS: dict[str, Caller] = {"nebius": _call_nebius, "vertex": _call_vertex}
+async def _call_vertex(
+    system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int = 0
+):
+    model = settings.vertex_vision_model if image else settings.vertex_model
+    return await _vertex_generate(model, system, prompt, schema, image, mime, thinking)
+
+
+async def _call_vertex_alt(
+    system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int = 0
+):
+    """A second Gemini model, used to hedge slow calls."""
+    return await _vertex_generate(settings.vertex_hedge_model, system, prompt, schema, image, mime, thinking)
+
+
+CALLERS: dict[str, Caller] = {"nebius": _call_nebius, "vertex": _call_vertex, "vertex_alt": _call_vertex_alt}
 
 
 def available(provider: str, image: bool) -> bool:
     if provider == "nebius":
         return bool(settings.nebius_api_key) and (not image or bool(settings.nebius_vision_model))
-    if provider == "vertex":
+    if provider in ("vertex", "vertex_alt"):
         return bool(settings.gcp_project)
     return provider in CALLERS
 
@@ -163,7 +176,7 @@ def _telemetry(agent, action, provider, model, ms, in_t, out_t, *, fallback, cac
     return {
         "agent": agent,
         "action": action,
-        "provider": provider,
+        "provider": provider.split("_")[0],
         "model": model,
         "ms": int(ms),
         "in_tokens": in_t,
@@ -215,6 +228,8 @@ async def generate(
         start = time.perf_counter()
         if provider == "vertex":
             model = settings.vertex_vision_model if image else settings.vertex_model
+        elif provider == "vertex_alt":
+            model = settings.vertex_hedge_model
         else:
             model = settings.nebius_vision_model if image else settings.nebius_model
         try:
@@ -248,4 +263,31 @@ async def generate(
         if use_cache:
             _cache_put(key, agent, provider, model, parsed.model_dump_json())
         return parsed, telemetry
+    return None, telemetry
+
+
+async def generate_hedged(*args, primary: tuple[str, ...], backup: tuple[str, ...], hedge_after: float, **kwargs):
+    """Start `primary`; if it hasn't answered after `hedge_after` seconds, also start `backup`. First valid answer wins.
+
+    Bounds the tail latency of the demo's slowest call (reading a photo) at the cost of an occasional second call.
+    """
+    first = asyncio.create_task(generate(*args, route=primary, **kwargs))
+    done, _ = await asyncio.wait({first}, timeout=hedge_after)
+    if done:
+        result, telemetry = first.result()
+        if result is not None:
+            return result, telemetry
+        more_result, more = await generate(*args, route=backup, **kwargs)
+        return more_result, telemetry + more
+    second = asyncio.create_task(generate(*args, route=backup, **kwargs))
+    pending, telemetry = {first, second}, []
+    while pending:
+        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            result, tel = task.result()
+            telemetry += tel
+            if result is not None:
+                for other in pending:
+                    other.cancel()
+                return result, telemetry
     return None, telemetry

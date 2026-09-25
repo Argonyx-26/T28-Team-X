@@ -32,6 +32,8 @@ class Settings:
     # text: fast structured JSON; vision: best at reading handwriting (measured on-site)
     vertex_model: str = field(default_factory=lambda: _env("VERTEX_MODEL", "gemini-2.5-flash"))
     vertex_vision_model: str = field(default_factory=lambda: _env("VERTEX_VISION_MODEL", "gemini-3-flash-preview"))
+    vertex_hedge_model: str = field(default_factory=lambda: _env("VERTEX_HEDGE_MODEL", "gemini-2.5-flash"))
+    hedge_after_s: float = field(default_factory=lambda: float(_env("HEDGE_AFTER_S", "6")))
 
     text_timeout_s: float = field(default_factory=lambda: float(_env("TEXT_TIMEOUT_S", "15")))
     photo_timeout_s: float = field(default_factory=lambda: float(_env("PHOTO_TIMEOUT_S", "20")))

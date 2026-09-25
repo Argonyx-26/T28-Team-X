@@ -5,12 +5,13 @@ import io
 from PIL import Image, ImageOps
 
 from .. import rules
+from ..config import settings
 from ..db import get_conn, log_event, row, transaction
 from ..errors import ApiError
 from ..fraction_math import parse_answer
 from ..i18n import feedback as feedback_text
 from ..llm import prompts
-from ..llm.providers import generate
+from ..llm.providers import generate, generate_hedged
 from ..llm.schemas import PhotoDiagnosis, TextDiagnosis
 from ..topic import Question, get_topic
 from . import state
@@ -160,14 +161,16 @@ async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tup
     """The vision model reads the working; rules then check its verdict. No database access (evals use this too)."""
     topic = get_topic()
     prompt = f"{_question_block(q)}\n\nThe photo shows this student's working for the question above."
-    result, telemetry = await generate(
+    result, telemetry = await generate_hedged(
         "Diagnostician",
         "diagnose_photo",
         prompts.DIAGNOSE_PHOTO,
         prompt,
         PhotoDiagnosis,
+        primary=("vertex",),
+        backup=("vertex_alt", "nebius"),
+        hedge_after=settings.hedge_after_s,
         image=jpeg,
-        route=("vertex", "nebius"),
         use_cache=use_cache,
         validate=lambda r: len([s for s in r.steps if s.strip()]) > 0,
     )

@@ -133,7 +133,7 @@ def smoke(base: str) -> int:
     def analyze():
         r = c.post("/agents/analyst/analyze", json={"session_id": "ses_7b"}).json()
         assert r["final"], r
-        return " → ".join(f"{s['agent']}:{s['action']}" for s in r["steps"])
+        return " -> ".join(f"{s['agent']}:{s['action']}" for s in r["steps"])
 
     for name, fn in [
         ("health", health),

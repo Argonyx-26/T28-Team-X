@@ -66,6 +66,8 @@ def _fake_payload(schema_name: str, prompt: str) -> dict:
         }
     if schema_name == "ParentMessageOut":
         return {"language": "kn", "message": "ನಮಸ್ಕಾರ! ಇಂದು ಆಶಾ ಭಿನ್ನರಾಶಿಗಳ ಸಂಕಲನ ಅಭ್ಯಾಸ ಮಾಡಿದರು."}
+    if schema_name == "Out":
+        return {"answer": "4/4"}
     raise AssertionError(schema_name)
 
 
@@ -83,5 +85,6 @@ def offline(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "admin_token", "secret")
     monkeypatch.setitem(providers.CALLERS, "nebius", fake_caller)
     monkeypatch.setitem(providers.CALLERS, "vertex", fake_caller)
+    monkeypatch.setitem(providers.CALLERS, "vertex_alt", fake_caller)
     CALLS.clear()
     yield
