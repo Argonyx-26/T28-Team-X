@@ -154,6 +154,7 @@ def _lookup(conn, session: dict) -> dict:
         "class_name": session["class_name"],
         "topic_name": get_topic().name,
         "n_students": n,
+        "school_id": session.get("school_id"),
     }
 
 

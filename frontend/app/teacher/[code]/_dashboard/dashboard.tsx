@@ -311,6 +311,11 @@ export function Dashboard({ code }: { code: string }) {
               Snap notebooks
             </Link>
           )}
+          {FLAGS.SCHOOL && session?.school_id && (
+            <Link className={s.button} href={`/school/${encodeURIComponent(session.school_id)}`}>
+              School view
+            </Link>
+          )}
           <button
             type="button"
             className={s.button}

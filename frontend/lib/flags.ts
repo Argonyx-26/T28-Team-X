@@ -15,7 +15,7 @@ export const FLAGS = {
   /** F9: text-to-speech on the student screens */
   LISTEN: flag("LISTEN", false),
   /** F6: /school/[id] and class creation */
-  SCHOOL: flag("SCHOOL", false),
+  SCHOOL: flag("SCHOOL", true),
   /** F5: the red pen drawn on the photo itself */
   PHOTO_PEN: flag("PHOTO_PEN", true),
 } as const;

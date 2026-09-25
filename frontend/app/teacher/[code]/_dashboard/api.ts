@@ -23,6 +23,33 @@ export interface SessionLookup {
   class_name: string;
   topic_name: string;
   n_students: number;
+  school_id?: string | null;
+}
+
+export interface CreatedSession extends SessionLookup {
+  join_url: string;
+  teacher_url: string;
+}
+
+export interface SchoolClass {
+  session_id: string;
+  code: string;
+  class_name: string;
+  n_students: number;
+  averages: Record<string, number | null>;
+  open_gaps: Record<string, number>;
+  focus_concept: string | null;
+  reteach: { concept_id: string; concept_name: string; tag: string; label: string; students: number } | null;
+  gaps: { open: number; closed: number };
+}
+
+export interface SchoolSummary {
+  school_id: string;
+  n_classes: number;
+  n_students: number;
+  concepts: { id: string; name: string; short: string }[];
+  classes: SchoolClass[];
+  top_misconceptions: { tag: string; label: string; students: number; concepts: string[] }[];
 }
 
 export interface ConceptStat {
@@ -468,6 +495,11 @@ export const api = {
       "/students/join",
       { code, nickname, language, roll_no: rollNo },
     ),
+  createSession: (className: string, code?: string, schoolId?: string) =>
+    post<CreatedSession>("/sessions/create", { class_name: className, code, school_id: schoolId }),
+  roster: (sessionId: string, text: string) =>
+    post<{ ok: true; added: number; updated: number }>("/sessions/roster", { session_id: sessionId, text }),
+  school: (schoolId: string) => call<SchoolSummary>(`/school/summary?school_id=${encodeURIComponent(schoolId)}`),
   review: (studentId: string, questionId: string, verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) =>
     post<{ ok: true; correct: boolean; misconception_tag: string | null; error_step: number | null }>(
       "/teacher/review",
