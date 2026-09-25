@@ -13,6 +13,9 @@ log = logging.getLogger("gurugraph.seed")
 DEMO_CODE = "7B"
 DEMO_SESSION_ID = "ses_7b"
 ASHA_ID = "stu_asha_7b"
+DEMO_SCHOOL_ID = "demo"
+# two more simulated classes in the same school, so the school view has something to compare (F6)
+SIBLING_CLASSES = [("ses_7a", "7A", "Class 7A · Fractions"), ("ses_7c", "7C", "Class 7C · Fractions")]
 # Asha has practised the basics already, so the Examiner's first pick for her is C4 (adding fractions)
 ASHA_HISTORY = [("Q01", True), ("Q04", True), ("Q05", True), ("Q09", True)]
 
@@ -80,12 +83,20 @@ def seed() -> bool:
             return False
         with transaction(conn):
             conn.execute(
-                "INSERT INTO session (id, code, class_name, topic_id, created_at) VALUES (?, ?, ?, ?, ?)",
-                (DEMO_SESSION_ID, DEMO_CODE, "Class 7B · Fractions", topic.id, now()),
+                "INSERT INTO session (id, code, class_name, topic_id, created_at, school_id) VALUES (?, ?, ?, ?, ?, ?)",
+                (DEMO_SESSION_ID, DEMO_CODE, "Class 7B · Fractions", topic.id, now(), DEMO_SCHOOL_ID),
             )
             simulator.run(conn, DEMO_SESSION_ID, 30)
             assign_roll_numbers(conn, DEMO_SESSION_ID, start=2)
             create_asha(conn)
+            for sid, code, name in SIBLING_CLASSES:
+                conn.execute(
+                    "INSERT INTO session (id, code, class_name, topic_id, created_at, school_id) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (sid, code, name, topic.id, now(), DEMO_SCHOOL_ID),
+                )
+                simulator.run(conn, sid, 30)
+                assign_roll_numbers(conn, sid)
             log_event(
                 conn,
                 DEMO_SESSION_ID,

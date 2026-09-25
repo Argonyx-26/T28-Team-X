@@ -16,6 +16,7 @@ The frontend calls **`/backend/<path>`**, and `next.config` rewrites that to `${
 - class **7B** ("Class 7B · Fractions") with **30 simulated students** (roll numbers 2–31);
 - **Asha**, a demo student (Kannada, roll 1), who already has practice on C1–C3, so her first question is on C4.
 - Every student has a `roll_no`; a page whose header says "Roll 7" is filed under roll 7, else under the nickname it names.
+- Classes **7A** and **7C** (30 simulated students each) sit next to 7B in school `demo`, for the school view.
 
 ## TypeScript types (copy into `frontend/lib/types.ts`)
 
@@ -212,7 +213,9 @@ export interface JudgesSummary {
 |---|---|---|
 | `GET /health` | – | `{ok, version, demo_mode, providers:{nebius, vertex}}` |
 | `GET /topic` | – | `TopicResponse` |
-| `POST /sessions/create` | `{class_name, code?}` | `SessionLookup & {join_url}` |
+| `POST /sessions/create` | `{class_name, code?, school_id?}` | `SessionLookup & {join_url, teacher_url}`. 10 per minute per IP |
+| `POST /sessions/roster` | `{session_id, items?: [{roll_no, nickname, language?}], text?: "roll, nickname [lang]" lines}` (admin token for 7B) | `{ok, added, updated}`: a roll number that exists is renamed; a child who joins with that roll number resumes it |
+| `GET /school/summary` | `?school_id=demo` | `{school_id, n_classes, n_students, concepts, classes:[{session_id, code, class_name, n_students, averages:{C1..}, open_gaps:{C1..}, focus_concept, reteach:{concept_id, concept_name, tag, label, students}|null, gaps}], top_misconceptions:[{tag, label, students, concepts}]}` (404 `school_not_found`) |
 | `GET /sessions/lookup` | `?code=7B` | `SessionLookup` (404 if the code is unknown) |
 | `POST /students/join` | `{code, nickname, language, roll_no?}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 30 joins per minute per IP |
 | `POST /agents/examiner/next` | `{student_id}` | `NextResponse` (5 questions per quiz) |

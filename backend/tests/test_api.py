@@ -462,3 +462,34 @@ def test_speak_returns_a_clip(client):
     assert r["audio_url"].startswith("/media/voice?id=")
     audio = client.get(r["audio_url"])
     assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
+
+
+def test_create_class_roster_and_school_view(client):
+    s = client.post("/sessions/create", json={"class_name": "6A maths", "code": "6a", "school_id": "demo"}).json()
+    assert s["code"] == "6A" and s["join_url"].endswith("/join/6A") and s["teacher_url"].endswith("/teacher/6A")
+    r = client.post(
+        "/sessions/roster",
+        json={"session_id": s["session_id"], "text": "1, Asha kn\n2 Ravi\n3\tMeena hi\n4, Kiran\n"},
+    ).json()
+    assert r == {"ok": True, "added": 4, "updated": 0}
+    r = client.post(
+        "/sessions/roster", json={"session_id": s["session_id"], "items": [{"roll_no": 2, "nickname": "Ravi K"}]}
+    ).json()
+    assert r["updated"] == 1 and r["added"] == 0
+    d = client.get("/teacher/dashboard", params={"session_id": s["session_id"]}).json()
+    rolls = {x["roll_no"]: x["nickname"] for x in d["heatmap"]["students"]}
+    assert rolls == {1: "Asha", 2: "Ravi K", 3: "Meena", 4: "Kiran"}
+    j = client.post("/students/join", json={"code": "6A", "nickname": "whoever", "language": "kn", "roll_no": 3}).json()
+    assert j["resumed"] and j["nickname"] == "Meena"
+    bad = client.post("/sessions/roster", json={"session_id": s["session_id"], "text": "Ravi"})
+    assert bad.status_code == 422 and bad.json()["error"]["code"] == "bad_roster_line"
+    assert client.post("/sessions/roster", json={"session_id": DEMO_SESSION_ID, "text": "40, X"}).status_code == 401
+    school = client.get("/school/summary", params={"school_id": "demo"}).json()
+    codes = [c["code"] for c in school["classes"]]
+    assert codes == ["6A", "7A", "7B", "7C"] and school["n_students"] == 31 + 30 + 30 + 4
+    seven_b = next(c for c in school["classes"] if c["code"] == "7B")
+    assert seven_b["reteach"]["tag"] == "add_denominators" and seven_b["averages"]["C4"] is not None
+    assert school["top_misconceptions"][0]["students"] > 0 and "C4" in school["top_misconceptions"][0]["concepts"]
+    assert client.get("/school/summary", params={"school_id": "nope"}).status_code == 404
+    # a lookup of a sibling class works like any class
+    assert client.get("/sessions/lookup", params={"code": "7a"}).json()["n_students"] == 30

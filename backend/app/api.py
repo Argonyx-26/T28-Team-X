@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 import secrets
 import time
 from collections import defaultdict, deque
@@ -27,6 +28,20 @@ Lang = Literal["en", "hi", "kn"]
 class CreateSession(BaseModel):
     class_name: str = Field(min_length=1, max_length=80)
     code: str | None = Field(default=None, max_length=12)
+    school_id: str | None = Field(default=None, max_length=40)
+
+
+class RosterItem(BaseModel):
+    roll_no: int = Field(ge=1, le=999)
+    nickname: str = Field(min_length=1, max_length=40)
+    language: Lang = "en"
+
+
+class Roster(BaseModel):
+    session_id: str
+    # either structured items or pasted "roll, nickname" lines
+    items: list[RosterItem] = Field(default_factory=list, max_length=80)
+    text: str | None = Field(default=None, max_length=8000)
 
 
 class Join(BaseModel):
@@ -143,18 +158,91 @@ def _lookup(conn, session: dict) -> dict:
 
 
 @router.post("/sessions/create")
-def create_session(body: CreateSession) -> dict:
+def create_session(body: CreateSession, request: Request) -> dict:
+    _limit(request, "create", 10)
     code = (body.code or secrets.token_hex(2)).strip().upper()
+    if not code.isalnum():
+        raise ApiError(422, "bad_code", "A class code is letters and digits only.")
     with get_conn() as conn, transaction(conn):
         if conn.execute("SELECT 1 FROM session WHERE upper(code) = ?", (code,)).fetchone():
             raise ApiError(409, "code_taken", "That class code is already in use.")
         session = {"id": new_id("ses"), "code": code, "class_name": body.class_name.strip()}
         conn.execute(
-            "INSERT INTO session (id, code, class_name, topic_id, created_at) VALUES (?, ?, ?, ?, ?)",
-            (session["id"], code, session["class_name"], get_topic().id, now()),
+            "INSERT INTO session (id, code, class_name, topic_id, created_at, school_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (session["id"], code, session["class_name"], get_topic().id, now(), (body.school_id or "").strip() or None),
         )
         out = _lookup(conn, session)
-    return {**out, "join_url": f"{settings.public_app_url}/join/{code}"}
+    return {
+        **out,
+        "join_url": f"{settings.public_app_url}/join/{code}",
+        "teacher_url": f"{settings.public_app_url}/teacher/{code}",
+    }
+
+
+def _parse_roster(text: str) -> list[RosterItem]:
+    """Pasted lines: "1, Asha", "2 Ravi kn", "3\tMeena". A language code at the end is optional."""
+    items: list[RosterItem] = []
+    for raw in text.splitlines():
+        line = raw.strip().strip(",")
+        if not line:
+            continue
+        parts = [
+            p for p in re.split(r"[,\t;]+|\s{2,}|(?<=^\d)\s+|(?<=^\d\d)\s+|(?<=^\d\d\d)\s+", line) if p and p.strip()
+        ]
+        if len(parts) < 2 or not parts[0].strip().isdigit():
+            raise ApiError(422, "bad_roster_line", f"Couldn't read the line '{raw.strip()}'. Use: roll, nickname.")
+        lang: Lang = "en"
+        name = " ".join(parts[1:]).strip()
+        tail = name.split()
+        if len(tail) > 1 and tail[-1].lower() in ("en", "hi", "kn"):
+            lang = tail[-1].lower()  # type: ignore[assignment]
+            name = " ".join(tail[:-1])
+        items.append(RosterItem(roll_no=int(parts[0]), nickname=name, language=lang))
+    return items
+
+
+@router.post("/sessions/roster")
+def import_roster(body: Roster, request: Request, x_admin_token: str | None = Header(default=None)) -> dict:
+    """Imports a roster: each row is a roll number and a nickname. Existing roll numbers are renamed, new ones added.
+    The demo class needs the admin token so the judged class stays as seeded."""
+    _limit(request, "roster", 10)
+    if body.session_id == seed.DEMO_SESSION_ID:
+        _check_admin(x_admin_token)
+    items = list(body.items) + (_parse_roster(body.text) if body.text else [])
+    if not items:
+        raise ApiError(422, "empty_roster", "Paste at least one line: roll, nickname.")
+    added = updated = 0
+    with get_conn() as conn:
+        state.require_session(conn, body.session_id)
+        n_students = conn.execute("SELECT count(*) FROM student WHERE session_id = ?", (body.session_id,)).fetchone()[0]
+        with transaction(conn):
+            for item in items:
+                nickname = clean_nickname(item.nickname)
+                existing = conn.execute(
+                    "SELECT id FROM student WHERE session_id = ? AND roll_no = ?", (body.session_id, item.roll_no)
+                ).fetchone()
+                if existing:
+                    conn.execute(
+                        "UPDATE student SET nickname = ?, language = ? WHERE id = ?",
+                        (nickname, item.language, existing[0]),
+                    )
+                    updated += 1
+                    continue
+                if n_students + added >= settings.max_students_per_class:
+                    raise ApiError(409, "class_full", "This class is full.")
+                conn.execute(
+                    "INSERT INTO student (id, session_id, nickname, language, kind, created_at, roll_no) "
+                    "VALUES (?, ?, ?, ?, 'real', ?, ?)",
+                    (new_id("stu"), body.session_id, nickname, item.language, now(), item.roll_no),
+                )
+                added += 1
+            log_event(conn, body.session_id, "Teacher", "roster", f"Roster imported: {added} added, {updated} updated")
+    return {"ok": True, "added": added, "updated": updated}
+
+
+@router.get("/school/summary")
+def school_summary(school_id: str) -> dict:
+    return analyst.school(school_id)
 
 
 @router.get("/sessions/lookup")

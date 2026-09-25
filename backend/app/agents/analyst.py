@@ -123,6 +123,72 @@ def events(session_id: str, after: int = 0, limit: int = 200) -> dict:
     return {"events": events_out, "last_seq": events_out[-1]["seq"] if events_out else after}
 
 
+def school(school_id: str) -> dict:
+    """Classes × concepts across one school, the top misconceptions, and which class needs which re-teach."""
+    topic = get_topic()
+    with get_conn() as conn:
+        sessions = rows(
+            conn, "SELECT id, code, class_name FROM session WHERE school_id = ? ORDER BY code", (school_id,)
+        )
+        if not sessions:
+            raise ApiError(404, "school_not_found", "No school has that id.")
+        classes = []
+        tag_students: dict[str, set[str]] = {}
+        tag_by_concept: dict[tuple[str, str], set[str]] = {}
+        total_students = 0
+        for ses in sessions:
+            students, _, _, _, analysis = state.analyse_class(conn, ses["id"])
+            total_students += len(students)
+            focus = analysis.stats(analysis.focus_concept) if analysis.focus_concept else None
+            top = focus.top[0] if focus and focus.top else None
+            for cid, tags in analysis.students_by_tag.items():
+                for tag, who in tags.items():
+                    tag_students.setdefault(tag, set()).update(who)
+                    tag_by_concept.setdefault((cid, tag), set()).update(who)
+            classes.append(
+                {
+                    "session_id": ses["id"],
+                    "code": ses["code"],
+                    "class_name": ses["class_name"],
+                    "n_students": len(students),
+                    "averages": {c.id: c.avg for c in analysis.concepts},
+                    "open_gaps": {c.id: c.open_gaps for c in analysis.concepts},
+                    "focus_concept": analysis.focus_concept,
+                    "reteach": (
+                        {
+                            "concept_id": analysis.focus_concept,
+                            "concept_name": topic.concept(analysis.focus_concept).name,
+                            "tag": top[0],
+                            "label": topic.tag(top[0]).label(),
+                            "students": top[1],
+                        }
+                        if top and analysis.focus_concept
+                        else None
+                    ),
+                    "gaps": {"open": analysis.gaps_open, "closed": analysis.gaps_closed},
+                }
+            )
+    top_tags = sorted(tag_students.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:5]
+    return {
+        "school_id": school_id,
+        "n_classes": len(classes),
+        "n_students": total_students,
+        "concepts": [{"id": c.id, "name": c.name, "short": c.short} for c in topic.concepts],
+        "classes": classes,
+        "top_misconceptions": [
+            {
+                "tag": tag,
+                "label": topic.tag(tag).label(),
+                "students": len(who),
+                "concepts": sorted(
+                    {cid for (cid, t) in tag_by_concept if t == tag}, key=lambda c: topic.concept_ids.index(c)
+                ),
+            }
+            for tag, who in top_tags
+        ],
+    }
+
+
 def digest(session_id: str, hours: int = 24) -> dict:
     """The morning card: since yesterday, how many homework pages came in and what gaps they opened."""
     from datetime import UTC, datetime, timedelta

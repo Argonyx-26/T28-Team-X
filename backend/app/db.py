@@ -95,6 +95,8 @@ MIGRATIONS = [
     "ALTER TABLE response ADD COLUMN stem TEXT",
     # the roll number written at the top of a page files it under the right child (F2 snap mode)
     "ALTER TABLE student ADD COLUMN roll_no INTEGER",
+    # classes belong to a school; the school view aggregates them (F6)
+    "ALTER TABLE session ADD COLUMN school_id TEXT",
 ]
 
 
