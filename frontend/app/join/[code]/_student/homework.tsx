@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { track } from "@/lib/raah";
 import { usePenLength } from "@/lib/use-pen-length";
@@ -97,18 +97,18 @@ function ProblemCard({ p, n, words, language }: { p: PageProblem; n: number; wor
                   {line}
                   {wrong && <RedPenCircle />}
                 </span>
-                {wrong && p.label_local && (
-                  <span className={`${k.margin} ${hand}`}>
-                    <span className="sr-only">{words.hwWrongLine(i + 1, p.label_local)}</span>
-                    <span aria-hidden>{p.label_local}</span>
-                  </span>
-                )}
                 {value !== null && (
                   <span className={`${k.ledger} ${check?.ok === false ? k.ledgerWrong : ""}`}>
                     <span className="sr-only">{words.hwEquals(i + 1, value)}</span>
                     <span aria-hidden>
                       = {value} {check?.ok === false ? "✗" : check?.ok ? "✓" : ""}
                     </span>
+                  </span>
+                )}
+                {wrong && p.label_local && (
+                  <span className={`${k.margin} ${hand}`}>
+                    <span className="sr-only">{words.hwWrongLine(i + 1, p.label_local)}</span>
+                    <span aria-hidden>{p.label_local}</span>
                   </span>
                 )}
               </li>
@@ -137,14 +137,16 @@ type Status = { name: "idle" } | { name: "reading" } | { name: "done"; result: P
 
 /**
  * F3: the child photographs their own homework page; one call reads every problem and the red pen marks the wrong
- * step. `photo` null shows the empty state; a new Blob starts a new read. `onTakePhoto` must open the file input
- * synchronously (it runs inside the tap, which the camera needs on iOS).
+ * step. `photo` null shows the empty state; a new Blob starts a new read. `preview` is an object URL the parent owns
+ * (created in the tap, revoked when the child leaves). `onTakePhoto` must open the file input synchronously (it runs
+ * inside the tap, which the camera needs on iOS).
  */
 export function Homework({
   studentId,
   language,
   words,
   photo,
+  preview,
   quizDone,
   onTakePhoto,
   onFix,
@@ -154,6 +156,7 @@ export function Homework({
   language: Lang;
   words: Words;
   photo: Blob | null;
+  preview: string | null;
   quizDone: boolean;
   onTakePhoto: () => void;
   onFix: () => void;
@@ -161,13 +164,6 @@ export function Homework({
 }) {
   // the parent keys this component per photo, so a new photo mounts a fresh read
   const [status, setStatus] = useState<Status>(() => (photo ? { name: "reading" } : { name: "idle" }));
-  const preview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
-
-  useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
 
   useEffect(() => {
     if (!photo) return;
@@ -279,9 +275,9 @@ export function Homework({
 
   return (
     <section className="flex flex-col gap-4" aria-label={words.checkHomework} aria-live="polite">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex flex-col gap-1">
         <h2 className={`${s.hand} text-[1.4em]`}>{words.checkHomework}</h2>
-        <p role="status" className="text-right font-semibold">
+        <p role="status" className="text-[1.1em] font-semibold">
           <span className={wrong.length ? "" : s.highlight}>{words.hwSummary(r.problems.length, wrong.length)}</span>
         </p>
       </div>

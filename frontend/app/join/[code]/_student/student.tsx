@@ -34,7 +34,7 @@ type Phase =
   | { name: "result"; result: RetryResponse }
   | { name: "done"; caughtUp: boolean }
   // F3: the child's own homework page; photo null is the "take a photo" screen; seq keys one read per photo
-  | { name: "homework"; photo: Blob | null; seq: number; quizDone: boolean };
+  | { name: "homework"; photo: Blob | null; preview: string | null; seq: number; quizDone: boolean };
 
 const storeKey = (code: string) => `gurugraph:${code.toUpperCase()}`;
 const DEMO_SESSION_ID = "ses_7b";
@@ -188,7 +188,7 @@ export function Student({ code }: { code: string }) {
         if (then === "homework") {
           // straight to "take a photo"; the quiz waits until the child taps back
           setBusy(false);
-          setPhase({ name: "homework", photo: null, seq: 0, quizDone: quizDone.current });
+          setPhase({ name: "homework", photo: null, preview: null, seq: 0, quizDone: quizDone.current });
         } else await nextQuestion(who);
       } catch (e) {
         fail(e, language);
@@ -204,9 +204,17 @@ export function Student({ code }: { code: string }) {
     fileInput.current?.click();
   };
 
+  /** The photo preview's object URL, made in the tap and released when the child leaves the homework screen. */
+  const previewUrl = useRef<string | null>(null);
+  const dropPreview = () => {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    previewUrl.current = null;
+  };
+
   /** After the homework screen: the same continue as the result screen, so nothing about the quiz changes. */
   const leaveHomework = () => {
     if (!me) return;
+    dropPreview();
     if (quizDone.current) void openLesson(me);
     else void nextQuestion(me);
   };
@@ -300,9 +308,13 @@ export function Student({ code }: { code: string }) {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
+                dropPreview();
+                previewUrl.current = URL.createObjectURL(file);
+                const preview = previewUrl.current;
                 setPhase((old) => ({
                   name: "homework",
                   photo: file,
+                  preview,
                   seq: (old.name === "homework" ? old.seq : 0) + 1,
                   quizDone: quizDone.current,
                 }));
@@ -618,9 +630,13 @@ export function Student({ code }: { code: string }) {
             language={me.language}
             words={words}
             photo={phase.photo}
+            preview={phase.preview}
             quizDone={phase.quizDone}
             onTakePhoto={takePhoto}
-            onFix={() => void openLesson(me)}
+            onFix={() => {
+              dropPreview();
+              void openLesson(me);
+            }}
             onLeave={leaveHomework}
           />
         )}
