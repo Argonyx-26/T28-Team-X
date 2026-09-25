@@ -40,6 +40,46 @@ const en = {
   offline: "Can't reach the class. Check your internet and try again.",
   slow: "Your lesson is taking longer than usual. Try again.",
   tryAgain: "Try again",
+  // F3 homework check
+  checkHomework: "Check my homework",
+  hwIntro: "Take a photo of your homework page. I will check every problem.",
+  hwTakePhoto: "Take a photo",
+  hwReading: "Reading your page…",
+  hwPhotoAlt: "Your homework page",
+  hwSummary: (n: number, wrong: number) =>
+    wrong === 0
+      ? `${n} problem${n === 1 ? "" : "s"} · all right!`
+      : `${n} problem${n === 1 ? "" : "s"} · ${wrong} to fix`,
+  hwProblem: (n: number) => `Problem ${n}`,
+  hwAllRight: "all right",
+  hwWrongLine: (n: number, label: string) => `Line ${n} is wrong: ${label}`,
+  hwEquals: (n: number, v: string) => `Line ${n} equals ${v}`,
+  hwUnreadable: "I couldn't read the page. Try a brighter photo, closer up.",
+  hwRetake: "Take another photo",
+  hwAnother: "Check another page",
+  hwBack: "Back to the quiz",
+  hwDone: "Done",
+  hwSaved: "Saved. Your teacher can see this.",
+  // F9 listen
+  listen: "Listen",
+  stop: "Stop",
+  listenError: "The voice isn't working right now. Read it instead.",
+  // the parent message (built on the phone; no names, no ids, no photo)
+  sendParent: "Send to my parent",
+  parentMessage: (n: number, wrong: number, concept: string | null) =>
+    wrong === 0
+      ? `Today I checked my maths homework on GuruGraph: ${n} problem${n === 1 ? "" : "s"}, all right! My teacher can see it.`
+      : `Today I checked my maths homework on GuruGraph: ${n} problem${n === 1 ? "" : "s"}, ${wrong} to practise${concept ? ` (${concept})` : ""}. My teacher can see it.`,
+  concepts: {
+    C1: "equivalent fractions",
+    C2: "simplifying fractions",
+    C3: "common denominators",
+    C4: "adding and subtracting fractions",
+    C5: "comparing fractions",
+    C6: "multiplying fractions",
+    C7: "dividing fractions",
+    C8: "word problems",
+  } as Record<string, string>,
   errors: {
     class_not_found: "No class has this code. Ask your teacher for the class code.",
     student_not_found: "We can't find you in this class. Join again.",
@@ -52,10 +92,14 @@ const en = {
     not_an_option: "Please pick one of the answers.",
     invalid_request: "Something in the answer wasn't right. Try again.",
     internal: "Something went wrong on our side. Try again.",
+    empty_image: "The photo is empty. Take it again.",
+    image_too_large: "The photo is too big. Take it again.",
+    not_an_image: "That file isn't a photo. Take a photo of your page.",
+    no_voice: "The voice isn't ready on this phone yet. Read it instead.",
   } as Record<string, string>,
 };
 
-type Words = typeof en;
+export type Words = typeof en;
 
 /** The message for an API error in the student's language; unknown codes keep the server's English message. */
 export function errorText(words: Words, code: string, fallback: string): string {
@@ -95,6 +139,40 @@ const hi: Words = {
   offline: "कक्षा से जुड़ नहीं पा रहे। इंटरनेट जाँचो और फिर से कोशिश करो।",
   slow: "तुम्हारा पाठ बनने में सामान्य से ज़्यादा समय लग रहा है। फिर से कोशिश करो।",
   tryAgain: "फिर से कोशिश करो",
+  checkHomework: "मेरा होमवर्क जाँचो",
+  hwIntro: "अपने होमवर्क के पेज की फ़ोटो लो। मैं हर सवाल जाँचूँगा।",
+  hwTakePhoto: "फ़ोटो लो",
+  hwReading: "तुम्हारा पेज पढ़ रहा हूँ…",
+  hwPhotoAlt: "तुम्हारे होमवर्क का पेज",
+  hwSummary: (n, wrong) => (wrong === 0 ? `${n} सवाल · सब सही!` : `${n} सवाल · ${wrong} ठीक करना है`),
+  hwProblem: (n) => `सवाल ${n}`,
+  hwAllRight: "सब सही",
+  hwWrongLine: (n, label) => `लाइन ${n} गलत है: ${label}`,
+  hwEquals: (n, v) => `लाइन ${n} का मान ${v}`,
+  hwUnreadable: "मैं पेज पढ़ नहीं पाया। ज़्यादा रोशनी में, पास से फ़ोटो लो।",
+  hwRetake: "फिर से फ़ोटो लो",
+  hwAnother: "दूसरा पेज जाँचो",
+  hwBack: "क्विज़ पर वापस",
+  hwDone: "हो गया",
+  hwSaved: "सेव हो गया। तुम्हारे शिक्षक यह देख सकते हैं।",
+  listen: "सुनो",
+  stop: "रोको",
+  listenError: "आवाज़ अभी काम नहीं कर रही। इसे पढ़ लो।",
+  sendParent: "मम्मी-पापा को भेजो",
+  parentMessage: (n, wrong, concept) =>
+    wrong === 0
+      ? `आज मैंने GuruGraph पर अपना गणित का होमवर्क जाँचा: ${n} सवाल, सब सही! मेरे शिक्षक इसे देख सकते हैं।`
+      : `आज मैंने GuruGraph पर अपना गणित का होमवर्क जाँचा: ${n} सवाल, ${wrong} का अभ्यास करना है${concept ? ` (${concept})` : ""}। मेरे शिक्षक इसे देख सकते हैं।`,
+  concepts: {
+    C1: "तुल्य भिन्न",
+    C2: "भिन्न का सरलीकरण",
+    C3: "समान हर",
+    C4: "भिन्नों का जोड़ और घटाव",
+    C5: "भिन्नों की तुलना",
+    C6: "भिन्नों का गुणा",
+    C7: "भिन्नों का भाग",
+    C8: "शाब्दिक प्रश्न",
+  },
   errors: {
     class_not_found: "इस कोड की कोई कक्षा नहीं है। अपने शिक्षक से कोड पूछो।",
     student_not_found: "इस कक्षा में तुम नहीं मिले। फिर से जुड़ो।",
@@ -107,6 +185,10 @@ const hi: Words = {
     not_an_option: "दिए गए उत्तरों में से एक चुनो।",
     invalid_request: "उत्तर में कुछ ठीक नहीं था। फिर से कोशिश करो।",
     internal: "हमारी तरफ़ से कुछ गड़बड़ हुई। फिर से कोशिश करो।",
+    empty_image: "फ़ोटो खाली है। फिर से लो।",
+    image_too_large: "फ़ोटो बहुत बड़ी है। फिर से लो।",
+    not_an_image: "यह फ़ाइल फ़ोटो नहीं है। अपने पेज की फ़ोटो लो।",
+    no_voice: "इस फ़ोन पर आवाज़ अभी तैयार नहीं है। इसे पढ़ लो।",
   },
 };
 
@@ -143,6 +225,40 @@ const kn: Words = {
   offline: "ತರಗತಿಗೆ ಸಂಪರ್ಕವಾಗುತ್ತಿಲ್ಲ. ಇಂಟರ್ನೆಟ್ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   slow: "ನಿಮ್ಮ ಪಾಠ ಸಿದ್ಧವಾಗಲು ಸಾಮಾನ್ಯಕ್ಕಿಂತ ಹೆಚ್ಚು ಸಮಯ ಹಿಡಿಯುತ್ತಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   tryAgain: "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+  checkHomework: "ನನ್ನ ಹೋಮ್‌ವರ್ಕ್ ಪರಿಶೀಲಿಸಿ",
+  hwIntro: "ನಿಮ್ಮ ಹೋಮ್‌ವರ್ಕ್ ಪುಟದ ಫೋಟೋ ತೆಗೆಯಿರಿ. ನಾನು ಪ್ರತಿ ಲೆಕ್ಕವನ್ನೂ ಪರಿಶೀಲಿಸುತ್ತೇನೆ.",
+  hwTakePhoto: "ಫೋಟೋ ತೆಗೆಯಿರಿ",
+  hwReading: "ನಿಮ್ಮ ಪುಟ ಓದುತ್ತಿದ್ದೇನೆ…",
+  hwPhotoAlt: "ನಿಮ್ಮ ಹೋಮ್‌ವರ್ಕ್ ಪುಟ",
+  hwSummary: (n, wrong) => (wrong === 0 ? `${n} ಲೆಕ್ಕ · ಎಲ್ಲಾ ಸರಿ!` : `${n} ಲೆಕ್ಕ · ${wrong} ಸರಿಪಡಿಸಬೇಕು`),
+  hwProblem: (n) => `ಲೆಕ್ಕ ${n}`,
+  hwAllRight: "ಎಲ್ಲಾ ಸರಿ",
+  hwWrongLine: (n, label) => `ಸಾಲು ${n} ತಪ್ಪು: ${label}`,
+  hwEquals: (n, v) => `ಸಾಲು ${n} ರ ಬೆಲೆ ${v}`,
+  hwUnreadable: "ಪುಟ ಓದಲು ಆಗಲಿಲ್ಲ. ಹೆಚ್ಚು ಬೆಳಕಿನಲ್ಲಿ, ಹತ್ತಿರದಿಂದ ಫೋಟೋ ತೆಗೆಯಿರಿ.",
+  hwRetake: "ಮತ್ತೊಮ್ಮೆ ಫೋಟೋ ತೆಗೆಯಿರಿ",
+  hwAnother: "ಇನ್ನೊಂದು ಪುಟ ಪರಿಶೀಲಿಸಿ",
+  hwBack: "ಕ್ವಿಜ್‌ಗೆ ಹಿಂತಿರುಗಿ",
+  hwDone: "ಮುಗಿಯಿತು",
+  hwSaved: "ಉಳಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ಶಿಕ್ಷಕರು ಇದನ್ನು ನೋಡಬಹುದು.",
+  listen: "ಕೇಳಿ",
+  stop: "ನಿಲ್ಲಿಸಿ",
+  listenError: "ಧ್ವನಿ ಈಗ ಕೆಲಸ ಮಾಡುತ್ತಿಲ್ಲ. ಇದನ್ನು ಓದಿ.",
+  sendParent: "ಅಪ್ಪ-ಅಮ್ಮನಿಗೆ ಕಳುಹಿಸಿ",
+  parentMessage: (n, wrong, concept) =>
+    wrong === 0
+      ? `ಇಂದು ನಾನು GuruGraph ನಲ್ಲಿ ನನ್ನ ಗಣಿತ ಹೋಮ್‌ವರ್ಕ್ ಪರಿಶೀಲಿಸಿದೆ: ${n} ಲೆಕ್ಕ, ಎಲ್ಲಾ ಸರಿ! ನನ್ನ ಶಿಕ್ಷಕರು ಇದನ್ನು ನೋಡಬಹುದು.`
+      : `ಇಂದು ನಾನು GuruGraph ನಲ್ಲಿ ನನ್ನ ಗಣಿತ ಹೋಮ್‌ವರ್ಕ್ ಪರಿಶೀಲಿಸಿದೆ: ${n} ಲೆಕ್ಕ, ${wrong} ಅಭ್ಯಾಸ ಮಾಡಬೇಕು${concept ? ` (${concept})` : ""}. ನನ್ನ ಶಿಕ್ಷಕರು ಇದನ್ನು ನೋಡಬಹುದು.`,
+  concepts: {
+    C1: "ಸಮಾನ ಭಿನ್ನರಾಶಿಗಳು",
+    C2: "ಭಿನ್ನರಾಶಿಯ ಸರಳೀಕರಣ",
+    C3: "ಸಮಾನ ಛೇದ",
+    C4: "ಭಿನ್ನರಾಶಿಗಳ ಸಂಕಲನ ಮತ್ತು ವ್ಯವಕಲನ",
+    C5: "ಭಿನ್ನರಾಶಿಗಳ ಹೋಲಿಕೆ",
+    C6: "ಭಿನ್ನರಾಶಿಗಳ ಗುಣಾಕಾರ",
+    C7: "ಭಿನ್ನರಾಶಿಗಳ ಭಾಗಾಕಾರ",
+    C8: "ಪದ ಸಮಸ್ಯೆಗಳು",
+  },
   errors: {
     class_not_found: "ಈ ಕೋಡ್‌ನ ತರಗತಿ ಇಲ್ಲ. ನಿಮ್ಮ ಶಿಕ್ಷಕರಿಂದ ಕೋಡ್ ಕೇಳಿ.",
     student_not_found: "ಈ ತರಗತಿಯಲ್ಲಿ ನೀವು ಸಿಗಲಿಲ್ಲ. ಮತ್ತೆ ಸೇರಿ.",
@@ -155,6 +271,10 @@ const kn: Words = {
     not_an_option: "ಕೊಟ್ಟಿರುವ ಉತ್ತರಗಳಲ್ಲಿ ಒಂದನ್ನು ಆರಿಸಿ.",
     invalid_request: "ಉತ್ತರದಲ್ಲಿ ಏನೋ ಸರಿಯಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     internal: "ನಮ್ಮ ಕಡೆಯಿಂದ ಏನೋ ತಪ್ಪಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    empty_image: "ಫೋಟೋ ಖಾಲಿಯಾಗಿದೆ. ಮತ್ತೆ ತೆಗೆಯಿರಿ.",
+    image_too_large: "ಫೋಟೋ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಮತ್ತೆ ತೆಗೆಯಿರಿ.",
+    not_an_image: "ಇದು ಫೋಟೋ ಅಲ್ಲ. ನಿಮ್ಮ ಪುಟದ ಫೋಟೋ ತೆಗೆಯಿರಿ.",
+    no_voice: "ಈ ಫೋನ್‌ನಲ್ಲಿ ಧ್ವನಿ ಇನ್ನೂ ಸಿದ್ಧವಿಲ್ಲ. ಇದನ್ನು ಓದಿ.",
   },
 };
 

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { FLAGS } from "@/lib/flags";
 import { track } from "@/lib/raah";
 
 import {
@@ -17,6 +18,8 @@ import {
 } from "../../../teacher/[code]/_dashboard/api";
 import s from "../../../teacher/[code]/_dashboard/dashboard.module.css";
 import { fontVars } from "../../../teacher/[code]/_dashboard/fonts";
+import { Homework, HomeworkButton } from "./homework";
+import { Listen, speakable } from "./listen";
 import k from "./student.module.css";
 import { LANGS, WORDS, errorText } from "./words";
 
@@ -29,7 +32,9 @@ type Phase =
   | { name: "lesson"; data: LessonResponse | null }
   | { name: "retry"; items: QuestionOut[] }
   | { name: "result"; result: RetryResponse }
-  | { name: "done"; caughtUp: boolean };
+  | { name: "done"; caughtUp: boolean }
+  // F3: the child's own homework page; photo null is the "take a photo" screen; seq keys one read per photo
+  | { name: "homework"; photo: Blob | null; preview: string | null; seq: number; quizDone: boolean };
 
 const storeKey = (code: string) => `gurugraph:${code.toUpperCase()}`;
 const DEMO_SESSION_ID = "ses_7b";
@@ -112,6 +117,8 @@ export function Student({ code }: { code: string }) {
   const [retryAnswers, setRetryAnswers] = useState<Record<string, string>>({});
   const [shown, setShown] = useState<Record<number, boolean>>({});
   const quizDone = useRef(false);
+  // F3: the hidden camera input lives here so any entry point can open it inside the tap
+  const fileInput = useRef<HTMLInputElement>(null);
   const words = WORDS[me?.language ?? lang];
 
   const fail = useCallback((e: unknown, language: Lang = "en") => {
@@ -169,7 +176,7 @@ export function Student({ code }: { code: string }) {
   );
 
   const join = useCallback(
-    async (nickname: string, language: Lang) => {
+    async (nickname: string, language: Lang, then: "quiz" | "homework" = "quiz") => {
       setBusy(true);
       setError("");
       try {
@@ -178,7 +185,11 @@ export function Student({ code }: { code: string }) {
         save(code, who);
         setMe(who);
         track("joined", { lang: who.language });
-        await nextQuestion(who);
+        if (then === "homework") {
+          // straight to "take a photo"; the quiz waits until the child taps back
+          setBusy(false);
+          setPhase({ name: "homework", photo: null, preview: null, seq: 0, quizDone: quizDone.current });
+        } else await nextQuestion(who);
       } catch (e) {
         fail(e, language);
         setPhase({ name: "join" });
@@ -186,6 +197,27 @@ export function Student({ code }: { code: string }) {
     },
     [code, fail, nextQuestion],
   );
+
+  /** Opens the camera (or the photo picker). Must run inside the tap: iOS ignores a click after an await. */
+  const takePhoto = () => {
+    setError("");
+    fileInput.current?.click();
+  };
+
+  /** The photo preview's object URL, made in the tap and released when the child leaves the homework screen. */
+  const previewUrl = useRef<string | null>(null);
+  const dropPreview = () => {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    previewUrl.current = null;
+  };
+
+  /** After the homework screen: the same continue as the result screen, so nothing about the quiz changes. */
+  const leaveHomework = () => {
+    if (!me) return;
+    dropPreview();
+    if (quizDone.current) void openLesson(me);
+    else void nextQuestion(me);
+  };
 
   useEffect(() => {
     let live = true;
@@ -253,13 +285,44 @@ export function Student({ code }: { code: string }) {
   return (
     <main className={`${s.root} ${fontVars} ${langClass} min-h-dvh`}>
       <div className="mx-auto flex min-h-dvh max-w-[520px] flex-col gap-4 px-4 pb-8 pt-4">
-        <header className="flex items-baseline justify-between gap-2">
+        <header className="flex items-center justify-between gap-2">
           <span className={`${s.hand} text-[1.5em] font-bold`}>GuruGraph</span>
-          <span className={`${s.muted} truncate text-[0.9em]`}>
+          <span className={`${s.muted} min-w-0 flex-1 truncate text-right text-[0.9em]`}>
             {me ? `${me.nickname} · ` : ""}
             {className}
           </span>
+          {FLAGS.HOMEWORK && me && (phase.name === "question" || phase.name === "feedback") && (
+            <HomeworkButton words={words} variant="icon" disabled={busy} onClick={takePhoto} />
+          )}
         </header>
+
+        {FLAGS.HOMEWORK && me && (
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            aria-label={words.hwTakePhoto}
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                dropPreview();
+                previewUrl.current = URL.createObjectURL(file);
+                const preview = previewUrl.current;
+                setPhase((old) => ({
+                  name: "homework",
+                  photo: file,
+                  preview,
+                  seq: (old.name === "homework" ? old.seq : 0) + 1,
+                  quizDone: quizDone.current,
+                }));
+              }
+              e.target.value = "";
+            }}
+          />
+        )}
 
         {error && (
           <div className={`${s.feedItem} ${s.challenge}`} role="alert">
@@ -322,6 +385,14 @@ export function Student({ code }: { code: string }) {
             <button type="submit" className={`${s.button} ${s.primary} ${k.big}`} disabled={busy || !name.trim()}>
               {busy ? words.joining : words.start}
             </button>
+            {FLAGS.HOMEWORK && (
+              <HomeworkButton
+                words={words}
+                variant="big"
+                disabled={busy || !name.trim()}
+                onClick={() => name.trim() && void join(name.trim(), lang, "homework")}
+              />
+            )}
           </form>
         )}
 
@@ -413,6 +484,16 @@ export function Student({ code }: { code: string }) {
               <div className={k.lesson}>
                 <ReactMarkdown>{phase.data.lesson.lesson_md}</ReactMarkdown>
               </div>
+              {me && (
+                <div className="mt-1">
+                  <Listen
+                    text={speakable(phase.data.lesson.lesson_md)}
+                    language={me.language}
+                    words={words}
+                    label={words.lesson}
+                  />
+                </div>
+              )}
             </div>
             <div className={`${s.sheet} p-5`}>
               <h3 className="mb-2 font-semibold">{words.practise}</h3>
@@ -526,6 +607,7 @@ export function Student({ code }: { code: string }) {
             >
               {words.continueQuiz}
             </button>
+            {FLAGS.HOMEWORK && me && <HomeworkButton words={words} variant="big" onClick={takePhoto} />}
           </section>
         )}
 
@@ -533,7 +615,30 @@ export function Student({ code }: { code: string }) {
           <section className={`${s.sheet} flex flex-col items-center gap-2 p-6 text-center`}>
             <p className={`${s.hand} text-[1.8em]`}>{words.allDone}</p>
             <p className={s.muted}>{phase.caughtUp ? words.caughtUp : words.allDoneNote}</p>
+            {FLAGS.HOMEWORK && me && (
+              <div className="mt-2 w-full">
+                <HomeworkButton words={words} variant="big" onClick={takePhoto} />
+              </div>
+            )}
           </section>
+        )}
+
+        {phase.name === "homework" && me && (
+          <Homework
+            key={phase.seq}
+            studentId={me.studentId}
+            language={me.language}
+            words={words}
+            photo={phase.photo}
+            preview={phase.preview}
+            quizDone={phase.quizDone}
+            onTakePhoto={takePhoto}
+            onFix={() => {
+              dropPreview();
+              void openLesson(me);
+            }}
+            onLeave={leaveHomework}
+          />
         )}
       </div>
     </main>
