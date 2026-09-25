@@ -159,3 +159,291 @@
     display: none;
   }
 }
+
+/* F3 homework check ------------------------------------------------------- */
+
+/* the small camera button in the header on the question screen: 48 px tap target, unobtrusive */
+.camera {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.camera:hover {
+  border-color: var(--ink-2);
+}
+
+.camera:focus-visible,
+.link:focus-visible {
+  outline: 3px solid var(--ink-2);
+  outline-offset: 2px;
+}
+
+/* the notebook page: ruled lines, a red margin (as on the teacher's scan screen) */
+.paper {
+  position: relative;
+  padding: 18px 16px 18px 52px;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  background-color: #fffef8;
+  background-image:
+    linear-gradient(90deg, transparent 36px, #f0b4ae 36px, #f0b4ae 38px, transparent 38px),
+    linear-gradient(transparent 55px, #cfdbee 55px);
+  background-size:
+    100% 100%,
+    100% 56px;
+  background-position:
+    0 0,
+    0 14px;
+  overflow: hidden;
+}
+
+.paperTitle {
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  width: 26px;
+  font-size: 0.72em;
+  line-height: 1.2;
+  color: var(--graphite);
+  text-align: center;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 56px;
+}
+
+.lineText {
+  position: relative;
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: clamp(22px, 6.5vw, 30px);
+  line-height: 1.3;
+  color: #22307a;
+  overflow-wrap: anywhere;
+}
+
+.circle {
+  position: absolute;
+  inset: -14px -20px;
+  width: calc(100% + 40px);
+  height: calc(100% + 28px);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.circlePath {
+  fill: none;
+  stroke: var(--red-pen);
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  /* --len is the measured on-screen length (lib/use-pen-length.ts); pathLength mis-draws with non-scaling-stroke */
+  stroke-dasharray: var(--len, 2000);
+  stroke-dashoffset: var(--len, 2000);
+  animation: pen 650ms 250ms ease-out forwards;
+}
+
+@keyframes pen {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.margin {
+  font-size: 1.1em;
+  line-height: 1.3;
+  color: var(--red-pen);
+  transform: rotate(-3deg);
+  opacity: 0;
+  animation: appear 300ms 850ms ease-out forwards;
+}
+
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+/* the ledger: each line's exact value, in small type under the handwriting */
+.ledger {
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--graphite);
+}
+
+.ledgerWrong {
+  color: var(--red-pen);
+}
+
+.tick {
+  position: absolute;
+  right: 16px;
+  top: 8px;
+  font-size: 1.5em;
+  color: var(--green);
+  transform: rotate(-6deg);
+}
+
+.cardNote {
+  padding: 0 4px;
+  font-size: 1.05em;
+}
+
+/* the photo being read: the yellow sweep, like the scan screen */
+.scanning {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  background: #111;
+}
+
+.previewImg {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  opacity: 0.85;
+}
+
+.sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--highlighter);
+  box-shadow: 0 0 18px 6px rgba(247, 233, 107, 0.55);
+  animation: sweep 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes sweep {
+  from {
+    top: 4%;
+  }
+
+  to {
+    top: 94%;
+  }
+}
+
+.scanningLabel {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-size: 0.95em;
+}
+
+/* the empty state before a photo: a dotted page outline */
+.emptyPage {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 150px;
+  padding: 20px;
+  border: 2px dashed var(--rule);
+  border-radius: 18px;
+  background: #fffef8;
+  text-align: center;
+  color: var(--graphite);
+}
+
+/* a text-style link button (the WhatsApp share) */
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 48px;
+  padding: 0 1em;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.link:hover {
+  border-color: var(--ink-2);
+}
+
+/* the listen button: 48 px, quiet */
+.listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.listen:hover {
+  border-color: var(--ink-2);
+}
+
+.listen:focus-visible {
+  outline: 3px solid var(--ink-2);
+  outline-offset: 2px;
+}
+
+.listen:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.listenOn {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circlePath {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .margin {
+    animation: none;
+    opacity: 1;
+  }
+
+  .sweep {
+    animation: none;
+    top: 50%;
+  }
+}
