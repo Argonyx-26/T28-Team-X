@@ -224,6 +224,10 @@ export interface PhotoResult {
   problem?: string;
   /** F5: one box per transcribed line, [ymin, xmin, ymax, xmax] on 0–1000; null = fall back to the transcript view */
   line_boxes?: [number, number, number, number][] | null;
+  /** set when the page showed another problem than the one picked, so it was checked as written */
+  problem_note?: string;
+  /** true when no fraction working was found on the photo; nothing was saved */
+  no_working?: boolean;
 }
 
 /** Any fraction problem, not only the four in the bank: the first line the student wrote is the problem. */
@@ -251,9 +255,12 @@ export interface PageProblem {
   line_values: (string | null)[];
   reproduced_by: string | null;
   verifier: Verifier | null;
+  line_boxes?: [number, number, number, number][] | null;
+  /** the saved reading, for the teacher's confirm or correct on this one problem */
+  response_id?: number;
 }
 
-export type PageMode = "homework" | "snap";
+export type PageMode = "homework" | "snap" | "scan";
 
 export interface PageResponse {
   session_id: string;
@@ -500,7 +507,12 @@ export const api = {
   roster: (sessionId: string, text: string) =>
     post<{ ok: true; added: number; updated: number }>("/sessions/roster", { session_id: sessionId, text }),
   school: (schoolId: string) => call<SchoolSummary>(`/school/summary?school_id=${encodeURIComponent(schoolId)}`),
-  review: (studentId: string, questionId: string, verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) =>
+  review: (
+    studentId: string,
+    questionId: string,
+    verdict: ReviewVerdict,
+    extra: { tag?: string; step?: number; response_id?: number } = {},
+  ) =>
     post<{ ok: true; correct: boolean; misconception_tag: string | null; error_step: number | null }>(
       "/teacher/review",
       { student_id: studentId, question_id: questionId, verdict, ...extra },

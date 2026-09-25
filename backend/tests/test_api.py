@@ -128,17 +128,17 @@ def test_photo_diagnosis_circles_the_wrong_step(client):
     assert d["heatmap"]["cells"][asha][3] == 0.3  # C4 turned red
 
 
-def test_photo_of_a_different_problem_is_caught_and_not_saved(client):
-    # the fake model reads 3/4 + 1/4 (P1); the teacher picked 2/3 + 1/6 (P2)
-    before = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+def test_photo_of_a_different_problem_is_checked_as_written(client):
+    # the fake model reads 3/4 + 1/4 (P1); the teacher picked 2/3 + 1/6 (P2): judge P1, never P2, and say so
     r = client.post(
         "/agents/diagnostician/photo",
         data={"student_id": ASHA_ID, "question_id": "P2"},
         files={"image": ("a.png", _png(), "image/png")},
-    )
-    assert r.status_code == 409 and r.json()["error"]["code"] == "wrong_problem"
-    assert "3/4 + 1/4 = ?" in r.json()["error"]["message"]
-    assert client.get("/teacher/student", params={"student_id": ASHA_ID}).json() == before
+    ).json()
+    assert r["question_id"] == "P1" and r["error_step"] == 2 and r["misconception_tag"] == "add_denominators"
+    assert "3/4 + 1/4" in r["problem_note"] and "not 2/3 + 1/6" in r["problem_note"]
+    d = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    assert d["responses"][0]["question_id"] == "P1"
 
 
 def test_bad_photo_is_a_friendly_error(client):
@@ -493,3 +493,56 @@ def test_create_class_roster_and_school_view(client):
     assert client.get("/school/summary", params={"school_id": "nope"}).status_code == 404
     # a lookup of a sibling class works like any class
     assert client.get("/sessions/lookup", params={"code": "7a"}).json()["n_students"] == 30
+
+
+def test_a_page_with_no_maths_is_never_saved(client, monkeypatch):
+    import json as _json
+
+    from app.llm import providers
+
+    async def shopping_list(system, prompt, schema, image, mime, thinking=0):
+        payload = {
+            "steps": ["Shopping list", "Milk", "Call Ravi at 5"],
+            "final_answer_read": "5",
+            "correct": False,
+            "error_step": 1,
+            "misconception_tag": "unclassified",
+            "confidence": 0.2,
+            "feedback_student": "",
+        }
+        return _json.dumps(payload), (10, 10), "fake-model"
+
+    monkeypatch.setitem(providers.CALLERS, "vertex", shopping_list)
+    monkeypatch.setitem(providers.CALLERS, "vertex_alt", shopping_list)
+    before = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    r = client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": ASHA_ID, "question_id": "P1"},
+        files={"image": ("list.png", _png(), "image/png")},
+    ).json()
+    assert r["needs_typed_answer"] and r["no_working"] and r["error_step"] is None and r["mastery_after"] is None
+    assert client.get("/teacher/student", params={"student_id": ASHA_ID}).json() == before
+
+
+def test_scan_mode_reads_every_problem_and_reviews_one_of_them(client):
+    r = client.post(
+        "/agents/diagnostician/page",
+        data={"student_id": ASHA_ID, "mode": "scan"},
+        files={"image": ("page.png", _png(), "image/png")},
+    ).json()
+    assert r["saved"] and [p["problem"] for p in r["problems"]] == ["3/4 + 1/4 = ?", "2/5 + 1/3", "1/2 + 1/4"]
+    ids = [p["response_id"] for p in r["problems"]]
+    assert len(set(ids)) == 3 and all(ids)
+    events = client.get("/teacher/events", params={"session_id": DEMO_SESSION_ID}).json()["events"]
+    assert any(e["reason"].startswith("Scan · Asha (roll 1) · 3 problems · 2 wrong") for e in events)
+    detail = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    assert {x["phase"] for x in detail["responses"][:3]} == {"photo"}  # a teacher's scan, not homework or a quiz
+    # the teacher corrects the second problem only (question AUTO), by its response id
+    fixed = client.post(
+        "/teacher/review",
+        json={"student_id": ASHA_ID, "question_id": "AUTO", "response_id": ids[1], "verdict": "mark_correct"},
+    ).json()
+    assert fixed["ok"] and fixed["correct"]
+    detail = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    by_answer = {x["stem"]: x["correct"] for x in detail["responses"][:3]}
+    assert by_answer["2/5 + 1/3"] is True and by_answer["3/4 + 1/4 = ?"] is False

@@ -29,7 +29,14 @@ def _replay_mastery(conn, student_id: str, concept_id: str) -> float:
     return value
 
 
-def review(student_id: str, question_id: str, verdict: str, tag: str | None = None, step: int | None = None) -> dict:
+def review(
+    student_id: str,
+    question_id: str,
+    verdict: str,
+    tag: str | None = None,
+    step: int | None = None,
+    response_id: int | None = None,
+) -> dict:
     topic = get_topic()
     if verdict not in VERDICTS:
         raise ApiError(422, "bad_verdict", "Choose agree, change_tag, change_step or mark_correct.")
@@ -37,11 +44,15 @@ def review(student_id: str, question_id: str, verdict: str, tag: str | None = No
         raise ApiError(422, "bad_tag", "Pick one of the listed mistakes.")
     with get_conn() as conn, transaction(conn):
         student = state.require_student(conn, student_id)
-        resp = row(
-            conn,
-            "SELECT * FROM response WHERE student_id = ? AND question_id = ? ORDER BY id DESC LIMIT 1",
-            (student_id, question_id),
-        )
+        if response_id is not None:
+            # one reading among several on a page (question AUTO can repeat): review exactly that one
+            resp = row(conn, "SELECT * FROM response WHERE id = ? AND student_id = ?", (response_id, student_id))
+        else:
+            resp = row(
+                conn,
+                "SELECT * FROM response WHERE student_id = ? AND question_id = ? ORDER BY id DESC LIMIT 1",
+                (student_id, question_id),
+            )
         if not resp:
             raise ApiError(404, "nothing_to_review", "There is no diagnosis for this student and question yet.")
         concept = topic.concept(resp["concept_id"])
@@ -96,7 +107,7 @@ def review(student_id: str, question_id: str, verdict: str, tag: str | None = No
             student["session_id"],
             "Teacher",
             "review",
-            f"{student['nickname']} · {question_id} on {concept.short}: {what}",
+            f"{student['nickname']} · {resp['question_id']} on {concept.short}: {what}",
             student_id,
         )
     return {

@@ -595,6 +595,21 @@ def strip_headers(lines: list[str]) -> tuple[list[str], int]:
     return lines[n:], n
 
 
+def looks_like_working(lines: list[str]) -> bool:
+    """True when at least one line is arithmetic with an operator or a fraction bar. A shopping list, a name or a
+    lone number is not fraction working and must never be filed as a wrong answer."""
+    for line in lines:
+        for seg in split_chain(line):
+            if seg.node is not None and _is_problem(seg.node):
+                return True
+    return False
+
+
+def written_fractions(text: str) -> list[str]:
+    """The fractions as written ("3/4", "12/14"), without spaces, sorted: to compare a problem with another."""
+    return sorted(re.sub(r"\s+", "", m) for m in re.findall(r"\d+\s*/\s*\d+", text or ""))
+
+
 def _first_expression(lines: list[str]) -> tuple[int, Node] | None:
     for i, line in enumerate(lines):
         if line.lstrip().startswith("="):

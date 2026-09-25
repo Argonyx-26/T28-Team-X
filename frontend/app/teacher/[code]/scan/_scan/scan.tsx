@@ -7,7 +7,15 @@ import { FLAGS } from "@/lib/flags";
 import { track } from "@/lib/raah";
 import { usePenLength } from "@/lib/use-pen-length";
 
-import { AUTO_QUESTION, ApiError, type PhotoResult, type ReviewVerdict, type Topic, api } from "../../_dashboard/api";
+import {
+  ApiError,
+  type PageProblem,
+  type PageResponse,
+  type PhotoResult,
+  type ReviewVerdict,
+  type Topic,
+  api,
+} from "../../_dashboard/api";
 import s from "../../_dashboard/dashboard.module.css";
 import { fontVars } from "../../_dashboard/fonts";
 import { TelemetryChip } from "../../_dashboard/shared";
@@ -33,7 +41,12 @@ const EVIDENCE: Record<string, { title: string; tone: string }> = {
   unverified: { title: "Only the AI checked this", tone: "var(--graphite)" },
 };
 
-const ANY_PROBLEM = { id: AUTO_QUESTION, stem: "Any other fraction problem", concept_id: "" };
+const PEN_PATH = "M8,22 C6,9 32,3 55,4 C80,5 97,11 95,21 C93,32 70,37 48,36 C24,35 5,31 7,19 C8,13 16,9 26,7";
+
+type Box = [number, number, number, number];
+
+/** What the notebook views need from a reading: a single photo's result or one problem on a page. */
+type Reading = Pick<PhotoResult, "steps" | "error_step" | "label" | "line_values" | "verifier" | "correct">;
 
 /** Phones take 4–12 MB photos; send a 1600 px JPEG instead so it uploads fast on mobile data. */
 async function shrink(file: Blob): Promise<Blob> {
@@ -51,16 +64,8 @@ async function shrink(file: Blob): Promise<Blob> {
   }
 }
 
-function trackPhoto(r: PhotoResult, source: "camera" | "sample") {
-  const t = r.telemetry.find((x) => x.ok) ?? r.telemetry[0];
-  track("photo_diagnosed", {
-    source,
-    correct: r.correct,
-    tag: r.misconception_tag ?? "none",
-    ms: t?.ms,
-    model: t?.model,
-    cached: t?.cached,
-  });
+function firstTelemetry(telemetry: PhotoResult["telemetry"]) {
+  return telemetry.find((x) => x.ok) ?? telemetry[0];
 }
 
 /** A hand-drawn ellipse around one line of working, drawn like a teacher's red pen. */
@@ -68,55 +73,63 @@ function RedPenCircle() {
   const pen = usePenLength<SVGPathElement>();
   return (
     <svg className={k.circle} viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden>
-      <path
-        ref={pen}
-        className={k.circlePath}
-        d="M8,22 C6,9 32,3 55,4 C80,5 97,11 95,21 C93,32 70,37 48,36 C24,35 5,31 7,19 C8,13 16,9 26,7"
-      />
+      <path ref={pen} className={k.circlePath} d={PEN_PATH} />
     </svg>
   );
 }
 
-/** The red pen drawn on the photo itself: the ellipse sits on the model's box for the wrong line (0–1000 scale). */
-function PhotoResult({ src, result }: { src: string; result: PhotoResult }) {
+const pct = (v: number) => `${v / 10}%`;
+
+/** One red-pen ellipse (and its margin note) placed on the photo over a line's box (0–1000 scale). */
+function PenOnPhoto({ box, label, line }: { box: Box; label: string | null; line: number }) {
   const pen = usePenLength<SVGPathElement>();
-  const boxes = result.line_boxes ?? null;
-  const box = result.error_step && boxes ? boxes[result.error_step - 1] : null;
-  const pct = (v: number) => `${v / 10}%`;
+  return (
+    <>
+      <svg
+        className={k.photoPen}
+        viewBox="0 0 100 40"
+        preserveAspectRatio="none"
+        aria-hidden
+        style={{
+          top: `calc(${pct(box[0])} - 1.5%)`,
+          left: `calc(${pct(box[1])} - 2%)`,
+          height: `calc(${pct(box[2] - box[0])} + 3%)`,
+          width: `calc(${pct(box[3] - box[1])} + 4%)`,
+        }}
+      >
+        <path ref={pen} className={k.circlePath} d={PEN_PATH} />
+      </svg>
+      {label && (
+        <span
+          className={`${k.photoLabel} ${s.hand}`}
+          style={{ top: pct(box[2]), left: pct(box[1]) }}
+          aria-label={`Line ${line} is wrong: ${label}`}
+        >
+          {label}
+        </span>
+      )}
+    </>
+  );
+}
+
+/** The photo with a red circle on every wrong line: one problem (a sample) or every problem on a page. */
+function PhotoWithPen({
+  src,
+  marks,
+  allRight,
+}: {
+  src: string;
+  marks: { box: Box; label: string | null; line: number }[];
+  allRight: boolean;
+}) {
   return (
     <div className={k.photoWrap}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="The notebook photo" className={k.photoImg} />
-      {box && (
-        <svg
-          className={k.photoPen}
-          viewBox="0 0 100 40"
-          preserveAspectRatio="none"
-          aria-hidden
-          style={{
-            top: `calc(${pct(box[0])} - 1.5%)`,
-            left: `calc(${pct(box[1])} - 2%)`,
-            height: `calc(${pct(box[2] - box[0])} + 3%)`,
-            width: `calc(${pct(box[3] - box[1])} + 4%)`,
-          }}
-        >
-          <path
-            ref={pen}
-            className={k.circlePath}
-            d="M8,22 C6,9 32,3 55,4 C80,5 97,11 95,21 C93,32 70,37 48,36 C24,35 5,31 7,19 C8,13 16,9 26,7"
-          />
-        </svg>
-      )}
-      {box && result.label && (
-        <span
-          className={`${k.photoLabel} ${s.hand}`}
-          style={{ top: pct(box[2]), left: pct(box[1]) }}
-          aria-label={`Line ${result.error_step} is wrong: ${result.label}`}
-        >
-          {result.label}
-        </span>
-      )}
-      {result.correct && (
+      {marks.map((m, i) => (
+        <PenOnPhoto key={i} {...m} />
+      ))}
+      {allRight && (
         <span className={`${k.tick} ${s.hand}`} aria-label="All steps right">
           ✓ all right
         </span>
@@ -125,12 +138,18 @@ function PhotoResult({ src, result }: { src: string; result: PhotoResult }) {
   );
 }
 
+function markFor(r: Reading & { line_boxes?: Box[] | null }): { box: Box; label: string | null; line: number } | null {
+  if (r.correct || !r.error_step || !r.line_boxes) return null;
+  const box = r.line_boxes[r.error_step - 1];
+  return box ? { box, label: r.label, line: r.error_step } : null;
+}
+
 function NotebookResult({
   result,
   movingStep,
   onPickStep,
 }: {
-  result: PhotoResult;
+  result: Reading;
   movingStep: boolean;
   onPickStep: (step: number) => void;
 }) {
@@ -186,26 +205,182 @@ function NotebookResult({
   );
 }
 
+type ReviewState = { state: "none" | "saving" | "done"; text?: string; corrected?: boolean };
+
+const REVIEW_TEXT: Record<ReviewVerdict, string> = {
+  agree: "You confirmed it. Saved to the class record.",
+  change_tag: "Mistake changed. Your correction replaces the AI's.",
+  change_step: "Circle moved. Your correction replaces the AI's.",
+  mark_correct: "Marked right. The gap is removed if this was the only slip.",
+};
+
+/** The teacher's last word on one reading: confirm, or correct the mistake, the line, or the verdict. */
+function ReviewBar({
+  correct,
+  tag,
+  topic,
+  review,
+  picking,
+  onPick,
+  onReview,
+}: {
+  correct: boolean;
+  tag: string | null;
+  topic: Topic | null;
+  review: ReviewState;
+  picking: "none" | "tag" | "step";
+  onPick: (p: "none" | "tag" | "step") => void;
+  onReview: (verdict: ReviewVerdict, extra?: { tag?: string; step?: number }) => void;
+}) {
+  return (
+    <div className={`${s.sheet} flex flex-col gap-2 p-3`} aria-label="Your review">
+      {review.state === "done" ? (
+        <p className="font-medium" style={{ color: "var(--green)" }}>
+          ✓ {review.text}
+        </p>
+      ) : (
+        <>
+          <span className={s.muted}>You have the last word. Is this right?</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`${s.button} ${s.primary}`}
+              disabled={review.state === "saving"}
+              onClick={() => onReview("agree")}
+            >
+              {correct ? "Yes, it's right" : "Yes, that's the mistake"}
+            </button>
+            {!correct && (
+              <>
+                <button type="button" className={s.button} onClick={() => onPick(picking === "tag" ? "none" : "tag")}>
+                  Different mistake
+                </button>
+                <button type="button" className={s.button} onClick={() => onPick(picking === "step" ? "none" : "step")}>
+                  Wrong line
+                </button>
+                <button type="button" className={s.button} onClick={() => onReview("mark_correct")}>
+                  It&apos;s actually right
+                </button>
+              </>
+            )}
+          </div>
+          {picking === "tag" && topic && (
+            <div className="mt-1 grid gap-1.5 sm:grid-cols-2">
+              {topic.tags
+                .filter((t) => t.tag !== "unclassified" && t.tag !== tag)
+                .map((t) => (
+                  <button
+                    key={t.tag}
+                    type="button"
+                    className={`${s.button} justify-start text-left text-[0.9em]`}
+                    onClick={() => onReview("change_tag", { tag: t.tag })}
+                  >
+                    {t.labels.en}
+                  </button>
+                ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One problem found on a whole page: its working with the red pen, the proof, and the teacher's review. */
+function ProblemCard({
+  index,
+  problem,
+  studentId,
+  topic,
+}: {
+  index: number;
+  problem: PageProblem;
+  studentId: string;
+  topic: Topic | null;
+}) {
+  const [p, setP] = useState(problem);
+  const [review, setReview] = useState<ReviewState>({ state: "none" });
+  const [picking, setPicking] = useState<"none" | "tag" | "step">("none");
+  const [error, setError] = useState("");
+  const evidence = EVIDENCE[p.rule_check.status];
+
+  async function send(verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) {
+    setReview({ state: "saving" });
+    setError("");
+    try {
+      const r = await api.review(studentId, p.question_id, verdict, { ...extra, response_id: p.response_id });
+      const label = r.misconception_tag
+        ? topic?.tags.find((t) => t.tag === r.misconception_tag)?.labels.en ?? r.misconception_tag
+        : null;
+      setP({ ...p, correct: r.correct, misconception_tag: r.misconception_tag, label, error_step: r.error_step });
+      setReview({ state: "done", text: REVIEW_TEXT[verdict], corrected: verdict !== "agree" });
+      setPicking("none");
+    } catch (e) {
+      setReview({ state: "none" });
+      setError(e instanceof ApiError ? e.message : "The review couldn't be saved.");
+    }
+  }
+
+  return (
+    <article className="flex flex-col gap-2" aria-label={`Problem ${index + 1}: ${p.problem}`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="font-semibold">
+          <span className={s.muted}>Problem {index + 1}:</span> <span className={s.hand}>{p.problem}</span>
+        </h3>
+        <span style={{ color: p.correct ? "var(--green)" : "var(--red-pen)" }} className="text-[0.9em] font-semibold">
+          {p.correct ? "✓ right" : "✗ to fix"}
+        </span>
+      </div>
+      <NotebookResult result={p} movingStep={picking === "step"} onPickStep={(step) => void send("change_step", { step })} />
+      {!p.correct && p.label && (
+        <p className="text-[1em]">
+          <strong>Line {p.error_step ?? "?"}:</strong> {p.label}.{" "}
+          {!review.corrected && p.feedback && <span className={s.muted}>{p.feedback}</span>}
+        </p>
+      )}
+      {evidence && !review.corrected && (
+        <div className={k.evidence} style={{ borderLeftColor: evidence.tone }}>
+          <strong style={{ color: evidence.tone }}>{evidence.title}.</strong> {p.rule_check.note}
+        </div>
+      )}
+      {p.response_id ? (
+        <ReviewBar
+          correct={p.correct}
+          tag={p.misconception_tag}
+          topic={topic}
+          review={review}
+          picking={picking}
+          onPick={setPicking}
+          onReview={(v, extra) => void send(v, extra)}
+        />
+      ) : null}
+      {error && (
+        <p role="alert" style={{ color: "var(--red-pen)" }}>
+          {error}
+        </p>
+      )}
+    </article>
+  );
+}
+
 export function Scan({ code }: { code: string }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [topic, setTopic] = useState<Topic | null>(null);
   const [studentId, setStudentId] = useState("");
-  const [questionId, setQuestionId] = useState("P1");
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "reading" | "done" | "error">("idle");
   const [error, setError] = useState("");
+  // a sample page: one known problem, read by the single-problem endpoint (the judged demo path)
   const [result, setResult] = useState<PhotoResult | null>(null);
-  const [review, setReview] = useState<{ state: "none" | "saving" | "done"; text?: string; corrected?: boolean }>({
-    state: "none",
-  });
+  // a real photo: every problem on the page, each checked as written
+  const [page, setPage] = useState<PageResponse | null>(null);
+  const [pageStudent, setPageStudent] = useState("");
+  const [review, setReview] = useState<ReviewState>({ state: "none" });
   const [picking, setPicking] = useState<"none" | "tag" | "step">("none");
   const [typed, setTyped] = useState("");
-  const [wrongProblem, setWrongProblem] = useState<string | null>(null);
   const [view, setView] = useState<"photo" | "transcript">("photo");
   const fileInput = useRef<HTMLInputElement>(null);
-  // the last photo and whose it was, so "read it as the other problem" doesn't need a new photo
-  const lastPhoto = useRef<{ blob: Blob; studentId: string; source: "camera" | "sample" } | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -228,66 +403,66 @@ export function Scan({ code }: { code: string }) {
     };
   }, [code]);
 
-  const question = questionId === AUTO_QUESTION ? ANY_PROBLEM : topic?.photo_questions.find((q) => q.id === questionId);
   const student = students.find((x) => x.id === studentId);
+  const nameOf = (id: string) => students.find((x) => x.id === id)?.nickname ?? "The student";
 
-  /** Sends one photo for one student and problem. Every argument is explicit, so it never reads stale state. */
-  async function diagnose(blob: Blob, who: string, qid: string, source: "camera" | "sample") {
-    lastPhoto.current = { blob, studentId: who, source };
+  function startReading(src: string) {
+    setPreview((old) => {
+      if (old?.startsWith("blob:") && old !== src) URL.revokeObjectURL(old);
+      return src;
+    });
     setStatus("reading");
     setResult(null);
+    setPage(null);
     setReview({ state: "none" });
     setPicking("none");
     setError("");
-    setWrongProblem(null);
+    setView("photo");
+  }
+
+  /** A real photo: every problem on the page is found and checked as written, and filed under this student. */
+  async function readPage(file: Blob) {
+    const who = studentId;
+    if (!who) return;
+    startReading(URL.createObjectURL(file));
+    setPageStudent(who);
     try {
-      const r = await api.photo(who, qid, blob);
-      setResult(r);
+      const r = await api.page(await shrink(file), { studentId: who }, "scan");
+      setPage(r);
       setStatus("done");
-      trackPhoto(r, source);
+      const t = firstTelemetry(r.telemetry);
+      track("photo_diagnosed", {
+        source: "camera",
+        problems: r.problems.length,
+        wrong: r.problems.filter((x) => !x.correct).length,
+        ms: t?.ms,
+        cached: t?.cached,
+      });
     } catch (e) {
-      if (e instanceof ApiError && e.code === "wrong_problem") {
-        // the message quotes the problem the page shows; offer to read it as that one
-        setWrongProblem(topic?.photo_questions.find((q) => q.id !== qid && e.message.includes(q.stem))?.id ?? null);
-      }
       setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Check the connection and try again.");
       setStatus("error");
     }
   }
 
-  async function read(image: Blob) {
-    if (!studentId) return;
-    setPreview((old) => {
-      if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
-      return URL.createObjectURL(image);
-    });
-    await diagnose(await shrink(image), studentId, questionId, "camera");
-  }
-
+  /** A sample page belongs to the student who wrote it and shows one known problem. */
   async function trySample(sample: Sample) {
-    // a sample belongs to the student who wrote it; in another class, it goes to whoever is selected
     const who = students.find((x) => x.nickname.toLowerCase() === sample.student.toLowerCase())?.id ?? studentId;
     if (!who) return;
     setStudentId(who);
-    setQuestionId(sample.question);
-    setPreview(sample.src);
+    setPageStudent(who);
+    startReading(sample.src);
     try {
       const blob = await (await fetch(sample.src)).blob();
-      await diagnose(blob, who, sample.question, "sample");
-    } catch {
-      setError("The sample page didn't load. Check the connection and try again.");
+      const r = await api.photo(who, sample.question, blob);
+      setResult(r);
+      setStatus("done");
+      const t = firstTelemetry(r.telemetry);
+      track("photo_diagnosed", { source: "sample", correct: r.correct, tag: r.misconception_tag ?? "none", ms: t?.ms, cached: t?.cached });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "The sample page didn't load. Check the connection and try again.");
       setStatus("error");
     }
   }
-
-  async function readAsOtherProblem(qid: string) {
-    const last = lastPhoto.current;
-    if (!last) return;
-    setQuestionId(qid);
-    await diagnose(last.blob, last.studentId, qid, last.source);
-  }
-
-  const samples = SAMPLES.filter((x) => x.question === questionId);
 
   async function sendReview(verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) {
     if (!result) return;
@@ -297,20 +472,8 @@ export function Scan({ code }: { code: string }) {
       const label = r.misconception_tag
         ? topic?.tags.find((t) => t.tag === r.misconception_tag)?.labels.en ?? r.misconception_tag
         : null;
-      setResult({
-        ...result,
-        correct: r.correct,
-        misconception_tag: r.misconception_tag,
-        label,
-        error_step: r.error_step,
-      });
-      const text = {
-        agree: "You confirmed it. Saved to the class record.",
-        change_tag: "Mistake changed. Your correction replaces the AI's.",
-        change_step: "Circle moved. Your correction replaces the AI's.",
-        mark_correct: "Marked right. The gap is removed if this was the only slip.",
-      }[verdict];
-      setReview({ state: "done", text, corrected: verdict !== "agree" });
+      setResult({ ...result, correct: r.correct, misconception_tag: r.misconception_tag, label, error_step: r.error_step });
+      setReview({ state: "done", text: REVIEW_TEXT[verdict], corrected: verdict !== "agree" });
       setPicking("none");
     } catch (e) {
       setReview({ state: "none" });
@@ -335,7 +498,11 @@ export function Scan({ code }: { code: string }) {
     }
   }
 
+  const stemOf = (qid: string) => topic?.photo_questions.find((q) => q.id === qid)?.stem.replace(/\s*=\s*\?$/, "") ?? qid;
   const evidence = result ? EVIDENCE[result.rule_check.status] : null;
+  const pageMarks = page ? page.problems.map(markFor).filter((m): m is NonNullable<typeof m> => m !== null) : [];
+  const pageHasBoxes = page ? page.problems.some((p) => p.line_boxes) : false;
+  const wrongOnPage = page ? page.problems.filter((p) => !p.correct).length : 0;
 
   return (
     <main className={`${s.root} ${fontVars} min-h-dvh`}>
@@ -369,25 +536,10 @@ export function Scan({ code }: { code: string }) {
               ))}
             </select>
           </label>
-          <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 font-semibold">Which problem</legend>
-            <div className="grid grid-cols-2 gap-2">
-              {[...(topic?.photo_questions ?? []), ANY_PROBLEM].map((q) => (
-                <button
-                  key={q.id}
-                  type="button"
-                  aria-pressed={q.id === questionId}
-                  onClick={() => setQuestionId(q.id)}
-                  className={`${k.problem} ${q.id === questionId ? k.problemOn : ""}`}
-                >
-                  <span className={q.id === AUTO_QUESTION ? "" : s.hand}>{q.stem}</span>
-                  {q.id === AUTO_QUESTION && (
-                    <span className={`${s.muted} block text-[0.75em] leading-tight`}>from the textbook; arithmetic checks it</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <p className={`${s.muted} text-[0.9em]`}>
+            Photograph any page of fraction working, from any textbook. Every problem on it is found and checked by exact
+            arithmetic; the AI only reads the handwriting.
+          </p>
         </section>
 
         <section className="flex flex-col gap-2" aria-label="Photo">
@@ -395,12 +547,12 @@ export function Scan({ code }: { code: string }) {
             ref={fileInput}
             type="file"
             accept="image/*"
-            capture="environment"
-            aria-label="Photograph the notebook page"
+            aria-hidden="true"
+            tabIndex={-1}
             className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) void read(file);
+              if (file) void readPage(file);
               e.target.value = "";
             }}
           />
@@ -410,38 +562,28 @@ export function Scan({ code }: { code: string }) {
             disabled={!studentId || status === "reading"}
             onClick={() => fileInput.current?.click()}
           >
-            {status === "reading" ? "Reading the working…" : `Photograph ${student?.nickname ?? "the"}'s notebook`}
+            {status === "reading" ? "Reading the page…" : `Photograph or upload ${student?.nickname ?? "a"}'s page`}
           </button>
-          {samples.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 text-[0.9em]">
-              <span className={s.muted}>No notebook handy? Try a page for this problem:</span>
-              {samples.map((x) => (
-                <button
-                  key={x.src}
-                  type="button"
-                  className={s.button}
-                  disabled={status === "reading" || !students.length}
-                  onClick={() => void trySample(x)}
-                >
-                  {x.student}&apos;s page <span className={s.muted}>({x.note})</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2 text-[0.9em]">
+            <span className={s.muted}>No notebook handy? Try a sample page:</span>
+            {SAMPLES.map((x) => (
+              <button
+                key={x.src}
+                type="button"
+                className={s.button}
+                disabled={status === "reading" || !students.length}
+                onClick={() => void trySample(x)}
+              >
+                {x.student}&apos;s page: <span className={s.hand}>{stemOf(x.question)}</span>{" "}
+                <span className={s.muted}>({x.note})</span>
+              </button>
+            ))}
+          </div>
         </section>
 
         {error && (
           <div className={`${s.feedItem} ${s.challenge}`} role="alert">
             {error}
-            {wrongProblem && (
-              <button
-                type="button"
-                className={`${s.button} ${s.primary} mt-2`}
-                onClick={() => void readAsOtherProblem(wrongProblem)}
-              >
-                Read it as {topic?.photo_questions.find((q) => q.id === wrongProblem)?.stem}
-              </button>
-            )}
           </div>
         )}
 
@@ -454,17 +596,63 @@ export function Scan({ code }: { code: string }) {
           </div>
         )}
 
+        {status === "done" && page && (
+          <section className="flex flex-col gap-4" aria-label="Diagnosis" aria-live="polite">
+            {page.unreadable || page.problems.length === 0 ? (
+              <div className={`${s.sheet} flex flex-col gap-2 p-4`}>
+                <p className="font-semibold">No fraction working was found on this page.</p>
+                <p className={s.muted}>
+                  Take the photo closer, in good light, with the working in view. Nothing was saved for {nameOf(pageStudent)}.
+                </p>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-[1.2em] font-semibold">
+                  {nameOf(pageStudent)}&apos;s page:{" "}
+                  <span className={s.highlight}>
+                    {page.problems.length} problem{page.problems.length === 1 ? "" : "s"}, {wrongOnPage} to fix
+                  </span>
+                </h2>
+                {FLAGS.PHOTO_PEN && preview && pageHasBoxes && (
+                  <PhotoWithPen src={preview} marks={pageMarks} allRight={wrongOnPage === 0} />
+                )}
+                {page.problems.map((p, i) => (
+                  <ProblemCard key={`${i}-${p.response_id ?? i}`} index={i} problem={p} studentId={pageStudent} topic={topic} />
+                ))}
+                <div className="flex flex-wrap gap-1">
+                  {page.telemetry.map((t, i) => (
+                    <TelemetryChip key={i} t={t} />
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={s.button} onClick={() => fileInput.current?.click()}>
+                Scan the next page
+              </button>
+              <Link className={`${s.button} ${s.primary}`} href={`/teacher/${encodeURIComponent(code)}`}>
+                See it on the class dashboard
+              </Link>
+            </div>
+          </section>
+        )}
+
         {status === "done" && result && (
           <section className="flex flex-col gap-3" aria-label="Diagnosis" aria-live="polite">
             {result.needs_typed_answer ? (
               <div className={`${s.sheet} flex flex-col gap-2 p-4`}>
-                <p className="font-semibold">This photo wasn&apos;t clear enough to read.</p>
-                <p className={s.muted}>Type the final answer from the notebook instead. It is saved as a notebook reading, not as a quiz answer.</p>
+                <p className="font-semibold">
+                  {result.no_working ? "No fraction working was found on this photo." : "This photo wasn't clear enough to read."}
+                </p>
+                <p className={s.muted}>
+                  Type the final answer from the notebook instead. It is saved as a notebook reading, not as a quiz answer.
+                </p>
                 <div className="flex gap-2">
                   <input
                     className={`${s.button} ${s.focusable} flex-1 text-base`}
                     inputMode="text"
                     placeholder="e.g. 4/8"
+                    aria-label="The final answer from the notebook"
                     value={typed}
                     onChange={(e) => setTyped(e.target.value)}
                   />
@@ -477,10 +665,15 @@ export function Scan({ code }: { code: string }) {
               <>
                 <div className="flex items-baseline justify-between gap-2">
                   <h2 className="text-[1.2em] font-semibold">
-                    {student?.nickname}&apos;s working{result.problem ? `: ${result.problem}` : question ? `: ${question.stem}` : ""}
+                    {nameOf(result.student_id)}&apos;s working{result.problem ? `: ${result.problem}` : ""}
                   </h2>
-                  {picking === "step" && <span className={`${s.hand}`} style={{ color: "var(--red-pen)" }}>tap the wrong line</span>}
+                  {picking === "step" && (
+                    <span className={`${s.hand}`} style={{ color: "var(--red-pen)" }}>
+                      tap the wrong line
+                    </span>
+                  )}
                 </div>
+                {result.problem_note && <p className={`${s.muted} text-[0.9em]`}>{result.problem_note}</p>}
                 {FLAGS.PHOTO_PEN && result.line_boxes && preview && picking !== "step" && (
                   <div className="flex gap-1" role="tablist" aria-label="Show the photo or the transcript">
                     {(["photo", "transcript"] as const).map((v) => (
@@ -498,7 +691,11 @@ export function Scan({ code }: { code: string }) {
                   </div>
                 )}
                 {FLAGS.PHOTO_PEN && result.line_boxes && preview && view === "photo" && picking !== "step" ? (
-                  <PhotoResult src={preview} result={result} />
+                  <PhotoWithPen
+                    src={preview}
+                    marks={[markFor(result)].filter((m): m is NonNullable<typeof m> => m !== null)}
+                    allRight={result.correct}
+                  />
                 ) : (
                   <NotebookResult
                     result={result}
@@ -517,58 +714,15 @@ export function Scan({ code }: { code: string }) {
                     <strong style={{ color: evidence.tone }}>{evidence.title}.</strong> {result.rule_check.note}
                   </div>
                 )}
-
-                <div className={`${s.sheet} flex flex-col gap-2 p-3`} aria-label="Your review">
-                  {review.state === "done" ? (
-                    <p className="font-medium" style={{ color: "var(--green)" }}>
-                      ✓ {review.text}
-                    </p>
-                  ) : (
-                    <>
-                      <span className={s.muted}>You have the last word. Is this right?</span>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className={`${s.button} ${s.primary}`}
-                          disabled={review.state === "saving"}
-                          onClick={() => void sendReview("agree")}
-                        >
-                          Yes, that&apos;s the mistake
-                        </button>
-                        {!result.correct && (
-                          <>
-                            <button type="button" className={s.button} onClick={() => setPicking(picking === "tag" ? "none" : "tag")}>
-                              Different mistake
-                            </button>
-                            <button type="button" className={s.button} onClick={() => setPicking(picking === "step" ? "none" : "step")}>
-                              Wrong line
-                            </button>
-                            <button type="button" className={s.button} onClick={() => void sendReview("mark_correct")}>
-                              It&apos;s actually right
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      {picking === "tag" && topic && (
-                        <div className="mt-1 grid gap-1.5 sm:grid-cols-2">
-                          {topic.tags
-                            .filter((t) => t.tag !== "unclassified" && t.tag !== result.misconception_tag)
-                            .map((t) => (
-                              <button
-                                key={t.tag}
-                                type="button"
-                                className={`${s.button} justify-start text-left text-[0.9em]`}
-                                onClick={() => void sendReview("change_tag", { tag: t.tag })}
-                              >
-                                {t.labels.en}
-                              </button>
-                            ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
+                <ReviewBar
+                  correct={result.correct}
+                  tag={result.misconception_tag}
+                  topic={topic}
+                  review={review}
+                  picking={picking}
+                  onPick={setPicking}
+                  onReview={(v, extra) => void sendReview(v, extra)}
+                />
                 <div className="flex flex-wrap gap-1">
                   {result.telemetry.map((t, i) => (
                     <TelemetryChip key={i} t={t} />
@@ -578,7 +732,7 @@ export function Scan({ code }: { code: string }) {
             )}
             <div className="flex flex-wrap gap-2">
               <button type="button" className={s.button} onClick={() => fileInput.current?.click()}>
-                Scan the next notebook
+                Scan a real page
               </button>
               <Link className={`${s.button} ${s.primary}`} href={`/teacher/${encodeURIComponent(code)}`}>
                 See it on the class dashboard

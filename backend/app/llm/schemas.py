@@ -61,3 +61,4 @@ class PageRead(BaseModel):
     problems: list[str]  # one entry per problem: its lines of working joined with " | ", exactly as written
     tags: list[str] = []  # parallel to problems: the best misconception tag, or "" when right
     error_steps: list[int] = []  # parallel to problems: the 1-based wrong line, or 0 when right
+    boxes: list[str] = []  # parallel to problems: "ymin,xmin,ymax,xmax;..." one box per line, 0-1000 scale

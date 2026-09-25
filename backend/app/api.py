@@ -85,6 +85,7 @@ class SessionRef(BaseModel):
 class Review(BaseModel):
     student_id: str
     question_id: str
+    response_id: int | None = None  # one reading among several on a page; overrides question_id
     verdict: Literal["agree", "change_tag", "change_step", "mark_correct"]
     tag: str | None = None
     step: int | None = Field(default=None, ge=1, le=12)
@@ -100,7 +101,7 @@ class RemoveStudent(BaseModel):
 
 class FilePage(BaseModel):
     student_id: str
-    mode: Literal["homework", "snap"] = "snap"
+    mode: Literal["homework", "snap", "scan"] = "snap"
     problems: list[dict] = Field(max_length=6)
 
 
@@ -362,7 +363,7 @@ async def diagnostician_page(
     image: UploadFile = File(...),
     student_id: str | None = Form(default=None),
     session_id: str | None = Form(default=None),
-    mode: Literal["homework", "snap"] = Form(default="homework"),
+    mode: Literal["homework", "snap", "scan"] = Form(default="homework"),
     language: Lang | None = Form(default=None),
 ) -> dict:
     """A whole notebook page: the header names the child (roll number, else nickname), every problem is found and
@@ -435,7 +436,7 @@ def teacher_approve(body: Approve, request: Request) -> dict:
 def teacher_review(body: Review, request: Request) -> dict:
     """The teacher confirms or corrects a diagnosis. The teacher always has the last word."""
     _limit(request, "review", 60)
-    return review.review(body.student_id, body.question_id, body.verdict, body.tag, body.step)
+    return review.review(body.student_id, body.question_id, body.verdict, body.tag, body.step, body.response_id)
 
 
 @router.get("/teacher/dashboard")

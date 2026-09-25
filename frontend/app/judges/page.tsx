@@ -15,7 +15,7 @@ const TOUR = [
     title: "Scan a notebook",
     href: ROUTES.scan,
     cta: "Open the scan screen",
-    doThis: "Pick a problem and tap “Asha's page (real photo)”, or photograph your own working for any of the four problems.",
+    doThis: "Tap “Asha's page: 3/4 + 1/4 (real photo)”, or photograph any page of your own fraction working.",
     lookFor:
       "Step 2 circled in red, the mistake named in plain words, and the arithmetic proof under it. One tap lets the teacher agree or correct it.",
   },
@@ -38,9 +38,9 @@ const TOUR = [
     title: "Any problem from the textbook",
     href: ROUTES.scan,
     cta: "Open the scan screen",
-    doThis: "Pick “Any other fraction problem”, then photograph your own working for any fraction sum, with a planted mistake if you like.",
+    doThis: "Photograph a page with two or three fraction problems of your own, with a planted mistake if you like.",
     lookFor:
-      "The AI only transcribes. Exact arithmetic finds the first wrong line, a mal-rule recomputes it to name the mistake (“adding the denominators too gives exactly 3/8”), and a ledger shows every line's exact value.",
+      "Every problem on the page is found. The AI only transcribes; exact arithmetic finds each wrong line, a mal-rule recomputes it to name the mistake (“adding the denominators too gives exactly 3/8”), and the red pen circles it on your photo.",
   },
   {
     title: "Read a pile of notebooks",

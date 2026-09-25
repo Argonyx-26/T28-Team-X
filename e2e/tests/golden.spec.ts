@@ -64,7 +64,7 @@ test.describe.serial("golden path", () => {
 
   test("2. the scan screen circles line 2 of Asha's page and the teacher confirms", async ({ page }) => {
     await page.goto(`/teacher/${CODE}/scan`);
-    const sample = page.getByRole("button", { name: /Asha's page/ });
+    const sample = page.getByRole("button", { name: /Asha's page: 3\/4 \+ 1\/4/ });
     await expect(sample).toBeEnabled({ timeout: 30_000 });
     await sample.click();
     const diagnosis = page.getByRole("region", { name: "Diagnosis" });

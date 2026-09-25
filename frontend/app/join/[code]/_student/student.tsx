@@ -301,7 +301,6 @@ export function Student({ code }: { code: string }) {
             ref={fileInput}
             type="file"
             accept="image/*"
-            capture="environment"
             aria-label={words.hwTakePhoto}
             className="sr-only"
             tabIndex={-1}

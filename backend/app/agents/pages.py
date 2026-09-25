@@ -52,11 +52,13 @@ def match_bank(first_line: str) -> Question | None:
     return None
 
 
-def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None) -> dict:
+def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None, boxes: list[str] | None = None) -> dict:
     """One problem's working, judged by the verifier; the model's tag and step are its second opinion."""
     lines = [x.strip() for x in lines if x and x.strip()][:12]
     if not lines:
         raise ApiError(422, "empty_problem", "No working to read.")
+    if not verifier.looks_like_working(lines):
+        raise ApiError(422, "no_working", "No fraction working in this problem.")
     bank = match_bank(lines[0])
     q = bank or diagnostician._PLACEHOLDER
     guess = PhotoDiagnosis(
@@ -67,6 +69,7 @@ def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None) 
         misconception_tag=tag or "unclassified",
         confidence=0.6 if tag else 0.3,
         feedback_student="",
+        boxes=list(boxes or []),
     )
     out = diagnostician.combine(q, guess, lines)
     if bank is None:
@@ -140,6 +143,7 @@ def file_problems(conn, student: dict, problems: list[dict], mode: str) -> dict:
     topic = get_topic()
     gaps_opened = 0
     wrong = 0
+    phase = "photo" if mode == "scan" else mode
     for p in problems:
         if p.get("needs_typed_answer"):
             continue
@@ -160,15 +164,16 @@ def file_problems(conn, student: dict, problems: list[dict], mode: str) -> dict:
             tag=p.get("misconception_tag"),
             source=p.get("source", "vision+rule"),
             confidence=float(p.get("confidence") or 0),
-            phase=mode,
+            phase=phase,
             error_step=p.get("error_step"),
             stem=q.stem if q.id == diagnostician.AUTO else None,
         )
+        p["response_id"] = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         gaps_opened += int(outcome["gap_opened"])
         wrong += int(not p["correct"])
     who = f"{student['nickname']}" + (f" (roll {student['roll_no']})" if student.get("roll_no") else "")
     n = len(problems)
-    label = "Homework" if mode == "homework" else "Snap"
+    label = {"homework": "Homework", "snap": "Snap", "scan": "Scan"}.get(mode, mode.title())
     log_event(
         conn,
         student["session_id"],
@@ -208,13 +213,15 @@ async def page(
     raw_problems = [p for p in result.problems if p and p.strip()][:MAX_PROBLEMS]
     tags = list(result.tags or [])
     steps = list(result.error_steps or [])
+    all_boxes = list(result.boxes or [])
     problems = []
     for i, text in enumerate(raw_problems):
         lines = [x for x in re.split(r"\s*\|\s*", text) if x.strip()]
         tag = tags[i] if i < len(tags) and tags[i] else None
         step = steps[i] if i < len(steps) and steps[i] else None
+        boxes = [b.strip() for b in all_boxes[i].split(";") if b.strip()] if i < len(all_boxes) and all_boxes[i] else []
         try:
-            problems.append(diagnose_problem(lines, tag, step))
+            problems.append(diagnose_problem(lines, tag, step, boxes))
         except ApiError:
             continue
     with get_conn() as conn:

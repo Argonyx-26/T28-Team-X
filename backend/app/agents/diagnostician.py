@@ -254,6 +254,57 @@ def check_steps(q: Question, steps: list[str]) -> verifier.Verdict:
     )
 
 
+def _is_other_problem(q: Question, steps: list[str]) -> bool:
+    """The first problem line on the page has other fractions than the picked bank problem (a word problem is compared
+    by its numbers, so the cake problem written out in words still matches P4)."""
+    from .pages import match_bank
+
+    found = verifier._first_expression(steps)
+    line = steps[found[0]] if found else (steps[0] if steps else "")
+    written = verifier.written_fractions(_problem_text(line))
+    wanted = verifier.written_fractions(q.stem)
+    if not written or not wanted:
+        return False
+    if sorted(written) == sorted(wanted):
+        return False
+    # the same problem in simplest terms ("6/8" for "3/4") still counts as the same problem
+    from fractions import Fraction
+
+    as_values = lambda xs: sorted(Fraction(x) for x in xs)  # noqa: E731
+    return as_values(written) != as_values(wanted) and match_bank(steps[0]) is not q
+
+
+def _bank_problem_on(steps: list[str]) -> Question | None:
+    """The bank photo problem the page actually shows, if it is one."""
+    from .pages import match_bank
+
+    found = verifier._first_expression(steps)
+    line = steps[found[0]] if found else (steps[0] if steps else "")
+    return match_bank(_problem_text(line)) or match_bank(steps[0] if steps else "")
+
+
+def _no_working(q: Question, steps: list[str], result: PhotoDiagnosis) -> dict:
+    return {
+        "rule_check": {"status": "unverified", "note": "No fraction working was found on this page."},
+        "steps": steps,
+        "final_answer_read": None,
+        "correct": False,
+        "error_step": None,
+        "misconception_tag": None,
+        "label": None,
+        "confidence": 0.0,
+        "feedback": "No fraction working was found. Photograph the page with the working, closer and in good light.",
+        "source": "vision",
+        "needs_typed_answer": True,
+        "no_working": True,
+        "line_values": [],
+        "line_boxes": None,
+        "reproduced_by": None,
+        "verifier": None,
+        "problem": q.stem,
+    }
+
+
 def _problem_text(line: str) -> str:
     """The problem as posed on a line of working: "1) 3/8 + 1/8 = 4/16" -> "3/8 + 1/8"."""
     segs = verifier.split_chain(line)
@@ -293,6 +344,11 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
     # model's own step so every line number counts from the first line of working
     steps, dropped = verifier.strip_headers(steps)
     boxes = list(result.boxes or [])[dropped:] if result.boxes else []
+    if not verifier.looks_like_working(steps):
+        return _no_working(q, steps, result)
+    if q.id != AUTO and _is_other_problem(q, steps):
+        # the page shows another problem than the one picked: judge what is written, never the picked problem
+        q = _bank_problem_on(steps) or _PLACEHOLDER
     model_step = result.error_step - dropped if result.error_step is not None else None
     if model_step is not None and model_step < 1:
         model_step = None
@@ -369,6 +425,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         "reproduced_by": reproduced_by,
         "verifier": verdict.as_dict(),
         "problem": (_problem_text(steps[verdict.problem_line]) if q.id == AUTO and steps else q.stem),
+        "judged_as": q.id,
     }
 
 
@@ -419,6 +476,31 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
     with get_conn() as conn:
         student = state.require_student(conn, student_id)
     reading, telemetry = await read_photo(q, prepare_image(image))
+    picked = q
+    if reading is not None and reading.get("judged_as") not in (None, q.id):
+        q = topic.question(reading["judged_as"]) or _PLACEHOLDER
+        shown = reading["problem"] if q.id == AUTO else q.stem
+        reading["problem_note"] = f"This page shows {shown}, not {picked.stem}, so it was checked as written."
+    if reading is not None and reading.get("no_working"):
+        with get_conn() as conn, transaction(conn):
+            log_event(
+                conn,
+                student["session_id"],
+                "Diagnostician",
+                "diagnose_photo",
+                f"{student['nickname']}: no fraction working found on the photo; nothing saved",
+                student_id,
+                telemetry,
+            )
+        return {
+            "student_id": student_id,
+            "question_id": q.id,
+            "concept_id": q.concept_id,
+            "telemetry": telemetry,
+            **reading,
+            "mastery_after": None,
+            "gap_opened": False,
+        }
     if reading is not None and q.id == AUTO:
         # a problem outside the bank: the concept follows the operator, and the problem line is kept with the answer
         verdict = reading["verifier"]
