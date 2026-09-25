@@ -12,12 +12,23 @@ CALLS: list[tuple[str, str]] = []
 
 def _fake_payload(schema_name: str, prompt: str) -> dict:
     if schema_name == "TextDiagnosis":
-        return {"correct": False, "misconception_tag": "careless_arithmetic", "error_step": "last line",
-                "confidence": 0.8, "feedback_student": "Check the last step."}
+        return {
+            "correct": False,
+            "misconception_tag": "careless_arithmetic",
+            "error_step": "last line",
+            "confidence": 0.8,
+            "feedback_student": "Check the last step.",
+        }
     if schema_name == "PhotoDiagnosis":
-        return {"steps": ["3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"], "final_answer_read": "4/8", "correct": False,
-                "error_step": 2, "misconception_tag": "add_denominators", "confidence": 0.92,
-                "feedback_student": "In line 2 you added the denominators. Keep the denominator 4."}
+        return {
+            "steps": ["3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"],
+            "final_answer_read": "4/8",
+            "correct": False,
+            "error_step": 2,
+            "misconception_tag": "add_denominators",
+            "confidence": 0.92,
+            "feedback_student": "In line 2 you added the denominators. Keep the denominator 4.",
+        }
     if schema_name == "LessonOut":
         if "Kannada" in prompt:
             md = "ಛೇದವನ್ನು (denominator) ಕೂಡಿಸಬೇಡಿ. ಅಂಶಗಳನ್ನು ಮಾತ್ರ ಕೂಡಿಸಿ: 3/4 + 1/4 = 4/4 = 1."
@@ -28,16 +39,31 @@ def _fake_payload(schema_name: str, prompt: str) -> dict:
         else:
             md = "Keep the denominator. Add only the numerators: 3/4 + 1/4 = 4/4 = 1."
             lang = "en"
-        return {"language": lang, "lesson_md": md,
-                "practice": [{"question": "1/5 + 2/5", "answer": "3/5"}, {"question": "2/7 + 3/7", "answer": "5/7"},
-                             {"question": "1/3 + 1/3", "answer": "2/3"}]}
+        return {
+            "language": lang,
+            "lesson_md": md,
+            "practice": [
+                {"question": "1/5 + 2/5", "answer": "3/5"},
+                {"question": "2/7 + 3/7", "answer": "5/7"},
+                {"question": "1/3 + 1/3", "answer": "2/3"},
+            ],
+        }
     if schema_name == "CoachPlan":
         audience = "reteach_group" if "analyst_verdicts" in prompt else "whole_class"
-        return {"recommendations": [{
-            "audience": audience, "group_label": "Group A" if audience == "reteach_group" else "Whole class",
-            "concept_id": "C4", "misconception_tag": "add_denominators",
-            "headline": "Fix adding denominators", "plan_5min": ["Show a fraction strip", "Work 3/4 + 1/4", "Practise"],
-            "worked_example": "3/4 + 1/4 = 4/4 = 1", "why": "Most gaps are on C4."}]}
+        return {
+            "recommendations": [
+                {
+                    "audience": audience,
+                    "group_label": "Group A" if audience == "reteach_group" else "Whole class",
+                    "concept_id": "C4",
+                    "misconception_tag": "add_denominators",
+                    "headline": "Fix adding denominators",
+                    "plan_5min": ["Show a fraction strip", "Work 3/4 + 1/4", "Practise"],
+                    "worked_example": "3/4 + 1/4 = 4/4 = 1",
+                    "why": "Most gaps are on C4.",
+                }
+            ]
+        }
     if schema_name == "ParentMessageOut":
         return {"language": "kn", "message": "ನಮಸ್ಕಾರ! ಇಂದು ಆಶಾ ಭಿನ್ನರಾಶಿಗಳ ಸಂಕಲನ ಅಭ್ಯಾಸ ಮಾಡಿದರು."}
     raise AssertionError(schema_name)

@@ -154,12 +154,9 @@ def _known_wrong_tag(q: Question, final_answer: str | None) -> str | None:
     return None
 
 
-async def photo(student_id: str, question_id: str, image: bytes) -> dict:
+async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tuple[dict | None, list[dict]]:
+    """The vision model reads the working; rules then check its verdict. No database access (evals use this too)."""
     topic = get_topic()
-    q = state.require_question(question_id, ("photo", "text", "mcq"))
-    with get_conn() as conn:
-        student = state.require_student(conn, student_id)
-    jpeg = prepare_image(image)
     prompt = f"{_question_block(q)}\n\nThe photo shows this student's working for the question above."
     result, telemetry = await generate(
         "Diagnostician",
@@ -169,10 +166,50 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
         PhotoDiagnosis,
         image=jpeg,
         route=("vertex", "nebius"),
+        use_cache=use_cache,
         validate=lambda r: len([s for s in r.steps if s.strip()]) > 0,
     )
-    base = {"student_id": student_id, "question_id": q.id, "concept_id": q.concept_id, "telemetry": telemetry}
     if result is None:
+        return None, telemetry
+    steps = [s.strip() for s in result.steps if s.strip()][:12]
+    tag, confidence = rules.validate_llm_tag(topic, result.misconception_tag, result.confidence)
+    correct, source = result.correct, "vision"
+    # rules check the model: the exact value of the final answer decides right or wrong
+    final = parse_answer(result.final_answer_read)
+    expected = parse_answer(q.answer)
+    if final and expected and (final.value == expected.value) != correct:
+        correct, source = final.value == expected.value, "vision+rule"
+    if not correct:
+        known = _known_wrong_tag(q, result.final_answer_read)
+        if known and tag == "unclassified":
+            tag, confidence, source = known, max(confidence, 0.7), "vision+rule"
+    error_step = result.error_step if not correct else None
+    if error_step is not None and not 1 <= error_step <= len(steps):
+        error_step = None
+    if correct:
+        tag = None
+    return {
+        "steps": steps,
+        "final_answer_read": result.final_answer_read,
+        "correct": correct,
+        "error_step": error_step,
+        "misconception_tag": tag,
+        "label": topic.tag(tag).label() if tag else None,
+        "confidence": confidence,
+        "feedback": result.feedback_student,
+        "source": source,
+        "needs_typed_answer": not correct and tag == "unclassified",
+    }, telemetry
+
+
+async def photo(student_id: str, question_id: str, image: bytes) -> dict:
+    topic = get_topic()
+    q = state.require_question(question_id, ("photo", "text", "mcq"))
+    with get_conn() as conn:
+        student = state.require_student(conn, student_id)
+    reading, telemetry = await read_photo(q, prepare_image(image))
+    base = {"student_id": student_id, "question_id": q.id, "concept_id": q.concept_id, "telemetry": telemetry}
+    if reading is None:
         with get_conn() as conn, transaction(conn):
             log_event(
                 conn,
@@ -199,41 +236,23 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             "gap_opened": False,
         }
 
-    steps = [s.strip() for s in result.steps if s.strip()][:12]
-    tag, confidence = rules.validate_llm_tag(topic, result.misconception_tag, result.confidence)
-    correct, source = result.correct, "vision"
-    # rules check the model: the final answer's exact value decides right or wrong
-    final = parse_answer(result.final_answer_read)
-    expected = parse_answer(q.answer)
-    if final and expected and (final.value == expected.value) != correct:
-        correct, source = final.value == expected.value, "vision+rule"
-    if not correct:
-        known = _known_wrong_tag(q, result.final_answer_read)
-        if known and tag == "unclassified":
-            tag, confidence, source = known, max(confidence, 0.7), "vision+rule"
-    error_step = result.error_step if not correct else None
-    if error_step is not None and not 1 <= error_step <= len(steps):
-        error_step = None
-    if correct:
-        tag = None
-    needs_typed = not correct and tag == "unclassified"
-
     outcome = {"mastery_after": None, "gap_opened": False}
+    tag, error_step, steps = reading["misconception_tag"], reading["error_step"], reading["steps"]
     with get_conn() as conn, transaction(conn):
-        if not needs_typed:
+        if not reading["needs_typed_answer"]:
             outcome = state.record_response(
                 conn,
                 student_id,
                 q,
-                answer=result.final_answer_read or "",
-                correct=correct,
+                answer=reading["final_answer_read"] or "",
+                correct=reading["correct"],
                 tag=tag,
-                source=source,
-                confidence=confidence,
+                source=reading["source"],
+                confidence=reading["confidence"],
                 phase="photo",
                 error_step=error_step,
             )
-        if correct:
+        if reading["correct"]:
             what = "all steps right"
         elif error_step:
             what = f"step {error_step} '{steps[error_step - 1]}': {topic.tag(tag).label()}"
@@ -244,22 +263,8 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             student["session_id"],
             "Diagnostician",
             "diagnose_photo",
-            f"{student['nickname']} · {q.id}: {what} ({confidence:.2f}, {source})",
+            f"{student['nickname']} · {q.id}: {what} ({reading['confidence']:.2f}, {reading['source']})",
             student_id,
             telemetry,
         )
-    return {
-        **base,
-        "steps": steps,
-        "final_answer_read": result.final_answer_read,
-        "correct": correct,
-        "error_step": error_step,
-        "misconception_tag": tag,
-        "label": topic.tag(tag).label() if tag else None,
-        "confidence": confidence,
-        "feedback": result.feedback_student,
-        "source": source,
-        "needs_typed_answer": needs_typed,
-        "mastery_after": outcome["mastery_after"],
-        "gap_opened": outcome["gap_opened"],
-    }
+    return {**base, **reading, **outcome}

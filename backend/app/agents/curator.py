@@ -31,6 +31,7 @@ DEMO_PAIRS = [
 
 _jobs: dict[str, asyncio.Task] = {}
 _last_telemetry: dict[str, list[dict]] = {}
+_announced: set[tuple[str, str]] = set()
 
 
 def lesson_key(concept_id: str, tag: str, language: str) -> str:
@@ -157,6 +158,21 @@ async def lesson(student_id: str) -> dict:
         payload = job.result() or template_lesson(concept_id, tag)
         if not job.result():
             _jobs.pop(key, None)  # let a later request try the provider again
+
+    if (student_id, key) not in _announced:
+        _announced.add((student_id, key))
+        if not (key in _jobs and _jobs[key].done()):  # a fresh generation already logged its own event
+            what = "from the reviewed cache" if payload.get("translated") else "as the English fallback"
+            with get_conn() as conn, transaction(conn):
+                log_event(
+                    conn,
+                    student["session_id"],
+                    "Curator",
+                    "lesson",
+                    f"{student['nickname']}: {LANGUAGE_LABELS.get(payload['language'], payload['language'])} "
+                    f"lesson on {tag} served {what}",
+                    student_id,
+                )
 
     concept, t = topic.concept(concept_id), topic.tag(tag)
     lesson_out = {

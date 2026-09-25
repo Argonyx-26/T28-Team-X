@@ -18,6 +18,7 @@ from .conftest import CALLS
 def client():
     curator._jobs.clear()
     curator._last_telemetry.clear()
+    curator._announced.clear()
     with TestClient(app) as c:
         yield c
 
@@ -69,7 +70,11 @@ def test_asha_demo_loop_closes_the_gap(client):
     assert not n["done"] and n["question"]["concept_id"] == "C4" and n["question"]["kind"] == "mcq"
     a = client.post(
         "/agents/diagnostician/answer",
-        json={"student_id": ASHA_ID, "question_id": n["question"]["id"], "answer": _wrong_option(client, n["question"])},
+        json={
+            "student_id": ASHA_ID,
+            "question_id": n["question"]["id"],
+            "answer": _wrong_option(client, n["question"]),
+        },
     ).json()
     assert a["misconception_tag"] == "add_denominators" and a["source"] == "key" and a["gap_opened"]
     assert "ಛೇದ" in a["label"] and a["telemetry"] == []
