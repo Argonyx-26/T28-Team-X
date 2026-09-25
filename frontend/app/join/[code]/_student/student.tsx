@@ -113,6 +113,8 @@ export function Student({ code }: { code: string }) {
   const [error, setError] = useState("");
   const [retryLesson, setRetryLesson] = useState(false);
   const [name, setName] = useState("");
+  const [roll, setRoll] = useState("");
+  const rollNo = /^\d{1,3}$/.test(roll) && Number(roll) >= 1 ? Number(roll) : undefined;
   const [lang, setLang] = useState<Lang>("en");
   const [retryAnswers, setRetryAnswers] = useState<Record<string, string>>({});
   const [shown, setShown] = useState<Record<number, boolean>>({});
@@ -121,11 +123,31 @@ export function Student({ code }: { code: string }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const words = WORDS[me?.language ?? lang];
 
-  const fail = useCallback((e: unknown, language: Lang = "en") => {
-    setError(e instanceof ApiError ? errorText(WORDS[language], e.code, e.message) : WORDS[language].offline);
-    setRetryLesson(false);
-    setBusy(false);
-  }, []);
+  /** The class was reset (or the child removed) since this phone joined: forget the old child, show the join form. */
+  const forgetIfLost = useCallback(
+    (e: unknown) => {
+      if (!(e instanceof ApiError && e.code === "student_not_found")) return false;
+      try {
+        localStorage.removeItem(storeKey(code));
+      } catch {
+        // private mode: nothing was stored
+      }
+      setMe(null);
+      setPhase({ name: "join" });
+      return true;
+    },
+    [code],
+  );
+
+  const fail = useCallback(
+    (e: unknown, language: Lang = "en") => {
+      setError(e instanceof ApiError ? errorText(WORDS[language], e.code, e.message) : WORDS[language].offline);
+      setRetryLesson(false);
+      setBusy(false);
+      forgetIfLost(e);
+    },
+    [forgetIfLost],
+  );
 
   const openLesson = useCallback(
     async (who: Me) => {
@@ -149,10 +171,11 @@ export function Student({ code }: { code: string }) {
         setError(WORDS[who.language].slow);
       } catch (e) {
         setError(e instanceof ApiError ? errorText(WORDS[who.language], e.code, e.message) : WORDS[who.language].offline);
+        if (forgetIfLost(e)) return;
       }
       setRetryLesson(true);
     },
-    [],
+    [forgetIfLost],
   );
 
   const nextQuestion = useCallback(
@@ -176,11 +199,11 @@ export function Student({ code }: { code: string }) {
   );
 
   const join = useCallback(
-    async (nickname: string, language: Lang, then: "quiz" | "homework" = "quiz") => {
+    async (nickname: string, language: Lang, then: "quiz" | "homework" = "quiz", rollNo?: number) => {
       setBusy(true);
       setError("");
       try {
-        const j = await api.join(code, nickname, language);
+        const j = await api.join(code, nickname, language, rollNo);
         const who = { studentId: j.student_id, nickname: j.nickname, language: j.language };
         save(code, who);
         setMe(who);
@@ -350,7 +373,7 @@ export function Student({ code }: { code: string }) {
             className={`${s.sheet} flex flex-col gap-4 p-5`}
             onSubmit={(e) => {
               e.preventDefault();
-              if (name.trim()) void join(name.trim(), lang);
+              if (name.trim()) void join(name.trim(), lang, "quiz", rollNo);
             }}
           >
             <h1 className="text-[1.5em] font-semibold">{words.welcome}</h1>
@@ -359,10 +382,23 @@ export function Student({ code }: { code: string }) {
               <input
                 className={k.input}
                 value={name}
-                maxLength={30}
+                maxLength={24}
                 autoComplete="given-name"
                 placeholder={words.namePlaceholder}
                 onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-medium">
+                {words.rollNo} <span className={`${s.muted} font-normal`}>{words.rollNoHint}</span>
+              </span>
+              <input
+                className={`${k.input} max-w-[8em]`}
+                value={roll}
+                inputMode="numeric"
+                maxLength={3}
+                autoComplete="off"
+                onChange={(e) => setRoll(e.target.value.replace(/\D/g, ""))}
               />
             </label>
             <fieldset className="flex flex-col gap-2">
@@ -389,7 +425,7 @@ export function Student({ code }: { code: string }) {
                 words={words}
                 variant="big"
                 disabled={busy || !name.trim()}
-                onClick={() => name.trim() && void join(name.trim(), lang, "homework")}
+                onClick={() => name.trim() && void join(name.trim(), lang, "homework", rollNo)}
               />
             )}
           </form>

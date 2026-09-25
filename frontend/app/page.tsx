@@ -81,7 +81,7 @@ const DEBATE: { who: "Coach" | "Analyst" | "Teacher"; act: string; verdict?: "no
 
 const AI_JOBS = ["Reading handwriting from a phone photo", "Writing lessons, plans and parent messages in 3 languages"];
 const RULE_JOBS = [
-  "Right or wrong, by exact fraction arithmetic: a model can never mark a right answer wrong",
+  "Right or wrong, by exact fraction arithmetic on what the model read, not by the model's opinion",
   "Which mistake a known wrong answer shows",
   "Mastery, the next question, and when a gap opens or closes",
   "The Analyst's veto over every plan",

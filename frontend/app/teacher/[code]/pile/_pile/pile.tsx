@@ -125,6 +125,9 @@ export function Pile({ code }: { code: string }) {
   const wrong = done.filter((i) => !i.result?.correct && !i.result?.needs_typed_answer);
   const right = done.filter((i) => i.result?.correct);
   const unreadable = items.filter((i) => i.state === "error" || i.result?.needs_typed_answer);
+  const cachedCount = done.filter(
+    (i) => i.result?.telemetry?.length && i.result.telemetry.every((t) => t.cached),
+  ).length;
   const byLabel = new Map<string, number>();
   for (const i of wrong) {
     const label = i.result?.label ?? "unclear mistake";
@@ -225,10 +228,17 @@ export function Pile({ code }: { code: string }) {
               <section className={`${s.sheet} flex flex-col gap-2 p-4`} aria-live="polite" aria-label="Summary">
                 <p className="text-[1.1em]">
                   <span className={s.highlight}>
-                    {done.length} notebooks read in {elapsed.toFixed(0)} seconds
+                    {done.length} notebook{done.length === 1 ? "" : "s"} read in {elapsed.toFixed(0)} seconds
                   </span>
                   . {right.length} right, {wrong.length} with a mistake
                   {unreadable.length ? `, ${unreadable.length} need a second look` : ""}.
+                  {cachedCount > 0 && (
+                    <span className={`${s.muted} text-[0.9em]`}>
+                      {" "}
+                      {cachedCount === done.length ? "All" : cachedCount} of these were cached answers from an earlier
+                      run of the same photos, so no model was called for them.
+                    </span>
+                  )}
                 </p>
                 {topMistakes.length > 0 && (
                   <p>
@@ -290,7 +300,13 @@ export function Pile({ code }: { code: string }) {
                       {it.state === "done" && r && (
                         <span>
                           {r.needs_typed_answer ? (
-                            <span style={{ color: "var(--amber)" }}>Couldn&apos;t read it clearly. Scan again.</span>
+                            <span style={{ color: "var(--amber)" }}>
+                              {r.unanswered
+                                ? "No answer written yet."
+                                : r.not_fractions
+                                  ? "Whole numbers only, not saved."
+                                  : "Couldn't read it clearly. Scan again."}
+                            </span>
                           ) : r.correct ? (
                             <strong style={{ color: "var(--green)" }}>✓ {nameOf(it.studentId)} got it right</strong>
                           ) : (

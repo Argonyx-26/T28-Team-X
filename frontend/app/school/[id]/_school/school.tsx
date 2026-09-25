@@ -150,7 +150,7 @@ export function School({ id }: { id: string }) {
                             {m.label}
                           </span>
                           <span className={`${s.muted} block text-[0.85em]`}>
-                            <strong className={s.highlight}>{m.students} students</strong> across {m.concepts.join(", ")}
+                            <strong className={s.highlight}>{m.students} students</strong> across {m.concepts.map((id) => data.concepts.find((k) => k.id === id)?.name ?? id).join(", ").toLowerCase()}
                           </span>
                         </span>
                       </li>

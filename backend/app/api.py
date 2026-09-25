@@ -6,10 +6,10 @@ import re
 import secrets
 import time
 from collections import defaultdict, deque
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, File, Form, Header, Request, Response, UploadFile
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, File, Form, Header, Query, Request, Response, UploadFile
+from pydantic import BaseModel, Field, StringConstraints
 
 from . import seed, voice
 from .agents import analyst, coach, curator, diagnostician, examiner, pages, review, simulator, state
@@ -26,7 +26,7 @@ Lang = Literal["en", "hi", "kn"]
 
 
 class CreateSession(BaseModel):
-    class_name: str = Field(min_length=1, max_length=80)
+    class_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
     code: str | None = Field(default=None, max_length=12)
     school_id: str | None = Field(default=None, max_length=40)
 
@@ -99,10 +99,18 @@ class RemoveStudent(BaseModel):
     student_id: str
 
 
+class FiledProblem(BaseModel):
+    """What the client sends back for one reading: only the transcription and the model's second opinion."""
+
+    steps: list[Annotated[str, Field(max_length=200)]] = Field(min_length=1, max_length=12)
+    misconception_tag: str | None = Field(default=None, max_length=40)
+    error_step: int | None = Field(default=None, ge=1, le=12)
+
+
 class FilePage(BaseModel):
     student_id: str
     mode: Literal["homework", "snap", "scan"] = "snap"
-    problems: list[dict] = Field(max_length=6)
+    problems: list[FiledProblem] = Field(max_length=6)
 
 
 class Speak(BaseModel):
@@ -163,6 +171,10 @@ def _lookup(conn, session: dict) -> dict:
 def create_session(body: CreateSession, request: Request) -> dict:
     _limit(request, "create", 10)
     code = (body.code or secrets.token_hex(2)).strip().upper()
+    school = (body.school_id or "").strip() or None
+    if school and school.lower() == seed.DEMO_SCHOOL_ID:
+        # the sample school is the demo's; a new class would land in it and on the judged school view
+        raise ApiError(422, "school_reserved", "That is the sample school's id. Use your own school's name.")
     if not code.isalnum():
         raise ApiError(422, "bad_code", "A class code is letters and digits only.")
     with get_conn() as conn, transaction(conn):
@@ -171,36 +183,56 @@ def create_session(body: CreateSession, request: Request) -> dict:
         session = {"id": new_id("ses"), "code": code, "class_name": body.class_name.strip()}
         conn.execute(
             "INSERT INTO session (id, code, class_name, topic_id, created_at, school_id) VALUES (?, ?, ?, ?, ?, ?)",
-            (session["id"], code, session["class_name"], get_topic().id, now(), (body.school_id or "").strip() or None),
+            (session["id"], code, session["class_name"], get_topic().id, now(), school),
         )
         out = _lookup(conn, session)
     return {
         **out,
+        "school_id": school,
         "join_url": f"{settings.public_app_url}/join/{code}",
         "teacher_url": f"{settings.public_app_url}/teacher/{code}",
     }
 
 
 def _parse_roster(text: str) -> list[RosterItem]:
-    """Pasted lines: "1, Asha", "2 Ravi kn", "3\tMeena". A language code at the end is optional."""
+    """Pasted lines: "1, Asha", "2 Ravi kn", "3\tMeena", "12. Meena", "13) Arjun", "5, Kavya, Kannada"."""
     items: list[RosterItem] = []
     for raw in text.splitlines():
         line = raw.strip().strip(",")
         if not line:
             continue
+        line = re.sub(r"^(\d{1,6})\s*[.)\]:-]\s*", r"\1, ", line)
         parts = [
             p for p in re.split(r"[,\t;]+|\s{2,}|(?<=^\d)\s+|(?<=^\d\d)\s+|(?<=^\d\d\d)\s+", line) if p and p.strip()
         ]
         if len(parts) < 2 or not parts[0].strip().isdigit():
-            raise ApiError(422, "bad_roster_line", f"Couldn't read the line '{raw.strip()}'. Use: roll, nickname.")
+            raise ApiError(422, "bad_roster_line", f"Couldn't read the line '{raw.strip()[:60]}'. Use: roll, nickname.")
         lang: Lang = "en"
         name = " ".join(parts[1:]).strip()
         tail = name.split()
-        if len(tail) > 1 and tail[-1].lower() in ("en", "hi", "kn"):
-            lang = tail[-1].lower()  # type: ignore[assignment]
+        if len(tail) > 1 and tail[-1].lower() in _ROSTER_LANGS:
+            lang = _ROSTER_LANGS[tail[-1].lower()]  # type: ignore[assignment]
             name = " ".join(tail[:-1])
-        items.append(RosterItem(roll_no=int(parts[0]), nickname=name, language=lang))
+        try:
+            items.append(RosterItem(roll_no=int(parts[0]), nickname=name, language=lang))
+        except ValueError as exc:  # a roll number of 0 or 20 digits, a name too long
+            raise ApiError(
+                422, "bad_roster_line", f"Line '{raw.strip()[:60]}': roll numbers run 1 to 999, names up to 40 letters."
+            ) from exc
     return items
+
+
+_ROSTER_LANGS = {
+    "en": "en",
+    "english": "en",
+    "hi": "hi",
+    "hindi": "hi",
+    "हिन्दी": "hi",
+    "हिंदी": "hi",
+    "kn": "kn",
+    "kannada": "kn",
+    "ಕನ್ನಡ": "kn",
+}
 
 
 @router.post("/sessions/roster")
@@ -378,11 +410,11 @@ async def diagnostician_page(
 def diagnostician_page_file(body: FilePage, request: Request) -> dict:
     """Files readings that came back unassigned under the student the teacher picked (text only, never the photo)."""
     _limit(request, "answer", 120)
-    return pages.file_page(body.student_id, body.problems, body.mode)
+    return pages.file_page(body.student_id, [x.model_dump() for x in body.problems], body.mode)
 
 
 @router.get("/teacher/digest")
-def teacher_digest(session_id: str, hours: int = 24) -> dict:
+def teacher_digest(session_id: str, hours: int = Query(default=24, ge=1, le=720)) -> dict:
     return analyst.digest(session_id, hours)
 
 

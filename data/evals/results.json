@@ -11,21 +11,21 @@
    "label": "Handwritten work marked right or wrong correctly",
    "value": "6/6",
    "n": 6,
-   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model",
+   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; every photo shows a wrong answer, so right answers are tested by the page evaluation",
    "kind": "photos"
   },
   {
    "label": "Wrong step circled correctly",
    "value": "6/6",
    "n": 6,
-   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; wrong answers only",
+   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; every photo shows a wrong answer, so right answers are tested by the page evaluation; wrong answers only",
    "kind": "photos"
   },
   {
    "label": "Misconception named correctly from a photo",
    "value": "6/6",
    "n": 6,
-   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; wrong answers only",
+   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; every photo shows a wrong answer, so right answers are tested by the page evaluation; wrong answers only",
    "kind": "photos"
   },
   {

@@ -26,7 +26,7 @@ const TABS = [
 
 const NOTES = [
   "Teachers don't upload anything. Homework comes back already marked, and when they do check notebooks, flipping pages under a phone is faster than a red pen.",
-  "The AI reads; arithmetic judges. A model can never mark a right answer wrong.",
+  "The AI reads; arithmetic judges. The model's opinion never decides right or wrong.",
   "The Coach plans from the mark book; the Analyst checks every child's answers and its veto is binding; the teacher has the last word.",
   "Every number on /judges carries n and method. We have no users and no trial yet, and we say so.",
   "If the Wi-Fi dies: the phone hotspot; the cache serves every demo answer; the video is the last fallback.",

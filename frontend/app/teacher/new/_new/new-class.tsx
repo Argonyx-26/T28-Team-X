@@ -118,7 +118,7 @@ export function NewClass() {
                   className={`${s.button} ${s.focusable} text-base`}
                   value={school}
                   maxLength={40}
-                  placeholder="demo"
+                  placeholder="your-school"
                   onChange={(e) => setSchool(e.target.value)}
                 />
               </label>

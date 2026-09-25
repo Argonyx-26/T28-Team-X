@@ -228,6 +228,10 @@ export interface PhotoResult {
   problem_note?: string;
   /** true when no fraction working was found on the photo; nothing was saved */
   no_working?: boolean;
+  /** true when the problem is copied out with no answer after it; nothing was saved */
+  unanswered?: boolean;
+  /** true when the working has whole numbers only: checked and shown, never saved */
+  not_fractions?: boolean;
 }
 
 /** Any fraction problem, not only the four in the bank: the first line the student wrote is the problem. */
@@ -251,6 +255,8 @@ export interface PageProblem {
   confidence: number;
   source: string;
   needs_typed_answer: boolean;
+  unanswered?: boolean;
+  not_fractions?: boolean;
   rule_check: RuleCheck;
   line_values: (string | null)[];
   reproduced_by: string | null;
@@ -375,11 +381,23 @@ export class ApiError extends Error {
 // NEXT_PUBLIC_API_BASE lets the dashboard talk to an API directly in local development; production uses the rewrite.
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/backend";
 
+/** A request that hangs (a phone losing signal mid-upload) must end, or the screen waits on "Reading…" forever. */
+const TIMEOUT_MS = 120_000;
+
+function timeoutSignal(): AbortSignal | undefined {
+  return typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(TIMEOUT_MS)
+    : undefined;
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { cache: "no-store", ...init });
-  } catch {
+    res = await fetch(`${API_BASE}${path}`, { cache: "no-store", ...init, signal: init?.signal ?? timeoutSignal() });
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) {
+      throw new ApiError(0, "timeout", "The server took too long to answer. Try again.");
+    }
     throw new ApiError(0, "offline", "Can't reach the server. Check the connection.");
   }
   const body = await res.json().catch(() => null);
@@ -455,10 +473,10 @@ export const api = {
     call<Worksheet>(
       `/teacher/worksheet?session_id=${encodeURIComponent(sessionId)}&concept_id=${encodeURIComponent(conceptId)}&tag=${encodeURIComponent(tag)}`,
     ),
-  join: (code: string, nickname: string, language: Lang) =>
+  join: (code: string, nickname: string, language: Lang, rollNo?: number) =>
     post<{ student_id: string; session_id: string; nickname: string; language: Lang; resumed: boolean }>(
       "/students/join",
-      { code, nickname, language },
+      rollNo ? { code, nickname, language, roll_no: rollNo } : { code, nickname, language },
     ),
   next: (studentId: string) => post<NextResponse>("/agents/examiner/next", { student_id: studentId }),
   answer: (studentId: string, questionId: string, answer: string) =>

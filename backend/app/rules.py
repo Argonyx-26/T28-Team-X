@@ -2,6 +2,7 @@
 
 import hashlib
 import random
+import re
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -58,9 +59,36 @@ def diagnose_mcq(question: Question, answer: str) -> RuleDiagnosis | None:
     return RuleDiagnosis(False, option.tag or "unclassified", "key", 1.0)
 
 
+_STEM_BLANK_DEN = re.compile(r"(\d+)\s*/\s*\?")  # "2/?" : the blank is the denominator
+_STEM_BLANK_NUM = re.compile(r"\?\s*/\s*(\d+)")  # "?/20": the blank is the numerator
+
+
+def typed_text(question: Question, answer: str) -> str:
+    """What the child means by a typed answer: the part after the last '=', the blank's number when they typed the
+    whole fraction, and the chosen side when they typed a comparison ('5/8 < 3/4' asked for the bigger)."""
+    text = answer.strip()
+    m = re.fullmatch(r"\s*([^<>]+?)\s*([<>])\s*([^<>]+?)\s*", text)
+    if m:
+        # the side the child says is bigger (or smaller, when the question asks for the smaller one)
+        smallest = bool(re.search(r"small|less|least", question.stem, re.I))
+        left_is_bigger = m.group(2) == ">"
+        text = m.group(1) if left_is_bigger != smallest else m.group(3)
+    if "=" in text:
+        text = text.rsplit("=", 1)[1]
+    full = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", text)
+    if full and "?" in question.stem:
+        den_blank = _STEM_BLANK_DEN.search(question.stem)
+        num_blank = _STEM_BLANK_NUM.search(question.stem)
+        if den_blank and full.group(1) == den_blank.group(1):
+            return full.group(2)
+        if num_blank and full.group(2) == num_blank.group(1):
+            return full.group(1)
+    return text
+
+
 def diagnose_typed(question: Question, answer: str) -> RuleDiagnosis | None:
     """Rules for a typed answer. None means the rules can't tell and the LLM should look at it."""
-    parsed = parse_answer(answer)
+    parsed = parse_answer(typed_text(question, answer))
     if parsed is None:
         return RuleDiagnosis(False, "unclassified", "rule", 0.3)
     expected = parse_answer(question.answer)
@@ -315,7 +343,9 @@ def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int
         m = len(analysis.groups.get(group, [])) if cid == analysis.focus_concept else None
         who = f"{m} students" if m is not None else "The students"
         return "accept", f"Fits the data: {who} can move on with practice on {concept.name} while others re-learn."
-    label = topic.tag(tag).label() if tag in topic.tags else tag
+    if not tag or tag == "unclassified" or tag not in topic.tags:
+        return "revise", f"The plan names no mistake; pick one the class shows on {concept.name}."
+    label = topic.tag(tag).label()
     k = stats.affected_by_tag.get(tag, 0) if stats else 0
     if k == 0:
         return "revise", f"No student shows '{label}' on {concept.name}; target a mistake the class actually makes."

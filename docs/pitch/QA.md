@@ -24,7 +24,8 @@ The verifier checks every line of working, not the final answer, so copied answe
 **"How do you know the model is right?"**
 We don't trust it to be. The model only transcribes. Exact fraction arithmetic decides right or wrong, finds the first
 wrong line, and a mal-rule recomputes the wrong line to name the mistake ("adding the denominators too gives exactly
-3/8"). A model can never mark a right answer wrong. When the model and the arithmetic disagree and no rule explains the
+3/8"). The model's opinion never decides right or wrong; a misread digit still can, which is why every result shows
+the transcription and the teacher can correct it. When the model and the arithmetic disagree and no rule explains the
 line, the teacher sees "please check". On 12 labelled pages by 3 writers the arithmetic alone got 12/12 right or wrong,
 8/8 wrong steps and 8/8 mistakes, with no model call.
 

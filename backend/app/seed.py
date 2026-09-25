@@ -108,8 +108,24 @@ def seed() -> bool:
 
 
 def reset() -> None:
-    """Wipe everything except the LLM and lesson caches, then seed again."""
+    """Wipe the demo classes (7A, 7B, 7C and anything in the sample school), then seed them again. Other classes, the
+    LLM cache and the lesson cache stay. The Curator's in-memory notes about who was
+    already told about a lesson go too, or a fresh Asha's lesson would never show in the feed."""
+    curator._jobs.clear()
+    curator._last_telemetry.clear()
+    curator._announced.clear()
+    from .agents import diagnostician
+
+    diagnostician._recent.clear()
+    demo = (DEMO_SESSION_ID, *(sid for sid, _, _ in SIBLING_CLASSES))
+    # only the demo classes: a class a visitor made on their own phone keeps working through a demo reset
+    sessions = f"SELECT id FROM session WHERE id IN ({', '.join('?' * len(demo))}) OR school_id = ?"
+    students = f"SELECT id FROM student WHERE session_id IN ({sessions})"
+    args = (*demo, DEMO_SCHOOL_ID)
     with get_conn() as conn, transaction(conn):
-        for table in ("review", "response", "mastery", "gap", "agent_event", "recommendation", "student", "session"):
-            conn.execute(f"DELETE FROM {table}")  # noqa: S608 - fixed table names
+        for table in ("review", "response", "mastery", "gap"):
+            conn.execute(f"DELETE FROM {table} WHERE student_id IN ({students})", args)  # noqa: S608 - fixed names
+        for table in ("agent_event", "recommendation", "student"):
+            conn.execute(f"DELETE FROM {table} WHERE session_id IN ({sessions})", args)  # noqa: S608 - fixed names
+        conn.execute(f"DELETE FROM session WHERE id IN ({sessions})", args)  # noqa: S608 - fixed names
     seed()

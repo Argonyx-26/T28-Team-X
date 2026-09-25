@@ -176,7 +176,7 @@ export function Homework({
         setStatus({ name: "done", result: r });
         track("homework_checked", {
           problems: r.problems.length,
-          wrong: r.summary?.wrong ?? r.problems.filter((p) => !p.correct).length,
+          wrong: r.summary?.wrong ?? r.problems.filter((p) => !p.correct && !p.needs_typed_answer).length,
           unreadable: r.unreadable,
         });
       } catch (e) {
@@ -267,7 +267,7 @@ export function Homework({
     );
   }
 
-  const wrong = r.problems.filter((p) => !p.correct);
+  const wrong = r.problems.filter((p) => !p.correct && !p.needs_typed_answer);
   const needsFix = (r.summary?.gaps_opened ?? 0) > 0 || wrong.length > 0;
   const concept = wrong[0] ? (words.concepts[wrong[0].concept_id] ?? null) : null;
   const parentText = words.parentMessage(r.problems.length, wrong.length, concept);

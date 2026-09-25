@@ -96,15 +96,15 @@ function GapMeter({ data }: { data: DashboardData }) {
   const total = open + closed;
   const focus = data.concepts.find((c) => c.id === data.focus_concept);
   const groups = [
-    ["Re-teach", data.groups.reteach.length, "var(--red)"],
-    ["Practise", data.groups.practice.length, "var(--amber)"],
-    ["Extend", data.groups.extend.length, "var(--green)"],
+    ["Low", data.groups.reteach.length, "var(--red)"],
+    ["Middle", data.groups.practice.length, "var(--amber)"],
+    ["High", data.groups.extend.length, "var(--green)"],
     ["Not assessed yet", data.groups.not_assessed.length, "#9aa3b2"],
   ] as const;
   return (
     <footer className={`${s.sheet} flex flex-col gap-3 px-5 py-3 lg:flex-row lg:items-center lg:gap-8`}>
-      <div className="flex min-w-0 flex-1 items-center gap-4">
-        <div className="shrink-0 text-[1.05em]">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="text-[1.05em] lg:shrink-0">
           Gaps closed this session:{" "}
           <strong key={closed} className={`${s.highlight} ${s.pop} text-[1.2em]`}>
             {closed} of {total}
@@ -126,7 +126,7 @@ function GapMeter({ data }: { data: DashboardData }) {
       </div>
       {focus && (
         <div className="flex flex-wrap items-center gap-2 text-[0.92em]">
-          <span className={s.muted}>On {focus.name.toLowerCase()}:</span>
+          <span className={s.muted}>Mastery on {focus.name.toLowerCase()}:</span>
           {groups.map(([label, n, color]) => (
             <span key={label} className={s.chip} style={{ fontSize: "0.85em", lineHeight: "24px" }}>
               <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
@@ -164,14 +164,18 @@ function DigestCard({ digest }: { digest: Digest }) {
         from {digest.students} student{digest.students === 1 ? "" : "s"}: {digest.problems} problems, {digest.wrong} wrong
         {digest.new_gaps > 0 && top ? (
           <>
-            , <strong>{digest.new_gaps} new gap{digest.new_gaps === 1 ? "" : "s"}</strong> on {top.name.toLowerCase()}
+            , <strong>{digest.new_gaps} new gap{digest.new_gaps === 1 ? "" : "s"}</strong>
+            {top.gaps === digest.new_gaps ? " on " : `, ${top.gaps} on `}
+            {top.name.toLowerCase()}
           </>
         ) : (
           ", no new gaps"
         )}
         .
       </span>
-      <span className={`${s.muted} text-[0.85em]`}>The teacher uploaded nothing.</span>
+      {digest.snap_pages === 0 && (
+        <span className={`${s.muted} text-[0.85em]`}>Children sent these pages themselves; the teacher uploaded nothing.</span>
+      )}
     </section>
   );
 }
@@ -350,7 +354,7 @@ export function Dashboard({ code }: { code: string }) {
           <div className={`${s.hand} text-[2em]`}>{code}</div>
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(300px,0.95fr)_minmax(420px,1.3fr)_minmax(320px,1fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(300px,0.95fr)_minmax(420px,1.3fr)_minmax(320px,1fr)]">
           <Panel title="What the class knows" note="class average per concept">
             <KnowledgeGraph
               concepts={data.concepts}

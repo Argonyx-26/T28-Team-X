@@ -1,7 +1,9 @@
 """The Diagnostician: answer key and rules first; the LLM only for unfamiliar typed answers and handwriting."""
 
+import hashlib
 import io
 import re
+import time
 from fractions import Fraction
 
 from PIL import Image, ImageOps
@@ -19,6 +21,27 @@ from ..topic import Question, get_topic
 from . import state
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
+MAX_PIXELS = 40_000_000
+MIN_SIDE = 300
+REPEAT_SECONDS = 600
+# the same photo sent again (a double tap, a retry, a second upload) is answered from here and counted once
+_recent: dict[tuple, tuple[float, dict]] = {}
+
+
+def recent(key: tuple) -> dict | None:
+    hit = _recent.get(key)
+    if hit and time.monotonic() - hit[0] < REPEAT_SECONDS:
+        return {**hit[1], "repeat": True}
+    return None
+
+
+def remember(key: tuple, result: dict) -> None:
+    now_ = time.monotonic()
+    for k in [k for k, (t, _) in _recent.items() if now_ - t >= REPEAT_SECONDS]:
+        _recent.pop(k, None)
+    _recent[key] = (now_, result)
+
+
 # "AUTO": a problem outside the bank; the problem is whatever the student wrote first, and arithmetic judges it
 AUTO = "AUTO"
 _PLACEHOLDER = Question(id=AUTO, concept_id="C4", kind="photo", stem="Any fraction problem", answer="", method="")
@@ -27,7 +50,7 @@ _PLACEHOLDER = Question(id=AUTO, concept_id="C4", kind="photo", stem="Any fracti
 def question_for(question_id: str) -> Question:
     if question_id.upper() == AUTO:
         return _PLACEHOLDER
-    return state.require_question(question_id, ("photo", "text", "mcq"))
+    return state.require_question(question_id, ("photo",))
 
 
 # the model reproduces each wrong procedure before choosing a tag; a small thinking budget makes that reliable
@@ -109,18 +132,27 @@ async def answer(student_id: str, question_id: str, answer_text: str, phase: str
 
     label = topic.tag(tag).label(language) if tag else None
     with get_conn() as conn, transaction(conn):
-        outcome = state.record_response(
+        again = row(
             conn,
-            student_id,
-            q,
-            answer=answer_text,
-            correct=correct,
-            tag=tag,
-            source=source,
-            confidence=confidence,
-            phase=phase,
+            "SELECT id FROM response WHERE student_id = ? AND question_id = ? AND phase = ?",
+            (student_id, question_id, phase),
         )
-        if student["kind"] != "simulated":
+        if again:
+            # two taps raced past the first check while the model was thinking: count the answer once
+            outcome = {"mastery_before": mastery_now, "mastery_after": mastery_now, "gap_opened": False}
+        else:
+            outcome = state.record_response(
+                conn,
+                student_id,
+                q,
+                answer=answer_text,
+                correct=correct,
+                tag=tag,
+                source=source,
+                confidence=confidence,
+                phase=phase,
+            )
+        if student["kind"] != "simulated" and not again:
             verdict = "correct" if correct else f"{tag} ({topic.tag(tag).label()})"
             gap_note = "; gap opened" if outcome["gap_opened"] else ""
             log_event(
@@ -158,10 +190,23 @@ def prepare_image(data: bytes) -> bytes:
         raise ApiError(413, "image_too_large", "That photo is too large. Try a photo under 12 MB.")
     try:
         img = Image.open(io.BytesIO(data))
-        img = ImageOps.exif_transpose(img).convert("RGB")
     except Exception as exc:
         raise ApiError(422, "not_an_image", "That file isn't a photo we can read.") from exc
-    img.thumbnail((1280, 1280))
+    if min(img.width, img.height) < MIN_SIDE:
+        # a thumbnail can't be read; the model would invent a sum rather than say so
+        raise ApiError(
+            422, "image_too_small", "That photo is too small to read. Take it closer, with the page filling the screen."
+        )
+    if img.width * img.height > MAX_PIXELS:
+        # a tiny file can decode into a huge image; refuse it before decoding (the API runs on one small instance)
+        raise ApiError(413, "image_too_large", "That photo is too large. Try a normal phone photo.")
+    try:
+        img.draft("RGB", (1600, 1600))  # JPEGs decode at a smaller size straight away
+        img = ImageOps.exif_transpose(img)
+        img.thumbnail((1280, 1280))
+        img = img.convert("RGB")
+    except Exception as exc:
+        raise ApiError(422, "not_an_image", "That file isn't a photo we can read.") from exc
     out = io.BytesIO()
     img.save(out, format="JPEG", quality=85)
     return out.getvalue()
@@ -311,18 +356,28 @@ def _problem_text(line: str) -> str:
     return verifier.strip_enumerator(segs[0].text if segs else line).strip()
 
 
+_BOX = re.compile(r"(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)")
+
+
+def box_groups(boxes: list[str] | None) -> list[str]:
+    """One "ymin,xmin,ymax,xmax" string per box, however loosely the model wrote them ("280,95,350, 531],", several in
+    one string, a comment after)."""
+    joined = " ; ".join(str(b) for b in boxes or [])
+    return [",".join(g) for g in _BOX.findall(joined)]
+
+
 def line_boxes(boxes: list[str], n_steps: int) -> list[list[int] | None] | None:
     """The model's box per transcribed line, validated: inside the image, top to bottom, sensible sizes. None when the
     set fails, so the UI falls back to the transcript view."""
-    if not boxes or len(boxes) < n_steps:
+    if not boxes or n_steps < 1:
+        return None
+    groups = _BOX.findall(" ; ".join(box_groups(boxes)))
+    if len(groups) < n_steps:
         return None
     out: list[list[int] | None] = []
     last_y = -1
-    for raw in boxes[:n_steps]:
-        try:
-            ymin, xmin, ymax, xmax = (int(float(x)) for x in str(raw).replace(";", ",").split(",")[:4])
-        except (TypeError, ValueError):
-            return None
+    for group in groups[:n_steps]:
+        ymin, xmin, ymax, xmax = (int(float(x)) for x in group)
         if not (0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000):
             return None
         if not (8 <= ymax - ymin <= 400 and 30 <= xmax - xmin <= 1000):
@@ -343,7 +398,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
     # a name or roll number the model transcribed at the top is not working: drop it, and its box, and shift the
     # model's own step so every line number counts from the first line of working
     steps, dropped = verifier.strip_headers(steps)
-    boxes = list(result.boxes or [])[dropped:] if result.boxes else []
+    boxes = box_groups(result.boxes)[dropped:]
     if not verifier.looks_like_working(steps):
         return _no_working(q, steps, result)
     if q.id != AUTO and _is_other_problem(q, steps):
@@ -353,6 +408,23 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
     if model_step is not None and model_step < 1:
         model_step = None
     verdict = check_steps(q, steps)
+    if verdict.status == "unanswered":
+        # never a green tick for a copied-out problem, and never a gap: the teacher sees it isn't finished
+        out = _no_working(q, steps, result)
+        out.update(
+            {
+                "rule_check": {"status": "unverified", "note": "No answer is written after the problem yet."},
+                "feedback": "Finish the sum and write the answer, then scan it again.",
+                "no_working": False,
+                "unanswered": True,
+                "line_values": [x.value for x in verdict.lines],
+                "line_boxes": line_boxes(boxes, len(steps)),
+                "verifier": verdict.as_dict(),
+                "problem": _problem_text(steps[verdict.problem_line]) if q.id == AUTO and steps else q.stem,
+                "judged_as": q.id,
+            }
+        )
+        return out
     tag, confidence = rules.validate_llm_tag(topic, result.misconception_tag, result.confidence)
     correct, source = result.correct, "vision"
     error_step = model_step if not correct else None
@@ -375,6 +447,23 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
                 tag, error_step = verdict.tag, verdict.error_step
                 confidence = max(confidence, 0.9)
                 rule_check = {"status": "verified", "note": verdict.evidence.capitalize()}
+            elif verdict.tag and tag in (verdict.tag, "unclassified", None):
+                # a rule gives the same value but not the child's written form: name it, but don't call it proof
+                tag, error_step = verdict.tag, verdict.error_step
+                rule_check = {"status": "consistent", "note": verdict.evidence}
+            elif (
+                not verdict.tag
+                and verdict.evidence.startswith(("The blank", "The question", "Line"))
+                and (
+                    "isn't true" in verdict.evidence
+                    or "divides by zero" in verdict.evidence
+                    or "asks for" in verdict.evidence
+                )
+            ):
+                # a side sum that isn't true, a zero denominator, or the wrong form: arithmetic is enough to say so
+                error_step = verdict.error_step
+                tag = tag if tag not in (None,) else "unclassified"  # never invent a name
+                rule_check = {"status": "verified", "note": verdict.evidence}
             elif model_agrees or model_step is None:
                 error_step = verdict.error_step
                 rule_check = {
@@ -388,6 +477,11 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
                     "status": "mismatch",
                     "note": f"{verdict.evidence} The model circled line {model_step}; please check.",
                 }
+    elif verdict.status == "checked":
+        # the problem is stated in words: the arithmetic of every line holds, and the model says whether it answers
+        # the question (a story that needs × answered with +, "which is bigger", ...)
+        source = "vision+rule"
+        rule_check = {"status": "consistent", "note": verdict.evidence}
     elif q.id == AUTO:
         rule_check = {
             "status": "unverified",
@@ -408,7 +502,23 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         rule_check = rule_check_for(q, result.final_answer_read, correct, tag)
     if correct:
         tag = None
+    feedback = result.feedback_student
+    if correct != result.correct or (not correct and tag != result.misconception_tag):
+        # the arithmetic overruled the model: its own words would contradict the verdict, so say it plainly
+        answer = verdict.reference or (q.answer if q.id != AUTO else "")
+        feedback = feedback_text("en", correct, tag, topic.tag(tag).label() if tag else None, answer or "")
+    not_fractions = not verifier.has_fraction(steps)
+    if not_fractions:
+        # checked and shown, never filed: a whole-number slip is not a fractions gap
+        tag = None
+        rule_check = {
+            **(rule_check or {"status": "unverified", "note": ""}),
+            "note": (
+                (rule_check or {}).get("note", "") + " Whole numbers only, so it isn't saved to the mark book."
+            ).strip(),
+        }
     return {
+        "not_fractions": not_fractions,
         "rule_check": rule_check,
         "steps": steps,
         "final_answer_read": result.final_answer_read,
@@ -417,9 +527,9 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         "misconception_tag": tag,
         "label": topic.tag(tag).label() if tag else None,
         "confidence": confidence,
-        "feedback": result.feedback_student,
+        "feedback": feedback,
         "source": source,
-        "needs_typed_answer": not correct and tag == "unclassified" and verdict.status != "verified",
+        "needs_typed_answer": not_fractions or (not correct and tag == "unclassified" and verdict.status != "verified"),
         "line_values": [x.value for x in verdict.lines],
         "line_boxes": line_boxes(boxes, len(steps)),
         "reproduced_by": reproduced_by,
@@ -475,7 +585,12 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
     q = question_for(question_id)
     with get_conn() as conn:
         student = state.require_student(conn, student_id)
-    reading, telemetry = await read_photo(q, prepare_image(image))
+    jpeg = prepare_image(image)
+    repeat_key = ("photo", student_id, q.id, hashlib.sha256(jpeg).hexdigest())
+    earlier = recent(repeat_key)
+    if earlier is not None:
+        return earlier
+    reading, telemetry = await read_photo(q, jpeg)
     picked = q
     if reading is not None and reading.get("judged_as") not in (None, q.id):
         q = topic.question(reading["judged_as"]) or _PLACEHOLDER
@@ -603,4 +718,6 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             student_id,
             telemetry,
         )
-    return {**base, **reading, **outcome}
+    out = {**base, **reading, **outcome}
+    remember(repeat_key, out)
+    return out

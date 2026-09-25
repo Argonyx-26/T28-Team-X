@@ -103,4 +103,7 @@ def offline(tmp_path, monkeypatch):
 
     monkeypatch.setattr(voice, "synthesize", fake_voice)
     CALLS.clear()
+    from app.agents import diagnostician
+
+    diagnostician._recent.clear()  # each test starts with a fresh database, so no photo has been seen before
     yield

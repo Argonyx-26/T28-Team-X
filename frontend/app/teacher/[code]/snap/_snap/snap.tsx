@@ -582,7 +582,9 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
                         <li key={j} className={k.reading}>
                           <span className={s.hand}>{p.problem}</span>
                           {p.needs_typed_answer ? (
-                            <span className={k.amberText}>unclear</span>
+                            <span className={k.amberText}>
+                              {p.unanswered ? "no answer yet" : p.not_fractions ? "whole numbers, not saved" : "unclear"}
+                            </span>
                           ) : p.correct ? (
                             <span style={{ color: "var(--green)" }}>✓ right</span>
                           ) : (

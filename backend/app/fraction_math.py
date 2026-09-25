@@ -21,6 +21,12 @@ class Parsed:
     simplest: bool
 
 
+def _clean_unicode(text: str) -> str:
+    from .verifier import normalize
+
+    return normalize(text)
+
+
 def _clean(text: str) -> str:
     return text.replace("−", "-").replace("⁄", "/").replace("∕", "/")
 
@@ -29,7 +35,7 @@ def parse_answer(text: str | None) -> Parsed | None:
     """Read the first number in the text as an exact value. Returns None if there is none or it divides by 0."""
     if not text:
         return None
-    m = _ANSWER.search(_clean(text))
+    m = _ANSWER.search(_clean(_clean_unicode(text)).replace("÷", "/"))
     if not m:
         return None
     if m.group("whole") is not None:

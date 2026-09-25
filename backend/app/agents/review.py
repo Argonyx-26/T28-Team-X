@@ -42,6 +42,8 @@ def review(
         raise ApiError(422, "bad_verdict", "Choose agree, change_tag, change_step or mark_correct.")
     if verdict == "change_tag" and tag not in topic.tags:
         raise ApiError(422, "bad_tag", "Pick one of the listed mistakes.")
+    if verdict == "change_step" and step is None:
+        raise ApiError(422, "no_step", "Tap the line that is wrong.")
     with get_conn() as conn, transaction(conn):
         student = state.require_student(conn, student_id)
         if response_id is not None:
@@ -86,7 +88,11 @@ def review(
                 else:
                     conn.execute(
                         "UPDATE gap SET tag = ? WHERE student_id = ? AND concept_id = ?",
-                        (new_tag, student_id, resp["concept_id"]),
+                        (
+                            state._main_tag(conn, student_id, resp["concept_id"], new_tag),
+                            student_id,
+                            resp["concept_id"],
+                        ),
                     )
             elif not new_correct and rules.opens_gap(False, new_tag, mastery_after):
                 conn.execute(

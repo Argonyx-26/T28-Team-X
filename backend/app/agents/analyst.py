@@ -315,7 +315,8 @@ def judges_summary() -> dict:
                 "method": (
                     f"measured calls: photo ₹{u['diagnose_photo'] / 100:.2f}, lesson ₹{u['lesson'] / 100:.2f}, parent "
                     f"message ₹{u['parent_message'] / 100:.2f}, Kannada voice note ₹{u['voice_note'] / 100:.2f}, class "
-                    f"plan ₹{u['plan'] / 100:.2f} shared by 30; one of each per student per week, 4 weeks"
+                    f"plan ₹{u['plan'] / 100:.2f} shared by 30; one of each per student per week, 4 weeks. The photo "
+                    "price is a single-problem photo; a whole page with several problems costs more per read"
                 ),
             }
         )

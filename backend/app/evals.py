@@ -229,6 +229,8 @@ async def run_photos() -> list[dict]:
     step_ok = sum(r["step"] == r["truth_step"] for r in wrong)
     who = f"{len(writers)} writer" + ("s" if len(writers) != 1 else "")
     method = f"{n} phone photos of {len(cards)} handwritten pages by {who}, labelled before running the model"
+    if len(wrong) == n:
+        method += "; every photo shows a wrong answer, so right answers are tested by the page evaluation"
     numbers = [
         {
             "label": "Handwritten work marked right or wrong correctly",

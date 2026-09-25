@@ -5,6 +5,7 @@ That difference is why a first draft often gets challenged.
 """
 
 import json
+import re
 from urllib.parse import quote
 
 from .. import rules, voice
@@ -52,13 +53,26 @@ def _audience_size(analysis, rec: dict) -> int:
     return 0
 
 
+def _names(text: str) -> str:
+    """A teacher reads "Adding fractions", never "C5": concept ids the model copied from the summary become names."""
+    topic = get_topic()
+    return re.sub(
+        r"\b(C\d{1,2})\b",
+        lambda m: topic.concept(m.group(1)).name if topic.has_concept(m.group(1)) else m.group(1),
+        text,
+    )
+
+
 def _normalize(recs: list[RecommendationOut] | list[dict], analysis, round_no: int, stage: str) -> list[dict]:
     topic = get_topic()
     out = []
     for r in recs[:2]:
         d = r.model_dump() if isinstance(r, RecommendationOut) else dict(r)
         d["audience"] = d.get("audience") if d.get("audience") in AUDIENCES else "whole_class"
-        d["plan_5min"] = [s.strip() for s in d.get("plan_5min", []) if str(s).strip()]
+        d["plan_5min"] = [_names(s.strip()) for s in d.get("plan_5min", []) if str(s).strip()]
+        for key in ("headline", "worked_example", "why", "group_label"):
+            if isinstance(d.get(key), str):
+                d[key] = _names(d[key])
         cid, tag = d.get("concept_id"), d.get("misconception_tag")
         d["concept_name"] = topic.concept(cid).name if topic.has_concept(cid) else cid
         d["label"] = topic.tag(tag).label() if tag in topic.tags else tag
@@ -110,6 +124,7 @@ def _template_revision(recs: list[dict], critiques: list[dict], analysis) -> lis
             out.append(rec)
             continue
         cid = rec["concept_id"] if topic.has_concept(rec.get("concept_id")) else analysis.focus_concept
+        cid = cid or topic.concept_ids[0]
         stats = analysis.stats(cid)
         tag = stats.top[0][0] if stats and stats.top else rec.get("misconception_tag")
         who = analysis.students_by_tag.get(cid, {}).get(tag, [])
@@ -180,7 +195,9 @@ async def analyze(session_id: str) -> dict:
             f"{fs.open_gaps if fs else 0} open gaps{top}",
         )
 
-    tag_list = "\n".join(f"- {t.tag} (say: '{t.label()}'): {t.definition}" for t in topic.tags.values())
+    tag_list = "\n".join(
+        f"- {t.tag} (say: '{t.label()}'): {t.definition}" for t in topic.tags.values() if t.tag != "unclassified"
+    )
     plan, tel = await generate(
         "Coach",
         "propose",
@@ -305,9 +322,10 @@ def approve(recommendation_id: str) -> dict:
         rec = row(conn, "SELECT * FROM recommendation WHERE id = ?", (recommendation_id,))
         if not rec:
             raise ApiError(404, "recommendation_not_found", "That plan doesn't exist.")
-        conn.execute("UPDATE recommendation SET approved_at = ? WHERE id = ?", (now(), recommendation_id))
-        headline = json.loads(rec["payload_json"]).get("headline", "")
-        log_event(conn, rec["session_id"], "Teacher", "approve", f"Approved: {headline}")
+        if rec["approved_at"] is None:
+            conn.execute("UPDATE recommendation SET approved_at = ? WHERE id = ?", (now(), recommendation_id))
+            headline = json.loads(rec["payload_json"]).get("headline", "")
+            log_event(conn, rec["session_id"], "Teacher", "approve", f"Approved: {headline}")
     return {"ok": True}
 
 

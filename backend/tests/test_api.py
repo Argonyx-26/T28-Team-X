@@ -465,8 +465,11 @@ def test_speak_returns_a_clip(client):
 
 
 def test_create_class_roster_and_school_view(client):
-    s = client.post("/sessions/create", json={"class_name": "6A maths", "code": "6a", "school_id": "demo"}).json()
+    taken = client.post("/sessions/create", json={"class_name": "6B", "school_id": " Demo "})
+    assert taken.status_code == 422 and taken.json()["error"]["code"] == "school_reserved"
+    s = client.post("/sessions/create", json={"class_name": "6A maths", "code": "6a", "school_id": "rvce"}).json()
     assert s["code"] == "6A" and s["join_url"].endswith("/join/6A") and s["teacher_url"].endswith("/teacher/6A")
+    assert s["school_id"] == "rvce"
     r = client.post(
         "/sessions/roster",
         json={"session_id": s["session_id"], "text": "1, Asha kn\n2 Ravi\n3\tMeena hi\n4, Kiran\n"},
@@ -484,9 +487,19 @@ def test_create_class_roster_and_school_view(client):
     bad = client.post("/sessions/roster", json={"session_id": s["session_id"], "text": "Ravi"})
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "bad_roster_line"
     assert client.post("/sessions/roster", json={"session_id": DEMO_SESSION_ID, "text": "40, X"}).status_code == 401
+    for line in ("0, Zero", "12345678901234567890, Big"):
+        r = client.post("/sessions/roster", json={"session_id": s["session_id"], "text": line})
+        assert r.status_code == 422 and r.json()["error"]["code"] == "bad_roster_line"
+    r = client.post("/sessions/roster", json={"session_id": s["session_id"], "text": "5, Kavya, Kannada\n12. Meena"})
+    assert r.json()["added"] == 2
+    kavya = client.post("/students/join", json={"code": "6A", "nickname": "Kav", "roll_no": 5}).json()
+    assert kavya["nickname"] == "Kavya"
+    # a demo reset leaves a visitor's own class alone
+    assert client.post("/admin/reset", headers={"X-Admin-Token": "secret"}).json() == {"ok": True}
+    assert client.get("/sessions/lookup", params={"code": "6A"}).json()["n_students"] == 6
     school = client.get("/school/summary", params={"school_id": "demo"}).json()
     codes = [c["code"] for c in school["classes"]]
-    assert codes == ["6A", "7A", "7B", "7C"] and school["n_students"] == 31 + 30 + 30 + 4
+    assert codes == ["7A", "7B", "7C"] and school["n_students"] == 31 + 30 + 30
     seven_b = next(c for c in school["classes"] if c["code"] == "7B")
     assert seven_b["reteach"]["tag"] == "add_denominators" and seven_b["averages"]["C4"] is not None
     assert school["top_misconceptions"][0]["students"] > 0 and "C4" in school["top_misconceptions"][0]["concepts"]

@@ -7,12 +7,15 @@ in memory and is discarded; only the readings are kept, filed under the child th
 
 from __future__ import annotations
 
+import hashlib
 import re
 from fractions import Fraction
 
 from .. import verifier
 from ..db import get_conn, log_event, transaction
 from ..errors import ApiError
+from ..fraction_math import parse_answer
+from ..i18n import FEEDBACK
 from ..i18n import feedback as feedback_text
 from ..llm import prompts
 from ..llm.providers import generate_hedged
@@ -40,10 +43,18 @@ def match_bank(first_line: str) -> Question | None:
     """A problem on the page that is one of the bank's photo problems: the same fractions exactly, or, for a word
     problem written out in words, the same numbers (the cake problem: 3/4 and 2). A bare sum like "2 + 3/4" is never
     matched to a story by its numbers alone."""
-    seen = _fractions(first_line)
     photo = [q for q in get_topic().questions if q.kind == "photo"]
-    if len(seen) >= 2:
-        return next((q for q in photo if _fractions(q.stem) == seen), None)
+    found = verifier._first_expression([first_line])
+    if found is not None:
+        # the same fractions AND the same value: "3/4 - 1/4" or "3/4 x 1/4" is not the bank's 3/4 + 1/4
+        seg = verifier.split_chain(first_line)[found[1]]
+        seen = _fractions(seg.text)
+        if len(seen) >= 2 and seg.value is not None:
+            return next(
+                (q for q in photo if _fractions(q.stem) == seen and parse_answer(q.answer).value == seg.value), None
+            )
+    elif len(_fractions(first_line)) >= 2:
+        return None
     words = len(re.findall(r"[A-Za-z]{3,}", first_line))
     if words >= 3:
         numbers = _numbers(first_line)
@@ -134,7 +145,11 @@ def _localize(problem: dict, language: str) -> dict:
     return {
         **problem,
         "label_local": label,
-        "feedback_local": feedback_text(language, bool(problem["correct"]), tag, label, problem.get("answer") or ""),
+        "feedback_local": (
+            FEEDBACK.get(language, FEEDBACK["en"])["unanswered"]
+            if problem.get("unanswered")
+            else feedback_text(language, bool(problem["correct"]), tag, label, problem.get("answer") or "")
+        ),
     }
 
 
@@ -197,7 +212,12 @@ async def page(
         if not sid:
             raise ApiError(422, "no_class", "Send a student_id or a session_id.")
         state.require_session(conn, sid)
-    result, telemetry = await read_page(diagnostician.prepare_image(image))
+    jpeg = diagnostician.prepare_image(image)
+    repeat_key = ("page", student_id or sid, mode, hashlib.sha256(jpeg).hexdigest())
+    earlier = diagnostician.recent(repeat_key)
+    if earlier is not None:
+        return earlier
+    result, telemetry = await read_page(jpeg)
     base = {"session_id": sid, "mode": mode, "telemetry": telemetry}
     if result is None:
         return {
@@ -234,7 +254,7 @@ async def page(
         if student is not None and problems:
             with transaction(conn):
                 filed = file_problems(conn, student, problems, mode)
-    return {
+    out = {
         **base,
         "student_id": student["id"] if student else None,
         "student_nickname": student["nickname"] if student else None,
@@ -246,6 +266,9 @@ async def page(
         "summary": filed,
         "unreadable": False,
     }
+    if filed is not None:
+        diagnostician.remember(repeat_key, out)
+    return out
 
 
 def file_page(student_id: str, problems: list[dict], mode: str) -> dict:

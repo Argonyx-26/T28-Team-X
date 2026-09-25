@@ -66,6 +66,8 @@ def retry(student_id: str, answers: list[dict]) -> dict:
     topic = get_topic()
     if not answers:
         raise ApiError(422, "no_answers", "Send the answers to both retry questions.")
+    if len({a["question_id"] for a in answers}) != len(answers):
+        raise ApiError(422, "repeated_question", "Answer each retry question once.")
     questions = [state.require_question(a["question_id"], ("mcq", "text")) for a in answers]
     concept_ids = {q.concept_id for q in questions}
     if len(concept_ids) != 1:

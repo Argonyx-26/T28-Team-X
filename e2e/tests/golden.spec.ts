@@ -128,7 +128,7 @@ test.describe.serial("golden path", () => {
       const answer = answerFor(stem);
       const option = item.getByRole("button", { name: answer, exact: true });
       if (await option.count()) await option.click();
-      else await item.getByRole("textbox").fill(answer);
+      else await item.getByRole("textbox").first().fill(answer);
     }
     await page.getByRole("button", { name: "ಎರಡನ್ನೂ ಪರಿಶೀಲಿಸಿ" }).click();
     await expect(page.getByText("ಕೊರತೆ ನೀಗಿದೆ!")).toBeVisible({ timeout: 30_000 });

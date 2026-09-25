@@ -327,8 +327,19 @@ function ProblemCard({
         <h3 className="font-semibold">
           <span className={s.muted}>Problem {index + 1}:</span> <span className={s.hand}>{p.problem}</span>
         </h3>
-        <span style={{ color: p.correct ? "var(--green)" : "var(--red-pen)" }} className="text-[0.9em] font-semibold">
-          {p.correct ? "✓ right" : "✗ to fix"}
+        <span
+          style={{ color: p.needs_typed_answer ? "var(--amber)" : p.correct ? "var(--green)" : "var(--red-pen)" }}
+          className="text-[0.9em] font-semibold"
+        >
+          {p.not_fractions
+            ? `${p.correct ? "✓ right" : "✗ wrong"} · whole numbers, not saved`
+            : p.needs_typed_answer
+              ? p.unanswered
+                ? "no answer yet"
+                : "unclear"
+              : p.correct
+                ? "✓ right"
+                : "✗ to fix"}
         </span>
       </div>
       <NotebookResult result={p} movingStep={picking === "step"} onPickStep={(step) => void send("change_step", { step })} />
@@ -406,7 +417,11 @@ export function Scan({ code }: { code: string }) {
   const student = students.find((x) => x.id === studentId);
   const nameOf = (id: string) => students.find((x) => x.id === id)?.nickname ?? "The student";
 
+  /** Only the newest read may fill the screen: a slow answer for an earlier photo is dropped. */
+  const readSeq = useRef(0);
+
   function startReading(src: string) {
+    readSeq.current += 1;
     setPreview((old) => {
       if (old?.startsWith("blob:") && old !== src) URL.revokeObjectURL(old);
       return src;
@@ -425,9 +440,11 @@ export function Scan({ code }: { code: string }) {
     const who = studentId;
     if (!who) return;
     startReading(URL.createObjectURL(file));
+    const mine = readSeq.current;
     setPageStudent(who);
     try {
       const r = await api.page(await shrink(file), { studentId: who }, "scan");
+      if (mine !== readSeq.current) return;
       setPage(r);
       setStatus("done");
       const t = firstTelemetry(r.telemetry);
@@ -439,6 +456,7 @@ export function Scan({ code }: { code: string }) {
         cached: t?.cached,
       });
     } catch (e) {
+      if (mine !== readSeq.current) return;
       setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Check the connection and try again.");
       setStatus("error");
     }
@@ -451,14 +469,17 @@ export function Scan({ code }: { code: string }) {
     setStudentId(who);
     setPageStudent(who);
     startReading(sample.src);
+    const mine = readSeq.current;
     try {
       const blob = await (await fetch(sample.src)).blob();
       const r = await api.photo(who, sample.question, blob);
+      if (mine !== readSeq.current) return;
       setResult(r);
       setStatus("done");
       const t = firstTelemetry(r.telemetry);
       track("photo_diagnosed", { source: "sample", correct: r.correct, tag: r.misconception_tag ?? "none", ms: t?.ms, cached: t?.cached });
     } catch (e) {
+      if (mine !== readSeq.current) return;
       setError(e instanceof ApiError ? e.message : "The sample page didn't load. Check the connection and try again.");
       setStatus("error");
     }
@@ -642,7 +663,13 @@ export function Scan({ code }: { code: string }) {
             {result.needs_typed_answer ? (
               <div className={`${s.sheet} flex flex-col gap-2 p-4`}>
                 <p className="font-semibold">
-                  {result.no_working ? "No fraction working was found on this photo." : "This photo wasn't clear enough to read."}
+                  {result.no_working
+                    ? "No fraction working was found on this photo."
+                    : result.unanswered
+                      ? "The problem is written, but no answer is written after it yet. Nothing was saved."
+                      : result.not_fractions
+                        ? "This working has whole numbers only, so it isn't saved as a fractions answer."
+                      : "This photo wasn't clear enough to read."}
                 </p>
                 <p className={s.muted}>
                   Type the final answer from the notebook instead. It is saved as a notebook reading, not as a quiz answer.
