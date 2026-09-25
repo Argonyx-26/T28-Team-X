@@ -1,0 +1,285 @@
+{
+ "numbers": [
+  {
+   "label": "Mistake named correctly from a typed answer alone (LLM fallback)",
+   "value": "27/30",
+   "n": 30,
+   "method": "wrong answers built by applying a known wrong procedure to new problems (label by construction); final answer only, no working shown",
+   "kind": "typed"
+  }
+ ],
+ "runs": {
+  "typed": [
+   {
+    "tag": "add_denominators",
+    "stem": "3/7 + 1/7 = ?",
+    "answer": "4/7",
+    "method": "Same denominator: add the numerators only.",
+    "student": "4/14",
+    "predicted": "add_denominators",
+    "ok": true
+   },
+   {
+    "tag": "add_denominators",
+    "stem": "1/9 + 2/9 = ?",
+    "answer": "1/3",
+    "method": "Same denominator: add the numerators only.",
+    "student": "3/18",
+    "predicted": "add_denominators",
+    "ok": true
+   },
+   {
+    "tag": "add_denominators",
+    "stem": "2/9 + 4/9 = ?",
+    "answer": "2/3",
+    "method": "Same denominator: add the numerators only.",
+    "student": "6/18",
+    "predicted": "add_denominators",
+    "ok": true
+   },
+   {
+    "tag": "unlike_denominators",
+    "stem": "3/7 + 1/14 = ?",
+    "answer": "1/2",
+    "method": "Make the denominators the same (14) first.",
+    "student": "4/14",
+    "predicted": "unlike_denominators",
+    "ok": true
+   },
+   {
+    "tag": "unlike_denominators",
+    "stem": "1/7 + 1/14 = ?",
+    "answer": "3/14",
+    "method": "Make the denominators the same (14) first.",
+    "student": "2/14",
+    "predicted": "unlike_denominators",
+    "ok": true
+   },
+   {
+    "tag": "unlike_denominators",
+    "stem": "3/7 + 2/14 = ?",
+    "answer": "4/7",
+    "method": "Make the denominators the same (14) first.",
+    "student": "5/14",
+    "predicted": "unlike_denominators",
+    "ok": true
+   },
+   {
+    "tag": "divide_no_flip",
+    "stem": "3/9 ÷ 2/5 = ?",
+    "answer": "5/6",
+    "method": "Keep the first, flip the second, multiply.",
+    "student": "6/45",
+    "predicted": "divide_no_flip",
+    "ok": true
+   },
+   {
+    "tag": "divide_no_flip",
+    "stem": "1/5 ÷ 2/5 = ?",
+    "answer": "1/2",
+    "method": "Keep the first, flip the second, multiply.",
+    "student": "2/25",
+    "predicted": "divide_no_flip",
+    "ok": true
+   },
+   {
+    "tag": "divide_no_flip",
+    "stem": "1/11 ÷ 5/3 = ?",
+    "answer": "3/55",
+    "method": "Keep the first, flip the second, multiply.",
+    "student": "5/33",
+    "predicted": "multiply_cross",
+    "ok": false
+   },
+   {
+    "tag": "divide_flip_first",
+    "stem": "2/5 ÷ 2/4 = ?",
+    "answer": "4/5",
+    "method": "Keep the first, flip the second, multiply.",
+    "student": "10/8",
+    "predicted": "divide_flip_first",
+    "ok": true
+   },
+   {
+    "tag": "divide_flip_first",
+    "stem": "4/9 ÷ 2/3 = ?",
+    "answer": "2/3",
+    "method": "Keep the first, flip the second, multiply.",
+    "student": "18/12",
+    "predicted": "divide_no_flip",
+    "ok": false
+   },
+   {
+    "tag": "divide_flip_first",
+    "stem": "2/8 ÷ 4/4 = ?",
+    "answer": "1/4",
+    "method": "Keep the first, flip the second, multiply.",
+    "student": "32/8",
+    "predicted": "divide_no_flip",
+    "ok": false
+   },
+   {
+    "tag": "whole_times_both",
+    "stem": "2 x 5/11 = ?",
+    "answer": "10/11",
+    "method": "Multiply only the numerator by the whole number.",
+    "student": "10/22",
+    "predicted": "whole_times_both",
+    "ok": true
+   },
+   {
+    "tag": "whole_times_both",
+    "stem": "2 x 1/5 = ?",
+    "answer": "2/5",
+    "method": "Multiply only the numerator by the whole number.",
+    "student": "2/10",
+    "predicted": "whole_times_both",
+    "ok": true
+   },
+   {
+    "tag": "whole_times_both",
+    "stem": "4 x 2/5 = ?",
+    "answer": "8/5",
+    "method": "Multiply only the numerator by the whole number.",
+    "student": "8/20",
+    "predicted": "whole_times_both",
+    "ok": true
+   },
+   {
+    "tag": "multiply_cross",
+    "stem": "2/5 x 1/6 = ?",
+    "answer": "1/15",
+    "method": "Top times top, bottom times bottom.",
+    "student": "12/5",
+    "predicted": "multiply_cross",
+    "ok": true
+   },
+   {
+    "tag": "multiply_cross",
+    "stem": "1/9 x 1/5 = ?",
+    "answer": "1/45",
+    "method": "Top times top, bottom times bottom.",
+    "student": "5/9",
+    "predicted": "multiply_cross",
+    "ok": true
+   },
+   {
+    "tag": "multiply_cross",
+    "stem": "1/5 x 1/4 = ?",
+    "answer": "1/20",
+    "method": "Top times top, bottom times bottom.",
+    "student": "4/5",
+    "predicted": "multiply_cross",
+    "ok": true
+   },
+   {
+    "tag": "equivalence_additive",
+    "stem": "3/8 = ?/24. What goes in the blank?",
+    "answer": "9",
+    "method": "Multiply top and bottom by 3.",
+    "student": "19",
+    "predicted": "equivalence_additive",
+    "ok": true
+   },
+   {
+    "tag": "equivalence_additive",
+    "stem": "4/11 = ?/33. What goes in the blank?",
+    "answer": "12",
+    "method": "Multiply top and bottom by 3.",
+    "student": "26",
+    "predicted": "equivalence_additive",
+    "ok": true
+   },
+   {
+    "tag": "equivalence_additive",
+    "stem": "1/5 = ?/10. What goes in the blank?",
+    "answer": "2",
+    "method": "Multiply top and bottom by 2.",
+    "student": "6",
+    "predicted": "equivalence_additive",
+    "ok": true
+   },
+   {
+    "tag": "simplify_one_part",
+    "stem": "Simplify 8/20.",
+    "answer": "2/5",
+    "method": "Divide top and bottom by 4.",
+    "student": "2/20",
+    "predicted": "simplify_one_part",
+    "ok": true
+   },
+   {
+    "tag": "simplify_one_part",
+    "stem": "Simplify 4/12.",
+    "answer": "1/3",
+    "method": "Divide top and bottom by 4.",
+    "student": "1/12",
+    "predicted": "simplify_one_part",
+    "ok": true
+   },
+   {
+    "tag": "simplify_one_part",
+    "stem": "Simplify 6/9.",
+    "answer": "2/3",
+    "method": "Divide top and bottom by 3.",
+    "student": "2/9",
+    "predicted": "simplify_one_part",
+    "ok": true
+   },
+   {
+    "tag": "word_problem_operation",
+    "stem": "Each packet holds 2/5 kg of dal. How much dal is in 2 packets?",
+    "answer": "4/5",
+    "method": "Equal packets means multiply.",
+    "student": "2 2/5",
+    "predicted": "word_problem_operation",
+    "ok": true
+   },
+   {
+    "tag": "word_problem_operation",
+    "stem": "Each packet holds 1/5 kg of dal. How much dal is in 5 packets?",
+    "answer": "1",
+    "method": "Equal packets means multiply.",
+    "student": "5 1/5",
+    "predicted": "word_problem_operation",
+    "ok": true
+   },
+   {
+    "tag": "word_problem_operation",
+    "stem": "Each packet holds 1/11 kg of dal. How much dal is in 5 packets?",
+    "answer": "5/11",
+    "method": "Equal packets means multiply.",
+    "student": "5 1/11",
+    "predicted": "word_problem_operation",
+    "ok": true
+   },
+   {
+    "tag": "bigger_denominator_bigger",
+    "stem": "Write the bigger fraction: 1/3 or 1/7.",
+    "answer": "1/3",
+    "method": "Same numerator: the smaller denominator gives bigger pieces.",
+    "student": "1/7",
+    "predicted": "bigger_denominator_bigger",
+    "ok": true
+   },
+   {
+    "tag": "bigger_denominator_bigger",
+    "stem": "Write the bigger fraction: 1/4 or 1/9.",
+    "answer": "1/4",
+    "method": "Same numerator: the smaller denominator gives bigger pieces.",
+    "student": "1/9",
+    "predicted": "bigger_denominator_bigger",
+    "ok": true
+   },
+   {
+    "tag": "bigger_denominator_bigger",
+    "stem": "Write the bigger fraction: 1/6 or 1/10.",
+    "answer": "1/6",
+    "method": "Same numerator: the smaller denominator gives bigger pieces.",
+    "student": "1/10",
+    "predicted": "bigger_denominator_bigger",
+    "ok": true
+   }
+  ]
+ }
+}

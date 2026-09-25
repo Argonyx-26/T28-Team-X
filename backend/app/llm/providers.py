@@ -54,7 +54,9 @@ def strip_fences(text: str) -> str:
     return text.strip()
 
 
-async def _call_nebius(system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str):
+async def _call_nebius(
+    system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int = 0
+):
     model = settings.nebius_vision_model if image else settings.nebius_model
     json_schema = json.dumps(schema.model_json_schema())
     text = f"{prompt}\n\nReturn only one JSON object that matches this JSON schema:\n{json_schema}"
@@ -91,7 +93,9 @@ def _get_vertex_client():
     return _vertex_client
 
 
-async def _call_vertex(system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str):
+async def _call_vertex(
+    system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int = 0
+):
     from google.genai import types
 
     client = _get_vertex_client()
@@ -104,7 +108,7 @@ async def _call_vertex(system: str, prompt: str, schema: type[BaseModel], image:
         temperature=0.2,
         response_mime_type="application/json",
         response_schema=schema,
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
+        thinking_config=types.ThinkingConfig(thinking_budget=thinking),
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
     model = settings.vertex_vision_model if image else settings.vertex_model
@@ -184,6 +188,7 @@ async def generate(
     timeout: float | None = None,
     use_cache: bool = True,
     validate: Callable[[T], bool] | None = None,
+    thinking: int = 0,
 ) -> tuple[T | None, list[dict]]:
     """Try each provider in `route` once. Returns (parsed result or None, telemetry for every attempt)."""
     key = _cache_key(agent, action, system, prompt, image, schema)
@@ -214,7 +219,7 @@ async def generate(
             model = settings.nebius_vision_model if image else settings.nebius_model
         try:
             text, (in_t, out_t), model = await asyncio.wait_for(
-                CALLERS[provider](system, prompt, schema, image, image_mime), timeout
+                CALLERS[provider](system, prompt, schema, image, image_mime, thinking), timeout
             )
             parsed = schema.model_validate_json(strip_fences(text))
             if validate and not validate(parsed):

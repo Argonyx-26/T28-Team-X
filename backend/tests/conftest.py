@@ -69,7 +69,7 @@ def _fake_payload(schema_name: str, prompt: str) -> dict:
     raise AssertionError(schema_name)
 
 
-async def fake_caller(system, prompt, schema, image, mime):
+async def fake_caller(system, prompt, schema, image, mime, thinking=0):
     CALLS.append((schema.__name__, "image" if image else "text"))
     return json.dumps(_fake_payload(schema.__name__, prompt), ensure_ascii=False), (100, 50), "fake-model"
 

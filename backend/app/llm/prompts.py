@@ -5,8 +5,10 @@ LANGUAGE_NAMES = {"en": "English", "hi": "Hindi (Devanagari script)", "kn": "Kan
 DIAGNOSE_TEXT = (
     "You diagnose mistakes in Class 7 fractions. You get a question, its correct answer and method, the allowed "
     "misconception tags with definitions, and one student's typed answer. Decide whether the answer is correct: an "
-    "equal value in another form is correct unless the question needs the simplest form. If it is wrong, choose the "
-    "single most likely tag from the list. Use careless_arithmetic when the method looks right but a calculation "
+    "equal value in another form is correct unless the question needs the simplest form. If it is wrong, work out "
+    "which tag explains it: for each tag, apply that wrong procedure to the question yourself and check whether it "
+    "produces exactly the student's answer; choose the tag whose procedure reproduces it. Use careless_arithmetic "
+    "only when no tag's procedure reproduces the answer but the method looks right apart from a calculation "
     "slipped, and unclassified with a confidence below 0.5 when you are unsure. error_step: the wrong step in a few "
     "words, or null. feedback_student: at most 30 words, speaking to the student, kind, saying exactly what to fix, "
     "in the language requested. Reply with JSON only."

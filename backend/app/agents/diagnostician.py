@@ -16,6 +16,8 @@ from ..topic import Question, get_topic
 from . import state
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
+# the model reproduces each wrong procedure before choosing a tag; a small thinking budget makes that reliable
+TEXT_THINKING = 1024
 
 
 def _tag_list() -> str:
@@ -78,7 +80,7 @@ async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
                 f"Write feedback_student in {prompts.LANGUAGE_NAMES.get(language, 'English')}."
             )
             result, telemetry = await generate(
-                "Diagnostician", "diagnose", prompts.DIAGNOSE_TEXT, prompt, TextDiagnosis
+                "Diagnostician", "diagnose", prompts.DIAGNOSE_TEXT, prompt, TextDiagnosis, thinking=TEXT_THINKING
             )
             correct = False  # the rules already checked the value; a different value is never correct
             if result:
