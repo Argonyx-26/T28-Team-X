@@ -139,6 +139,48 @@
    "n": 8,
    "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
    "kind": "verifier"
+  },
+  {
+   "label": "Round 2: Problems found on a whole page",
+   "value": "18/18",
+   "n": 18,
+   "method": "6 WhatsApp photos (one per page) of whole notebook pages by 3 writers, 18 problem readings, bank and textbook problems with planted mistakes; the working, including every planted mistake, was written down before the pages were written, then copied by hand; a teammate (Rishabh) checked every page against its photo before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. Before the first run, looking at the photos showed two things our checker didn't read: the '//' mark some writers put after a final answer, and a story problem written over two lines; both were fixed before the model read any of these pages. 6 planned photos were not taken and are left out",
+   "kind": "pages2"
+  },
+  {
+   "label": "Round 2: Fraction problems marked right or wrong correctly",
+   "value": "18/18",
+   "n": 18,
+   "method": "6 WhatsApp photos (one per page) of whole notebook pages by 3 writers, 18 problem readings, bank and textbook problems with planted mistakes; the working, including every planted mistake, was written down before the pages were written, then copied by hand; a teammate (Rishabh) checked every page against its photo before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. Before the first run, looking at the photos showed two things our checker didn't read: the '//' mark some writers put after a final answer, and a story problem written over two lines; both were fixed before the model read any of these pages. 6 planned photos were not taken and are left out; fraction problems only",
+   "kind": "pages2"
+  },
+  {
+   "label": "Round 2: Wrong step found on a problem",
+   "value": "13/13",
+   "n": 13,
+   "method": "6 WhatsApp photos (one per page) of whole notebook pages by 3 writers, 18 problem readings, bank and textbook problems with planted mistakes; the working, including every planted mistake, was written down before the pages were written, then copied by hand; a teammate (Rishabh) checked every page against its photo before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. Before the first run, looking at the photos showed two things our checker didn't read: the '//' mark some writers put after a final answer, and a story problem written over two lines; both were fixed before the model read any of these pages. 6 planned photos were not taken and are left out; wrong fraction problems only; the circled line must hold the labelled wrong value",
+   "kind": "pages2"
+  },
+  {
+   "label": "Round 2: Mistake named on a problem",
+   "value": "13/13",
+   "n": 13,
+   "method": "6 WhatsApp photos (one per page) of whole notebook pages by 3 writers, 18 problem readings, bank and textbook problems with planted mistakes; the working, including every planted mistake, was written down before the pages were written, then copied by hand; a teammate (Rishabh) checked every page against its photo before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. Before the first run, looking at the photos showed two things our checker didn't read: the '//' mark some writers put after a final answer, and a story problem written over two lines; both were fixed before the model read any of these pages. 6 planned photos were not taken and are left out; wrong fraction problems only",
+   "kind": "pages2"
+  },
+  {
+   "label": "Round 2: Roll number read from the top of the page",
+   "value": "6/6",
+   "n": 6,
+   "method": "6 WhatsApp photos (one per page) of whole notebook pages by 3 writers, 18 problem readings, bank and textbook problems with planted mistakes; the working, including every planted mistake, was written down before the pages were written, then copied by hand; a teammate (Rishabh) checked every page against its photo before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. Before the first run, looking at the photos showed two things our checker didn't read: the '//' mark some writers put after a final answer, and a story problem written over two lines; both were fixed before the model read any of these pages. 6 planned photos were not taken and are left out; the roll number is what files a snapped page under the right child",
+   "kind": "pages2"
+  },
+  {
+   "label": "Round 2: Whole-page read time (median)",
+   "value": "3.9 s",
+   "n": 6,
+   "method": "server-side model time per page during this evaluation",
+   "kind": "pages2"
   }
  ],
  "runs": {
@@ -1424,6 +1466,347 @@
     "truth_tag": null,
     "tag": null,
     "reproduced_by": null
+   }
+  ],
+  "pages2": [
+   {
+    "photo": "rishabh_roll5_a.jpg",
+    "writer": "Rishabh",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "q1) 3/5 ÷ 3/10",
+     "= 5/3 x 3/10",
+     "= 15/30",
+     "= 1/2"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/2",
+    "wrong_value": "1/2",
+    "truth_tag": "divide_flip_first",
+    "tag": "divide_flip_first",
+    "reproduced_by": "divide_flip_first"
+   },
+   {
+    "photo": "rishabh_roll5_a.jpg",
+    "writer": "Rishabh",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "q2) 4/9 + 2/9",
+     "= 6/9",
+     "= 2/3"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "rishabh_roll5_a.jpg",
+    "writer": "Rishabh",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "q3) 1/2 + 1/3",
+     "= (1+1)/(2+3)",
+     "= 2/5"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "2/5",
+    "wrong_value": "2/5",
+    "truth_tag": "add_denominators",
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators"
+   },
+   {
+    "photo": "rishabh_roll6_a.jpg",
+    "writer": "Rishabh",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) A cake needs 3/4 cup of sugar.",
+     "How much sugar for 2 cakes?",
+     "= 2 + 3/4 = 2 3/4 cups"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "11/4",
+    "wrong_value": "11/4",
+    "truth_tag": "word_problem_operation",
+    "tag": "word_problem_operation",
+    "reproduced_by": "word_problem_operation"
+   },
+   {
+    "photo": "rishabh_roll6_a.jpg",
+    "writer": "Rishabh",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q2) simplify 8/12",
+     "= 2/12"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/6",
+    "wrong_value": "1/6",
+    "truth_tag": "simplify_one_part",
+    "tag": "simplify_one_part",
+    "reproduced_by": "simplify_one_part"
+   },
+   {
+    "photo": "rishabh_roll6_a.jpg",
+    "writer": "Rishabh",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q3) 2/3 = ?/6",
+     "= (2+3)/(3+3)",
+     "= 5/6"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "5/6",
+    "wrong_value": "5/6",
+    "truth_tag": "equivalence_additive",
+    "tag": "equivalence_additive",
+    "reproduced_by": "equivalence_additive"
+   },
+   {
+    "photo": "risheeth_roll3_a.jpg",
+    "writer": "Risheeth",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) 3/4 + 1/4",
+     "= (3+1)/4",
+     "= 4/4",
+     "= 1"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "risheeth_roll3_a.jpg",
+    "writer": "Risheeth",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q2) 2/5 ÷ 1/3",
+     "= 2/5 x 1/3",
+     "= 2/15"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "2/15",
+    "wrong_value": "2/15",
+    "truth_tag": "divide_no_flip",
+    "tag": "divide_no_flip",
+    "reproduced_by": "divide_no_flip"
+   },
+   {
+    "photo": "risheeth_roll3_a.jpg",
+    "writer": "Risheeth",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q3) 3 x 2/7",
+     "= (3x2) / (3x7)",
+     "= 6/21"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "2/7",
+    "wrong_value": "2/7",
+    "truth_tag": "whole_times_both",
+    "tag": "whole_times_both",
+    "reproduced_by": "whole_times_both"
+   },
+   {
+    "photo": "risheeth_roll4_a.jpg",
+    "writer": "Risheeth",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) 2/3 + 1/6",
+     "= (2+1)/6",
+     "= 3/6"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/2",
+    "wrong_value": "1/2",
+    "truth_tag": "unlike_denominators",
+    "tag": "unlike_denominators",
+    "reproduced_by": "unlike_denominators"
+   },
+   {
+    "photo": "risheeth_roll4_a.jpg",
+    "writer": "Risheeth",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q2) 5/8 - 1/4",
+     "= 5/8 - 2/8",
+     "= 3/8"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "risheeth_roll4_a.jpg",
+    "writer": "Risheeth",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q3) 2/3 x 3/5",
+     "= (2×5)/(3×3)",
+     "= 10/9"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "10/9",
+    "wrong_value": "10/9",
+    "truth_tag": "multiply_cross",
+    "tag": "multiply_cross",
+    "reproduced_by": "multiply_cross"
+   },
+   {
+    "photo": "samartha_roll7_a.jpg",
+    "writer": "Samartha",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) 3/4 + 1/4",
+     "=> (3+1)/(4+4) => 4/8"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/2",
+    "wrong_value": "1/2",
+    "truth_tag": "add_denominators",
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators"
+   },
+   {
+    "photo": "samartha_roll7_a.jpg",
+    "writer": "Samartha",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q2) 3/4 ÷ 1/2",
+     "=> 3/4 x 2/1 => 6/4 => 3/2"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "samartha_roll7_a.jpg",
+    "writer": "Samartha",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q3) 5/6 - 1/3",
+     "=> (5-1)/6 => 4/6"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "2/3",
+    "wrong_value": "2/3",
+    "truth_tag": "unlike_denominators",
+    "tag": "unlike_denominators",
+    "reproduced_by": "unlike_denominators"
+   },
+   {
+    "photo": "samartha_roll8_a.jpg",
+    "writer": "Samartha",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) 2/3 + 1/6",
+     "= 4/6 + 1/6 => 5/6 //"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "samartha_roll8_a.jpg",
+    "writer": "Samartha",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q2) 3/5 + 1/5",
+     "=> (3+1)/5",
+     "=> 5/5 //"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1",
+    "wrong_value": "1",
+    "truth_tag": "careless_arithmetic",
+    "tag": "careless_arithmetic",
+    "reproduced_by": "careless_arithmetic"
+   },
+   {
+    "photo": "samartha_roll8_a.jpg",
+    "writer": "Samartha",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q3) 1/4 ÷ 1/2",
+     "=> 1/4 x 1/2",
+     "=> 1/8 //"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/8",
+    "wrong_value": "1/8",
+    "truth_tag": "divide_no_flip",
+    "tag": "divide_no_flip",
+    "reproduced_by": "divide_no_flip"
    }
   ]
  }

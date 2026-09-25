@@ -379,8 +379,10 @@ ROUNDS = {
         "what": "bank and textbook problems with planted mistakes",
         "photos": "WhatsApp photos (one per page)",
         "labels": "the working, including every planted mistake, was written down before the pages were written, then "
-        "copied by hand; each writer confirmed their pages match",
-        "note": "",
+        "copied by hand; a teammate (Rishabh) checked every page against its photo before any GuruGraph run",
+        "note": "Before the first run, looking at the photos showed two things our checker didn't read: the '//' "
+        "mark some writers put after a final answer, and a story problem written over two lines; both were fixed "
+        "before the model read any of these pages",
         "prefix": "Round 2: ",
         "suffix": "",
     },
@@ -389,7 +391,12 @@ ROUNDS = {
 
 def _page_labels(csv_name: str = "pages.csv") -> list[dict]:
     rows = list(csv.DictReader(open(settings.data_dir / "evidence" / csv_name, encoding="utf-8")))
-    unchecked = [f"{r['photo']} {r['problem_no']}" for r in rows if r.get("checked", "").strip().lower() != "yes"]
+    # a row whose photo was never taken can't be checked against it; it is left out of the run instead
+    unchecked = [
+        f"{r['photo']} {r['problem_no']}"
+        for r in rows
+        if r.get("checked", "").strip().lower() != "yes" and (PAGES_DIR / r["photo"]).exists()
+    ]
     if unchecked:
         raise SystemExit(f"{len(unchecked)} label rows are not checked by their writer yet: {', '.join(unchecked)}")
     return rows

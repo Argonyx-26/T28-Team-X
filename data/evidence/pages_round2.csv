@@ -1,37 +1,37 @@
 photo,writer,roll,problem_no,topic,problem,answer,correct,error_step,tag,mistake_in_words,final_answer,lines,checked,checked_by
-risheeth_roll3_a.jpg,Risheeth,3,Q1,fractions,3/4 + 1/4,1,true,,,,1,3/4 + 1/4 | = (3+1)/4 | = 4/4 | = 1,no,
+risheeth_roll3_a.jpg,Risheeth,3,Q1,fractions,3/4 + 1/4,1,true,,,,1,3/4 + 1/4 | = (3+1)/4 | = 4/4 | = 1,yes,Rishabh
 risheeth_roll3_b.jpg,Risheeth,3,Q1,fractions,3/4 + 1/4,1,true,,,,1,3/4 + 1/4 | = (3+1)/4 | = 4/4 | = 1,no,
-risheeth_roll3_a.jpg,Risheeth,3,Q2,fractions,2/5 ÷ 1/3,6/5,false,2,divide_no_flip,divided without flipping the second fraction,2/15,2/5 ÷ 1/3 | = 2/5 × 1/3 | = 2/15,no,
+risheeth_roll3_a.jpg,Risheeth,3,Q2,fractions,2/5 ÷ 1/3,6/5,false,2,divide_no_flip,divided without flipping the second fraction,2/15,2/5 ÷ 1/3 | = 2/5 × 1/3 | = 2/15,yes,Rishabh
 risheeth_roll3_b.jpg,Risheeth,3,Q2,fractions,2/5 ÷ 1/3,6/5,false,2,divide_no_flip,divided without flipping the second fraction,2/15,2/5 ÷ 1/3 | = 2/5 × 1/3 | = 2/15,no,
-risheeth_roll3_a.jpg,Risheeth,3,Q3,fractions,3 × 2/7,6/7,false,2,whole_times_both,multiplied top and bottom by the whole number,6/21,3 × 2/7 | = (3×2)/(3×7) | = 6/21,no,
+risheeth_roll3_a.jpg,Risheeth,3,Q3,fractions,3 × 2/7,6/7,false,2,whole_times_both,multiplied top and bottom by the whole number,6/21,3 × 2/7 | = (3×2)/(3×7) | = 6/21,yes,Rishabh
 risheeth_roll3_b.jpg,Risheeth,3,Q3,fractions,3 × 2/7,6/7,false,2,whole_times_both,multiplied top and bottom by the whole number,6/21,3 × 2/7 | = (3×2)/(3×7) | = 6/21,no,
-risheeth_roll4_a.jpg,Risheeth,4,Q1,fractions,2/3 + 1/6,5/6,false,2,unlike_denominators,added without making the denominators the same,3/6,2/3 + 1/6 | = (2+1)/6 | = 3/6,no,
+risheeth_roll4_a.jpg,Risheeth,4,Q1,fractions,2/3 + 1/6,5/6,false,2,unlike_denominators,added without making the denominators the same,3/6,2/3 + 1/6 | = (2+1)/6 | = 3/6,yes,Rishabh
 risheeth_roll4_b.jpg,Risheeth,4,Q1,fractions,2/3 + 1/6,5/6,false,2,unlike_denominators,added without making the denominators the same,3/6,2/3 + 1/6 | = (2+1)/6 | = 3/6,no,
-risheeth_roll4_a.jpg,Risheeth,4,Q2,fractions,5/8 − 1/4,3/8,true,,,,3/8,5/8 − 1/4 | = 5/8 − 2/8 | = 3/8,no,
+risheeth_roll4_a.jpg,Risheeth,4,Q2,fractions,5/8 − 1/4,3/8,true,,,,3/8,5/8 − 1/4 | = 5/8 − 2/8 | = 3/8,yes,Rishabh
 risheeth_roll4_b.jpg,Risheeth,4,Q2,fractions,5/8 − 1/4,3/8,true,,,,3/8,5/8 − 1/4 | = 5/8 − 2/8 | = 3/8,no,
-risheeth_roll4_a.jpg,Risheeth,4,Q3,fractions,2/3 × 3/5,2/5,false,2,multiply_cross,multiplied across the diagonal,10/9,2/3 × 3/5 | = (2×5)/(3×3) | = 10/9,no,
+risheeth_roll4_a.jpg,Risheeth,4,Q3,fractions,2/3 × 3/5,2/5,false,2,multiply_cross,multiplied across the diagonal,10/9,2/3 × 3/5 | = (2×5)/(3×3) | = 10/9,yes,Rishabh
 risheeth_roll4_b.jpg,Risheeth,4,Q3,fractions,2/3 × 3/5,2/5,false,2,multiply_cross,multiplied across the diagonal,10/9,2/3 × 3/5 | = (2×5)/(3×3) | = 10/9,no,
-rishabh_roll5_a.jpg,Rishabh,5,Q1,fractions,3/5 ÷ 3/10,2,false,2,divide_flip_first,flipped the first fraction instead of the second,1/2,3/5 ÷ 3/10 | = 5/3 × 3/10 | = 15/30 | = 1/2,no,
+rishabh_roll5_a.jpg,Rishabh,5,Q1,fractions,3/5 ÷ 3/10,2,false,2,divide_flip_first,flipped the first fraction instead of the second,1/2,3/5 ÷ 3/10 | = 5/3 × 3/10 | = 15/30 | = 1/2,yes,Rishabh
 rishabh_roll5_b.jpg,Rishabh,5,Q1,fractions,3/5 ÷ 3/10,2,false,2,divide_flip_first,flipped the first fraction instead of the second,1/2,3/5 ÷ 3/10 | = 5/3 × 3/10 | = 15/30 | = 1/2,no,
-rishabh_roll5_a.jpg,Rishabh,5,Q2,fractions,4/9 + 2/9,2/3,true,,,,2/3,4/9 + 2/9 | = 6/9 | = 2/3,no,
+rishabh_roll5_a.jpg,Rishabh,5,Q2,fractions,4/9 + 2/9,2/3,true,,,,2/3,4/9 + 2/9 | = 6/9 | = 2/3,yes,Rishabh
 rishabh_roll5_b.jpg,Rishabh,5,Q2,fractions,4/9 + 2/9,2/3,true,,,,2/3,4/9 + 2/9 | = 6/9 | = 2/3,no,
-rishabh_roll5_a.jpg,Rishabh,5,Q3,fractions,1/2 + 1/3,5/6,false,2,add_denominators,added the tops and the bottoms,2/5,1/2 + 1/3 | = (1+1)/(2+3) | = 2/5,no,
+rishabh_roll5_a.jpg,Rishabh,5,Q3,fractions,1/2 + 1/3,5/6,false,2,add_denominators,added the tops and the bottoms,2/5,1/2 + 1/3 | = (1+1)/(2+3) | = 2/5,yes,Rishabh
 rishabh_roll5_b.jpg,Rishabh,5,Q3,fractions,1/2 + 1/3,5/6,false,2,add_denominators,added the tops and the bottoms,2/5,1/2 + 1/3 | = (1+1)/(2+3) | = 2/5,no,
-rishabh_roll6_a.jpg,Rishabh,6,Q1,fractions,A cake needs 3/4 cup of sugar. How much sugar for 2 cakes?,3/2,false,2,word_problem_operation,added instead of multiplying,2 3/4,A cake needs 3/4 cup of sugar. How much sugar for 2 cakes? | 2 + 3/4 | = 2 3/4 cups,no,
+rishabh_roll6_a.jpg,Rishabh,6,Q1,fractions,A cake needs 3/4 cup of sugar. How much sugar for 2 cakes?,3/2,false,2,word_problem_operation,added instead of multiplying,2 3/4,A cake needs 3/4 cup of sugar. How much sugar for 2 cakes? | 2 + 3/4 | = 2 3/4 cups,yes,Rishabh
 rishabh_roll6_b.jpg,Rishabh,6,Q1,fractions,A cake needs 3/4 cup of sugar. How much sugar for 2 cakes?,3/2,false,2,word_problem_operation,added instead of multiplying,2 3/4,A cake needs 3/4 cup of sugar. How much sugar for 2 cakes? | 2 + 3/4 | = 2 3/4 cups,no,
-rishabh_roll6_a.jpg,Rishabh,6,Q2,fractions,Simplify 8/12,2/3,false,2,simplify_one_part,divided only the top,2/12,Simplify 8/12 | = 2/12,no,
+rishabh_roll6_a.jpg,Rishabh,6,Q2,fractions,Simplify 8/12,2/3,false,2,simplify_one_part,divided only the top,2/12,Simplify 8/12 | = 2/12,yes,Rishabh
 rishabh_roll6_b.jpg,Rishabh,6,Q2,fractions,Simplify 8/12,2/3,false,2,simplify_one_part,divided only the top,2/12,Simplify 8/12 | = 2/12,no,
-rishabh_roll6_a.jpg,Rishabh,6,Q3,fractions,2/3 = ?/6,2/3,false,2,equivalence_additive,added the same number to top and bottom,5/6,2/3 = ?/6 | = (2+3)/(3+3) | = 5/6,no,
+rishabh_roll6_a.jpg,Rishabh,6,Q3,fractions,2/3 = ?/6,2/3,false,2,equivalence_additive,added the same number to top and bottom,5/6,2/3 = ?/6 | = (2+3)/(3+3) | = 5/6,yes,Rishabh
 rishabh_roll6_b.jpg,Rishabh,6,Q3,fractions,2/3 = ?/6,2/3,false,2,equivalence_additive,added the same number to top and bottom,5/6,2/3 = ?/6 | = (2+3)/(3+3) | = 5/6,no,
-samartha_roll7_a.jpg,Samartha,7,Q1,fractions,3/4 + 1/4,1,false,2,add_denominators,added the tops and the bottoms,4/8,3/4 + 1/4 | = (3+1)/(4+4) | = 4/8,no,
+samartha_roll7_a.jpg,Samartha,7,Q1,fractions,3/4 + 1/4,1,false,2,add_denominators,added the tops and the bottoms,4/8,3/4 + 1/4 | = (3+1)/(4+4) | = 4/8,yes,Rishabh
 samartha_roll7_b.jpg,Samartha,7,Q1,fractions,3/4 + 1/4,1,false,2,add_denominators,added the tops and the bottoms,4/8,3/4 + 1/4 | = (3+1)/(4+4) | = 4/8,no,
-samartha_roll7_a.jpg,Samartha,7,Q2,fractions,3/4 ÷ 1/2,3/2,true,,,,3/2,3/4 ÷ 1/2 | = 3/4 × 2/1 | = 6/4 | = 3/2,no,
+samartha_roll7_a.jpg,Samartha,7,Q2,fractions,3/4 ÷ 1/2,3/2,true,,,,3/2,3/4 ÷ 1/2 | = 3/4 × 2/1 | = 6/4 | = 3/2,yes,Rishabh
 samartha_roll7_b.jpg,Samartha,7,Q2,fractions,3/4 ÷ 1/2,3/2,true,,,,3/2,3/4 ÷ 1/2 | = 3/4 × 2/1 | = 6/4 | = 3/2,no,
-samartha_roll7_a.jpg,Samartha,7,Q3,fractions,5/6 − 1/3,1/2,false,2,unlike_denominators,subtracted without making the denominators the same,4/6,5/6 − 1/3 | = (5−1)/6 | = 4/6,no,
+samartha_roll7_a.jpg,Samartha,7,Q3,fractions,5/6 − 1/3,1/2,false,2,unlike_denominators,subtracted without making the denominators the same,4/6,5/6 − 1/3 | = (5−1)/6 | = 4/6,yes,Rishabh
 samartha_roll7_b.jpg,Samartha,7,Q3,fractions,5/6 − 1/3,1/2,false,2,unlike_denominators,subtracted without making the denominators the same,4/6,5/6 − 1/3 | = (5−1)/6 | = 4/6,no,
-samartha_roll8_a.jpg,Samartha,8,Q1,fractions,2/3 + 1/6,5/6,true,,,,5/6,2/3 + 1/6 | = 4/6 + 1/6 | = 5/6,no,
+samartha_roll8_a.jpg,Samartha,8,Q1,fractions,2/3 + 1/6,5/6,true,,,,5/6,2/3 + 1/6 | = 4/6 + 1/6 | = 5/6,yes,Rishabh
 samartha_roll8_b.jpg,Samartha,8,Q1,fractions,2/3 + 1/6,5/6,true,,,,5/6,2/3 + 1/6 | = 4/6 + 1/6 | = 5/6,no,
-samartha_roll8_a.jpg,Samartha,8,Q2,fractions,3/5 + 1/5,4/5,false,3,careless_arithmetic,"right method, 3 + 1 written as 5",5/5,3/5 + 1/5 | = (3+1)/5 | = 5/5,no,
+samartha_roll8_a.jpg,Samartha,8,Q2,fractions,3/5 + 1/5,4/5,false,3,careless_arithmetic,"right method, 3 + 1 written as 5",5/5,3/5 + 1/5 | = (3+1)/5 | = 5/5,yes,Rishabh
 samartha_roll8_b.jpg,Samartha,8,Q2,fractions,3/5 + 1/5,4/5,false,3,careless_arithmetic,"right method, 3 + 1 written as 5",5/5,3/5 + 1/5 | = (3+1)/5 | = 5/5,no,
-samartha_roll8_a.jpg,Samartha,8,Q3,fractions,1/4 ÷ 1/2,1/2,false,2,divide_no_flip,divided without flipping the second fraction,1/8,1/4 ÷ 1/2 | = 1/4 × 1/2 | = 1/8,no,
+samartha_roll8_a.jpg,Samartha,8,Q3,fractions,1/4 ÷ 1/2,1/2,false,2,divide_no_flip,divided without flipping the second fraction,1/8,1/4 ÷ 1/2 | = 1/4 × 1/2 | = 1/8,yes,Rishabh
 samartha_roll8_b.jpg,Samartha,8,Q3,fractions,1/4 ÷ 1/2,1/2,false,2,divide_no_flip,divided without flipping the second fraction,1/8,1/4 ÷ 1/2 | = 1/4 × 1/2 | = 1/8,no,

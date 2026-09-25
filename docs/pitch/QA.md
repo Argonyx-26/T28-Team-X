@@ -27,7 +27,10 @@ wrong line, and a mal-rule recomputes the wrong line to name the mistake ("addin
 3/8"). The model's opinion never decides right or wrong; a misread digit still can, which is why every result shows
 the transcription and the teacher can correct it. When the model and the arithmetic disagree and no rule explains the
 line, the teacher sees "please check". On 12 labelled pages by 3 writers the arithmetic alone got 12/12 right or wrong,
-8/8 wrong steps and 8/8 mistakes, with no model call.
+8/8 wrong steps and 8/8 mistakes, with no model call. End to end, model reading plus arithmetic, 6 whole pages by 3 writers with 18 planted problems
+(5 right, 13 wrong) came out 18/18 right or wrong, 13/13 wrong steps and 13/13 mistakes; we fixed two
+things our checker didn't read (a '//' answer mark, a story over two lines) after looking at the photos and
+before the run.
 
 **"What if the handwriting is bad?"**
 On 6 real phone photos the wrong step was circled 6/6 and the mistake named 6/6, and it stayed 6/6 when we rotated
