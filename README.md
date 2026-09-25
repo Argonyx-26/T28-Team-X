@@ -7,7 +7,10 @@ Built by Team X (T28) at ARGONYX '26, RV University, 25–26 Sep 2026. Everythin
 [![ci](https://github.com/Argonyx-26/T28-Team-X/actions/workflows/ci.yml/badge.svg)](https://github.com/Argonyx-26/T28-Team-X/actions/workflows/ci.yml)
 
 - **Live API:** https://gurugraph-api-215071922486.asia-south1.run.app/docs
-- **App:** see the team chat (the Vercel URL goes here once it is final)
+- **App:** https://gurugraph-web-215071922486.asia-south1.run.app
+  - Teacher dashboard: [/teacher/7B](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B)
+  - Scan a notebook: [/teacher/7B/scan](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B/scan)
+  - Try it as Asha: [/join/7B?as=asha](https://gurugraph-web-215071922486.asia-south1.run.app/join/7B?as=asha)
 
 ---
 
@@ -79,7 +82,7 @@ Every number carries *n* and the method. The raw rows are in [data/evals/results
 
 | What | Result | Method |
 |---|---|---|
-| Question bank verified | 37 of 37 | every answer and every distractor is checked by exact fraction arithmetic in the test suite (92 data and rule tests) |
+| Question bank verified | 37 of 37 | every answer and every distractor is checked by exact fraction arithmetic in the test suite (part of the 113-test suite) |
 | Mistake named from a typed answer alone (the LLM fallback) | **27/30** | new problems, answered by applying a known wrong procedure (the label comes from how the answer was built); final answer only, no working |
 | Handwritten work: wrong step circled, mistake named | *running on the 24 card photos* | 12 cards by 3 writers, labelled before running the model ([labels](data/evidence/labels.csv)) |
 
