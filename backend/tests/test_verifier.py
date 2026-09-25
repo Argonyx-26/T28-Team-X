@@ -315,3 +315,44 @@ def test_headers_are_dropped_before_the_working_is_judged():
     assert out["steps"] == ["2/3 + 1/6", "= (2+1)/6", "= 3/6"] and out["error_step"] == 2
     assert out["reproduced_by"] == "unlike_denominators" and out["rule_check"]["status"] == "verified"
     assert out["line_boxes"] == [[200, 50, 280, 600], [300, 50, 380, 600], [400, 50, 480, 400]]
+
+
+@pytest.mark.parametrize(
+    ("text", "want"),
+    [
+        ("Q1) 2/3 + 4/7", F(26, 21)),
+        ("Q2) 5/6 + 7/8", F(41, 24)),
+        ("Q.2 5/6 + 7/8", F(41, 24)),
+        ("Qn 3: 8/9 + 1/9", F(1)),
+        ("1) 3/8 + 1/8", F(1, 2)),
+        ("2. 1/2 + 1/4", F(3, 4)),
+        ("(a) 3/4 + 1/4", F(1)),
+        ("(iii) 3/4 - 1/4", F(1, 2)),
+        ("b) 2 x 3/4", F(3, 2)),
+        ("Q3) (8 x 2) + (4 x 2)", F(24)),
+        ("1.5 + 2", F(7, 2)),  # a decimal is not a problem number
+        ("0.6/2", F(3, 10)),
+        ("3 : 4", F(3, 4)),  # a bare ratio keeps its first number
+        ("(3) + 4", F(7)),  # a bracketed number that parses stays
+        ("(3+1)/(4+4)", F(1, 2)),
+    ],
+)
+def test_problem_numbers_are_not_maths(text, want):
+    assert parse_value(text) == want
+
+
+def test_numbered_problems_on_a_page():
+    v = verify(["Q1) 2/3 + 4/7", "= (2+4) / (3+7)", "= 6/10"])
+    assert v.reference == "26/21" and v.error_step == 2 and v.tag == "add_denominators"
+    v = verify(["1) 3/8 + 1/8 = 4/16"])
+    assert v.error_step == 1 and v.tag == "add_denominators"
+    v = verify(["Q1) 4/2 x 2", "(4 x 2) / 2", "10/2 = 5"])
+    assert v.reference == "4" and v.error_step == 3 and v.tag == "careless_arithmetic"
+    v = verify(["2) 1/2 + 5/2 = 6/2"])
+    assert v.correct
+
+
+def test_the_problem_text_is_the_problem_not_the_whole_line():
+    assert diagnostician._problem_text("1) 3/8 + 1/8 = 4/16") == "3/8 + 1/8"
+    assert diagnostician._problem_text("Q1) 2/3 + 4/7") == "2/3 + 4/7"
+    assert diagnostician._problem_text("3/9 + 6/9 = (3+6)/(9+9)") == "3/9 + 6/9"

@@ -389,8 +389,8 @@ async def run_pages() -> list[dict]:
     for photo in photos:
         mine = [r for r in labels if r["photo"] == photo]
         writers.add(mine[0]["writer"])
-        result, telemetry = await read_page(prepare_image((PAGES_DIR / photo).read_bytes()))
-        ms += [t["ms"] for t in telemetry if t["ok"]]
+        result, telemetry = await read_page(prepare_image((PAGES_DIR / photo).read_bytes()), use_cache=False)
+        ms += [t["ms"] for t in telemetry if t["ok"] and not t["cached"]]
         found = []
         for text in result.problems if result else []:
             lines = [x for x in text.split("|") if x.strip()]
@@ -451,8 +451,10 @@ async def run_pages() -> list[dict]:
     who = f"{len(writers)} writers"
     method = (
         f"{len(photos)} WhatsApp photos of whole notebook pages by {who}, {len(rows)} problems, none from our question "
-        "bank; labels drafted by our coding assistant from the photos and checked by each page's writer before any "
-        "GuruGraph run; one vision call per page, then exact arithmetic on every problem"
+        "bank; labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) before any "
+        "GuruGraph run; one vision call per page, then exact arithmetic on every problem. The first run matched only "
+        "1 of 9 problems because our parser didn't read problem numbers like 'Q1)' or a problem written on one line "
+        "with its answer; we fixed the parser and ran the evaluation again with fresh model readings of the same photos"
     )
     numbers = [
         {

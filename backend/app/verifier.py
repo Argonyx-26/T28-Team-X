@@ -18,7 +18,7 @@ from math import gcd
 # ---------- tokens ----------
 
 _TOKEN = re.compile(
-    r"(?P<num>\d+)|(?P<op>[+\-−–×x\*·÷:/])|(?P<lp>[(\[])|(?P<rp>[)\]])|(?P<word>[A-Za-zऀ-෿][\w'’]*)|(?P<ws>\s+)|(?P<other>.)"
+    r"(?P<num>\d+(?:\.\d+)?)|(?P<op>[+\-−–×x\*·÷:/])|(?P<lp>[(\[])|(?P<rp>[)\]])|(?P<word>[A-Za-zऀ-෿][\w'’]*)|(?P<ws>\s+)|(?P<other>.)"
 )
 _MUL_WORDS = {"of", "into"}
 _IGNORED_WORDS = {"x"}  # handled as an operator by the regex, listed for clarity
@@ -167,8 +167,19 @@ class _Parser:
         raise ParseError("expected a number")
 
     def number(self) -> Written:
-        """An integer, a fraction a/b, or a mixed number w a/b. The fraction bar binds tighter than any operator."""
-        first = int(self.take()[1])
+        """An integer, a decimal, a fraction a/b, or a mixed number w a/b. The fraction bar binds tighter than any
+        operator."""
+        raw = self.take()[1]
+        if "." in raw:
+            value = Fraction(raw)
+            if self.peek("op", "/") and self.i + 1 < len(self.t) and self.t[self.i + 1][0] == "num":
+                self.take()
+                den = Fraction(self.take()[1])
+                if den == 0:
+                    raise ParseError("division by zero")
+                return Written(value / den)
+            return Written(value)
+        first = int(raw)
         # fraction a/b (integer over integer, written directly)
         if self.peek("op", "/") and self.i + 1 < len(self.t) and self.t[self.i + 1][0] == "num":
             self.take()
@@ -207,15 +218,44 @@ def _spaced_fraction(text: str) -> str:
     return f"({left.strip()}) / ({right.strip()})"
 
 
-def parse_expression(text: str) -> Node | None:
-    """One side of an '=' as an exact expression tree, or None when it isn't one (words, empty, unbalanced)."""
+# a problem number at the start of a line: "Q1)", "Q.2", "Qn 3:", "1)", "2.", "(a)", "(iii)", "Ex 4)"
+_ENUMERATOR = re.compile(
+    r"^\s*(?:"
+    r"(?:q|qn|ques|question|ex|exercise|sum|no)\.?\s*\d{1,3}[a-z]?\s*(?:[).:\]-]\s*|\s+)"
+    r"|\d{1,3}[a-z]?\s*(?:[)\]]|\.(?!\d))\s*"
+    r"|[a-h]\s*[):\]]\s*"
+    r"|\(\s*(?:\d{1,3}|[a-h]|[ivx]{1,4})\s*\)\s*"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def strip_enumerator(text: str) -> str:
+    """ "Q1) 2/3 + 4/7" -> "2/3 + 4/7". Only a numbering prefix is removed; the maths is untouched."""
+    return _ENUMERATOR.sub("", text, count=1)
+
+
+def _parse(text: str) -> Node | None:
     try:
         tokens = _strip_words(_tokens(_spaced_fraction(text)))
         if not tokens:
             return None
         return _Parser(tokens).parse()
-    except (ParseError, IndexError, ZeroDivisionError):
+    except (ParseError, IndexError, ZeroDivisionError, ValueError):
         return None
+
+
+def parse_expression(text: str) -> Node | None:
+    """One side of an '=' as an exact expression tree, or None when it isn't one (words, empty, unbalanced).
+
+    A problem number in front ("Q1)", "Q.2", "2.", "(a)") is read first as a number and dropped; if what is left
+    doesn't parse, the line is read as written, so "(3) + 4" keeps its bracket but "(1) 3/4 + 1/4" loses its number."""
+    stripped = strip_enumerator(text)
+    if stripped != text:
+        node = _parse(stripped)
+        if node is not None:
+            return node
+    return _parse(text)
 
 
 def parse_value(text: str) -> Fraction | None:

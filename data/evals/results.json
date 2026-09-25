@@ -8,27 +8,6 @@
    "kind": "typed"
   },
   {
-   "label": "Right or wrong decided by arithmetic alone",
-   "value": "12/12",
-   "n": 12,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
-   "kind": "verifier"
-  },
-  {
-   "label": "Wrong step found by arithmetic alone",
-   "value": "8/8",
-   "n": 8,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
-   "kind": "verifier"
-  },
-  {
-   "label": "Mistake reproduced exactly by a mal-rule",
-   "value": "8/8",
-   "n": 8,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
-   "kind": "verifier"
-  },
-  {
    "label": "Handwritten work marked right or wrong correctly",
    "value": "6/6",
    "n": 6,
@@ -104,6 +83,62 @@
    "n": 6,
    "method": "the 6 real phone photos, labelled before the run, each dark: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
    "kind": "robust"
+  },
+  {
+   "label": "Right or wrong decided by arithmetic alone",
+   "value": "12/12",
+   "n": 12,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
+   "kind": "verifier"
+  },
+  {
+   "label": "Wrong step found by arithmetic alone",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
+   "kind": "verifier"
+  },
+  {
+   "label": "Mistake reproduced exactly by a mal-rule",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
+   "kind": "verifier"
+  },
+  {
+   "label": "Problems found on a whole page",
+   "value": "9/9",
+   "n": 9,
+   "method": "3 WhatsApp photos of whole notebook pages by 3 writers, 9 problems, none from our question bank; labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. The first run matched only 1 of 9 problems because our parser didn't read problem numbers like 'Q1)' or a problem written on one line with its answer; we fixed the parser and ran the evaluation again with fresh model readings of the same photos",
+   "kind": "pages"
+  },
+  {
+   "label": "Fraction problems (not in the bank) marked right or wrong correctly",
+   "value": "7/7",
+   "n": 7,
+   "method": "3 WhatsApp photos of whole notebook pages by 3 writers, 9 problems, none from our question bank; labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. The first run matched only 1 of 9 problems because our parser didn't read problem numbers like 'Q1)' or a problem written on one line with its answer; we fixed the parser and ran the evaluation again with fresh model readings of the same photos; fraction problems only",
+   "kind": "pages"
+  },
+  {
+   "label": "Wrong step found on a problem not in the bank",
+   "value": "5/5",
+   "n": 5,
+   "method": "3 WhatsApp photos of whole notebook pages by 3 writers, 9 problems, none from our question bank; labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. The first run matched only 1 of 9 problems because our parser didn't read problem numbers like 'Q1)' or a problem written on one line with its answer; we fixed the parser and ran the evaluation again with fresh model readings of the same photos; wrong fraction problems only; the circled line must hold the labelled wrong value",
+   "kind": "pages"
+  },
+  {
+   "label": "Mistake named on a problem not in the bank",
+   "value": "5/5",
+   "n": 5,
+   "method": "3 WhatsApp photos of whole notebook pages by 3 writers, 9 problems, none from our question bank; labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) before any GuruGraph run; one vision call per page, then exact arithmetic on every problem. The first run matched only 1 of 9 problems because our parser didn't read problem numbers like 'Q1)' or a problem written on one line with its answer; we fixed the parser and ran the evaluation again with fresh model readings of the same photos; wrong fraction problems only",
+   "kind": "pages"
+  },
+  {
+   "label": "Whole-page read time (median)",
+   "value": "4.9 s",
+   "n": 3,
+   "method": "server-side model time per page during this evaluation",
+   "kind": "pages"
   }
  ],
  "runs": {
@@ -1221,6 +1256,174 @@
      2394
     ],
     "ok": true
+   }
+  ],
+  "pages": [
+   {
+    "photo": "rishabh_page1.jpg",
+    "writer": "Rishabh",
+    "problem": "1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "1) 3/8 + 1/8 = 4/16"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/4",
+    "wrong_value": "1/4",
+    "truth_tag": "add_denominators",
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators"
+   },
+   {
+    "photo": "rishabh_page1.jpg",
+    "writer": "Rishabh",
+    "problem": "2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "2) 1/2 + 5/2 = 6/2"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "rishabh_page1.jpg",
+    "writer": "Rishabh",
+    "problem": "3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "3) 3/9 + 6/9 = (3+6)/(9+9)",
+     "= 9/18"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "1/2",
+    "wrong_value": "1/2",
+    "truth_tag": "add_denominators",
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators"
+   },
+   {
+    "photo": "risheeth_page1.jpg",
+    "writer": "Risheeth",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) 2/3 + 4/7",
+     "= (2+4) / (3+7)",
+     "= 6/10"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "3/5",
+    "wrong_value": "3/5",
+    "truth_tag": "add_denominators",
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators"
+   },
+   {
+    "photo": "risheeth_page1.jpg",
+    "writer": "Risheeth",
+    "problem": "Q2",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q2) 5/6 + 7/8",
+     "= (5+7) / (6+8)",
+     "= 12/14"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "6/7",
+    "wrong_value": "6/7",
+    "truth_tag": "add_denominators",
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators"
+   },
+   {
+    "photo": "risheeth_page1.jpg",
+    "writer": "Risheeth",
+    "problem": "Q3",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q3) 8/9 + 1/9",
+     "= (8+1) / 9",
+     "= 9/9",
+     "= 1"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
+   },
+   {
+    "photo": "samartha_page1.jpg",
+    "writer": "Samartha",
+    "problem": "Q1",
+    "topic": "fractions",
+    "found": true,
+    "read": [
+     "Q1) 4/2 x 2",
+     "(4x2)/2",
+     "10/2 = 5"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "5",
+    "wrong_value": "5",
+    "truth_tag": "careless_arithmetic",
+    "tag": "careless_arithmetic",
+    "reproduced_by": "careless_arithmetic"
+   },
+   {
+    "photo": "samartha_page1.jpg",
+    "writer": "Samartha",
+    "problem": "Q2",
+    "topic": "whole numbers",
+    "found": true,
+    "read": [
+     "Q2) (4x2) + (8x2)",
+     "4x2+8x2 => 4x10x2 => 80"
+    ],
+    "truth_correct": false,
+    "correct": false,
+    "truth_wrong_value": "80",
+    "wrong_value": "80",
+    "truth_tag": null,
+    "tag": "unclassified",
+    "reproduced_by": null
+   },
+   {
+    "photo": "samartha_page1.jpg",
+    "writer": "Samartha",
+    "problem": "Q3",
+    "topic": "whole numbers",
+    "found": true,
+    "read": [
+     "Q3) (8x2) + (4x2)",
+     "= 16 + 8",
+     "=> 24"
+    ],
+    "truth_correct": true,
+    "correct": true,
+    "truth_wrong_value": null,
+    "wrong_value": null,
+    "truth_tag": null,
+    "tag": null,
+    "reproduced_by": null
    }
   ]
  }

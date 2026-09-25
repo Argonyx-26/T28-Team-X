@@ -1,10 +1,10 @@
-photo,writer,problem_no,topic,problem,answer,correct,error_step,tag,mistake_in_words,final_answer,lines,checked
-risheeth_page1.jpg,Risheeth,Q1,fractions,2/3 + 4/7,26/21,false,2,add_denominators,added the tops and the bottoms,6/10,2/3 + 4/7 | = (2+4)/(3+7) | = 6/10,no
-risheeth_page1.jpg,Risheeth,Q2,fractions,5/6 + 7/8,41/24,false,2,add_denominators,added the tops and the bottoms,12/14,5/6 + 7/8 | = (5+7)/(6+8) | = 12/14,no
-risheeth_page1.jpg,Risheeth,Q3,fractions,8/9 + 1/9,1,true,,,,1,8/9 + 1/9 | = (8+1)/9 | = 9/9 | = 1,no
-rishabh_page1.jpg,Rishabh,1,fractions,3/8 + 1/8,1/2,false,1,add_denominators,added the tops and the bottoms,4/16,3/8 + 1/8 = 4/16,no
-rishabh_page1.jpg,Rishabh,2,fractions,1/2 + 5/2,3,true,,,,6/2,1/2 + 5/2 = 6/2,no
-rishabh_page1.jpg,Rishabh,3,fractions,3/9 + 6/9,1,false,1,add_denominators,added the tops and the bottoms,9/18,3/9 + 6/9 = (3+6)/(9+9) | = 9/18,no
-samartha_page1.jpg,Samartha,Q1,fractions,4/2 x 2,4,false,3,careless_arithmetic,wrote 4 x 2 as 10,5,4/2 x 2 | (4x2)/2 | 10/2 = 5,no
-samartha_page1.jpg,Samartha,Q2,whole numbers,(4x2) + (8x2),24,false,2,,added 2 + 8 before multiplying (order of operations),80,(4x2) + (8x2) | 4x2+8x2 => 4x10x2 => 80,no
-samartha_page1.jpg,Samartha,Q3,whole numbers,(8x2) + (4x2),24,true,,,,24,(8x2) + (4x2) | = 16 + 8 | => 24,no
+photo,writer,problem_no,topic,problem,answer,correct,error_step,tag,mistake_in_words,final_answer,lines,checked,checked_by
+risheeth_page1.jpg,Risheeth,Q1,fractions,2/3 + 4/7,26/21,false,2,add_denominators,added the tops and the bottoms,6/10,2/3 + 4/7 | = (2+4)/(3+7) | = 6/10,yes,Risheeth
+risheeth_page1.jpg,Risheeth,Q2,fractions,5/6 + 7/8,41/24,false,2,add_denominators,added the tops and the bottoms,12/14,5/6 + 7/8 | = (5+7)/(6+8) | = 12/14,yes,Risheeth
+risheeth_page1.jpg,Risheeth,Q3,fractions,8/9 + 1/9,1,true,,,,1,8/9 + 1/9 | = (8+1)/9 | = 9/9 | = 1,yes,Risheeth
+rishabh_page1.jpg,Rishabh,1,fractions,3/8 + 1/8,1/2,false,1,add_denominators,added the tops and the bottoms,4/16,3/8 + 1/8 = 4/16,yes,Risheeth
+rishabh_page1.jpg,Rishabh,2,fractions,1/2 + 5/2,3,true,,,,6/2,1/2 + 5/2 = 6/2,yes,Risheeth
+rishabh_page1.jpg,Rishabh,3,fractions,3/9 + 6/9,1,false,1,add_denominators,added the tops and the bottoms,9/18,3/9 + 6/9 = (3+6)/(9+9) | = 9/18,yes,Risheeth
+samartha_page1.jpg,Samartha,Q1,fractions,4/2 x 2,4,false,3,careless_arithmetic,wrote 4 x 2 as 10,5,4/2 x 2 | (4x2)/2 | 10/2 = 5,yes,Risheeth
+samartha_page1.jpg,Samartha,Q2,whole numbers,(4x2) + (8x2),24,false,2,,added 2 + 8 before multiplying (order of operations),80,(4x2) + (8x2) | 4x2+8x2 => 4x10x2 => 80,yes,Risheeth
+samartha_page1.jpg,Samartha,Q3,whole numbers,(8x2) + (4x2),24,true,,,,24,(8x2) + (4x2) | = 16 + 8 | => 24,yes,Risheeth

@@ -254,6 +254,12 @@ def check_steps(q: Question, steps: list[str]) -> verifier.Verdict:
     )
 
 
+def _problem_text(line: str) -> str:
+    """The problem as posed on a line of working: "1) 3/8 + 1/8 = 4/16" -> "3/8 + 1/8"."""
+    segs = verifier.split_chain(line)
+    return verifier.strip_enumerator(segs[0].text if segs else line).strip()
+
+
 def line_boxes(boxes: list[str], n_steps: int) -> list[list[int] | None] | None:
     """The model's box per transcribed line, validated: inside the image, top to bottom, sensible sizes. None when the
     set fails, so the UI falls back to the transcript view."""
@@ -362,7 +368,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         "line_boxes": line_boxes(boxes, len(steps)),
         "reproduced_by": reproduced_by,
         "verifier": verdict.as_dict(),
-        "problem": (steps[verdict.problem_line] if q.id == AUTO and steps else q.stem),
+        "problem": (_problem_text(steps[verdict.problem_line]) if q.id == AUTO and steps else q.stem),
     }
 
 

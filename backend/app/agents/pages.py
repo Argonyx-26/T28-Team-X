@@ -76,7 +76,7 @@ def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None) 
     return out
 
 
-async def read_page(jpeg: bytes) -> tuple[PageRead | None, list[dict]]:
+async def read_page(jpeg: bytes, *, use_cache: bool = True) -> tuple[PageRead | None, list[dict]]:
     tags = "\n".join(f"- {t.tag}: {t.definition}" for t in get_topic().tags.values())
     prompt = f"Allowed misconception tags:\n{tags}\n\nThe photo shows one page of a student's fractions homework."
     result, telemetry = await generate_hedged(
@@ -89,6 +89,7 @@ async def read_page(jpeg: bytes) -> tuple[PageRead | None, list[dict]]:
         backup=("vertex_alt", "nebius"),
         hedge_after=diagnostician.settings.hedge_after_s,
         image=jpeg,
+        use_cache=use_cache,
         validate=lambda r: any(p.strip() for p in r.problems),
     )
     return result, telemetry
