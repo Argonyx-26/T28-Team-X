@@ -4,7 +4,7 @@
 
 | Tool | Use it for |
 |---|---|
-| **Google AI Studio** (aistudio.google.com, choose the newest *Pro* model) | long writing: script, deck text, Q&A. Better limits than the Gemini app |
+| **Google AI Studio** (aistudio.google.com, choose the newest *Pro* model) | long writing: script, deck text, Q&A. Better limits than the Gemini app. If it asks for billing or hits a limit, use gemini.google.com with the same prompts |
 | **NotebookLM** (notebooklm.google.com) | checking every claim against its source |
 | **Google Slides** or **Canva** | the deck |
 | **Clipchamp** (built into Windows) or **CapCut** | the video |

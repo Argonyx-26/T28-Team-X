@@ -1,25 +1,47 @@
 # Rishabh: frontend + UI (you own Best UI/UX)
 
-**Your tool is Gemini CLI**, which is free with a personal Google account. It runs in the VS Code terminal and reads `GEMINI.md` (our rules and design system) automatically.
+**Your tool is Google Antigravity** (antigravity.google), Google's free agentic IDE.
+- **Why not Gemini CLI:** its free tier ended on 18 June 2026, when Google replaced it with Antigravity.
+- **What's free:** the Individual plan comes with a weekly quota, and it includes **Gemini 3.1 Pro** and **Claude Sonnet/Opus 4.6**.
+- **The browser agent** can open our pages, resize them and screenshot them. That's how you'll check every screen at 360 px without doing it by hand.
+- **Rules load automatically:** Antigravity reads `GEMINI.md` at the repo root (our rules and design system) into every prompt.
+
+**Which model:**
+
+| Model | Use it for |
+|---|---|
+| **Claude Opus 4.6** | the design-heavy steps: F3 scan, F5 dashboard, F6 debate, and the screenshot critiques |
+| **Gemini 3.1 Pro** | everything else |
+| Flash models | tiny edits only |
+
+If a model says its quota is used up, switch to another model in the dropdown and carry on.
 
 **How to work:**
+- Use **Planning mode** for every F-step: the agent writes a plan, you skim it and press Proceed.
 - Paste **one prompt at a time**, and run the **Check** before moving on.
-- If something breaks, paste the exact error back into Gemini: "Fix this error: …".
+- If something breaks, paste the exact error back: "Fix this error: …".
 - Stuck for more than 20 min? Tell the team chat.
+- **If the weekly quota runs out:** tell Samartha. He'll give your Google account access to our GCP project, and you switch to Gemini CLI on Vertex AI (paid from our $300 credit):
+  ```
+  npm i -g @google/gemini-cli
+  gcloud auth application-default login
+  set GOOGLE_GENAI_USE_VERTEXAI=true
+  set GOOGLE_CLOUD_PROJECT=project-b3549f11-8db5-4ca2-9e4
+  set GOOGLE_CLOUD_LOCATION=global
+  gemini
+  ```
+  The same prompts work there.
 
 ## 0. Setup (10 min)
-1. Clone the repo and install Gemini CLI:
+1. Install Antigravity from antigravity.google and sign in with your personal Google account.
+2. Install the Antigravity browser extension when it asks. It lets the agent test pages.
+3. Clone the repo:
    ```
    cd C:\dev
    git clone https://github.com/Argonyx-26/T28-Team-X.git
-   cd T28-Team-X
-   npm install -g @google/gemini-cli
-   gemini
    ```
-2. Sign in with Google.
-3. Type `/model` and pick the **Pro** model for building. Flash is fine for tiny edits.
-4. Type `/memory show` and check that it lists GEMINI.md.
-5. **Scaffold the app.** If you already made `frontend/`, skip to step 6. Otherwise run this in a normal terminal, not inside gemini:
+4. In Antigravity, open the folder `C:\dev\T28-Team-X`. In the agent panel, ask: "What rules are you following for this project?" It should summarise GEMINI.md (the notebook design system, `docs/API.md` as the contract).
+5. **Scaffold the app.** If you already made `frontend/`, skip to step 6. Otherwise run this in the terminal:
    ```
    npx create-next-app@latest frontend --ts --tailwind --eslint --app --no-src-dir --import-alias "@/*" --use-npm
    cd frontend
@@ -35,11 +57,8 @@
 **Review prompt.** Use this after every build step. It's the biggest quality lever:
 > Review everything you changed in the last step against GEMINI.md (the design system and quality bar) and docs/API.md (the types). List every problem: visual, accessibility, 360 px layout, missing states, type mismatches. Then fix them all, and run `npm run build` and `npm run lint` until both are clean.
 
-**Screenshot critique.** Use it on every screen at least once:
-1. Take a screenshot with Win+Shift+S and save it into the repo as `shot.png`.
-2. Prompt:
-   > @shot.png This is the current screen. Critique it like a senior product designer against GEMINI.md: hierarchy, spacing, alignment, typography, colour use, and whether it looks like a teacher's notebook rather than a generic dashboard. List the 8 biggest issues in priority order, then fix them.
-3. Delete `shot.png` afterwards. Don't commit it.
+**Screenshot critique.** Use it on every screen at least once, with Claude Opus 4.6. The dev server must be running (`npm run dev` in `frontend/`):
+> Use the browser to open http://localhost:3000<route> at 360×740 and at 1440×900, and screenshot both. Critique them like a senior product designer against GEMINI.md: hierarchy, spacing, alignment, typography, colour use, Kannada text rendering, and whether it feels like a teacher's notebook rather than a generic dashboard. List the 8 biggest issues in priority order, fix them, then screenshot again and show me before and after.
 
 ---
 

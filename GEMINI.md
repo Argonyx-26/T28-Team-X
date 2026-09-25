@@ -1,4 +1,4 @@
-# GuruGraph: project rules for AI assistants (Gemini CLI loads this file automatically)
+# GuruGraph: project rules for AI assistants (Antigravity and Gemini CLI load this file automatically)
 
 ## What we're building
 GuruGraph turns a photo of a student's fractions working into a diagnosis a teacher can act on.
