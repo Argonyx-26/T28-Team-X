@@ -266,6 +266,32 @@ def judges_summary() -> dict:
     results = settings.data_dir / "evals" / "results.json"
     if results.exists():
         numbers += json.loads(results.read_text(encoding="utf-8")).get("numbers", [])
+    load = settings.data_dir / "evals" / "load.json"
+    if load.exists():
+        data = json.loads(load.read_text(encoding="utf-8"))
+        a, pg = data.get("answers"), data.get("pages")
+        if a:
+            numbers.append(
+                {
+                    "label": "Answers under load (p50 / p95, errors)",
+                    "value": f"{a['p50_ms']} ms / {a['p95_ms']} ms, {a['errors']} errors",
+                    "n": a["requests"],
+                    "method": f"{data['students']} simulated students answering at once through the rules path "
+                    f"({a['rps']} requests/s over {a['wall_s']} s); own class, tagged revision, 1 instance",
+                    "kind": "load",
+                }
+            )
+        if pg:
+            numbers.append(
+                {
+                    "label": "Notebook pages read per minute under load",
+                    "value": f"{pg['pages_per_min']} pages/min (p50 {pg['p50_s']} s, {pg['errors']} errors)",
+                    "n": pg["pages"],
+                    "method": f"{pg['pages']} photos read 6 at a time through the vision model on a tagged revision "
+                    f"with 1 instance; {pg['gemini_calls']} model calls",
+                    "kind": "load",
+                }
+            )
     return {
         "numbers": numbers,
         "links": {

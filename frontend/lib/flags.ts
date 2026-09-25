@@ -17,5 +17,5 @@ export const FLAGS = {
   /** F6: /school/[id] and class creation */
   SCHOOL: flag("SCHOOL", false),
   /** F5: the red pen drawn on the photo itself */
-  PHOTO_PEN: flag("PHOTO_PEN", false),
+  PHOTO_PEN: flag("PHOTO_PEN", true),
 } as const;

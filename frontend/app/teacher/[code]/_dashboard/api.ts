@@ -195,6 +195,8 @@ export interface PhotoResult {
   verifier?: Verifier | null;
   /** the problem as posed: the bank stem, or the first line the student wrote (question_id AUTO) */
   problem?: string;
+  /** F5: one box per transcribed line, [ymin, xmin, ymax, xmax] on 0–1000; null = fall back to the transcript view */
+  line_boxes?: [number, number, number, number][] | null;
 }
 
 /** Any fraction problem, not only the four in the bank: the first line the student wrote is the problem. */

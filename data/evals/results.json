@@ -8,6 +8,69 @@
    "kind": "typed"
   },
   {
+   "label": "Right or wrong decided by arithmetic alone",
+   "value": "12/12",
+   "n": 12,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
+   "kind": "verifier"
+  },
+  {
+   "label": "Wrong step found by arithmetic alone",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
+   "kind": "verifier"
+  },
+  {
+   "label": "Mistake reproduced exactly by a mal-rule",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
+   "kind": "verifier"
+  },
+  {
+   "label": "Wrong step and mistake both right, photo original",
+   "value": "3/6",
+   "n": 6,
+   "method": "the 6 real phone photos, labelled before the run, each original: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
+   "kind": "robust"
+  },
+  {
+   "label": "Wrong step and mistake both right, photo rotate+8",
+   "value": "4/6",
+   "n": 6,
+   "method": "the 6 real phone photos, labelled before the run, each rotate+8: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
+   "kind": "robust"
+  },
+  {
+   "label": "Wrong step and mistake both right, photo rotate-8",
+   "value": "2/6",
+   "n": 6,
+   "method": "the 6 real phone photos, labelled before the run, each rotate-8: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
+   "kind": "robust"
+  },
+  {
+   "label": "Wrong step and mistake both right, photo jpeg40",
+   "value": "2/6",
+   "n": 6,
+   "method": "the 6 real phone photos, labelled before the run, each jpeg40: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
+   "kind": "robust"
+  },
+  {
+   "label": "Wrong step and mistake both right, photo 640px",
+   "value": "4/6",
+   "n": 6,
+   "method": "the 6 real phone photos, labelled before the run, each 640px: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
+   "kind": "robust"
+  },
+  {
+   "label": "Wrong step and mistake both right, photo dark",
+   "value": "4/6",
+   "n": 6,
+   "method": "the 6 real phone photos, labelled before the run, each dark: rotated ±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the verdict, the wrong step and the mistake all match the label",
+   "kind": "robust"
+  },
+  {
    "label": "Handwritten work marked right or wrong correctly",
    "value": "6/6",
    "n": 6,
@@ -30,38 +93,17 @@
   },
   {
    "label": "Photo diagnosis time (median / p95)",
-   "value": "2.3 s / 3.4 s",
+   "value": "3.1 s / 3.4 s",
    "n": 6,
    "method": "server-side model time per photo during the evaluation",
    "kind": "photos"
   },
   {
    "label": "Cost per photo diagnosis",
-   "value": "₹0.15",
+   "value": "₹0.20",
    "n": 6,
    "method": "measured tokens x published price per token, ₹88 per USD",
    "kind": "photos"
-  },
-  {
-   "label": "Right or wrong decided by arithmetic alone",
-   "value": "12/12",
-   "n": 12,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
-   "kind": "verifier"
-  },
-  {
-   "label": "Wrong step found by arithmetic alone",
-   "value": "8/8",
-   "n": 8,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
-   "kind": "verifier"
-  },
-  {
-   "label": "Mistake reproduced exactly by a mal-rule",
-   "value": "8/8",
-   "n": 8,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
-   "kind": "verifier"
   }
  ],
  "runs": {
@@ -373,7 +415,7 @@
     "truth_step": 2,
     "read": [
      "2/3 + 1/6",
-     "= (2 + 1) / 6",
+     "= (2+1)/6",
      "= 3/6"
     ],
     "correct": false,
@@ -387,7 +429,7 @@
     "truth_step": 2,
     "read": [
      "2/3 + 1/6",
-     "= (2 + 1)/6",
+     "= (2+1)/6",
      "= 3/6"
     ],
     "correct": false,
@@ -673,6 +715,512 @@
      "3/4",
      "3/4"
     ]
+   }
+  ],
+  "robust": [
+   {
+    "photo": "A_P1_1.jpg",
+    "condition": "original",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2498
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_1.jpg",
+    "condition": "rotate+8",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     3458
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_1.jpg",
+    "condition": "rotate-8",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2649
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_1.jpg",
+    "condition": "jpeg40",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2594
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_1.jpg",
+    "condition": "640px",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     3135
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_1.jpg",
+    "condition": "dark",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2447
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "condition": "original",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     3430
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "condition": "rotate+8",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2494
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "condition": "rotate-8",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2408
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "condition": "jpeg40",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     2477
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "condition": "640px",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     3397
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "condition": "dark",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2,
+    "ms": [
+     3388
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "condition": "original",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     2974
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "condition": "rotate+8",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     2359
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "condition": "rotate-8",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     2658
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "condition": "jpeg40",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     2506
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "condition": "640px",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     3768
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "condition": "dark",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     3046
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "condition": "original",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     4671
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "condition": "rotate+8",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     2866
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "condition": "rotate-8",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     3462
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "condition": "jpeg40",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     6000
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "condition": "640px",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     3124
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "condition": "dark",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 3,
+    "ms": [
+     3194
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "condition": "original",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     2670
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "condition": "rotate+8",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     2987
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "condition": "rotate-8",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 3,
+    "ms": [
+     2561
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "condition": "jpeg40",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 3,
+    "ms": [
+     2648
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "condition": "640px",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     3707
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "condition": "dark",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     2792
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "condition": "original",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 3,
+    "ms": [
+     2595
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "condition": "rotate+8",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     2331
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "condition": "rotate-8",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 3,
+    "ms": [
+     2574
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "condition": "jpeg40",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 3,
+    "ms": [
+     3015
+    ],
+    "ok": false
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "condition": "640px",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     3229
+    ],
+    "ok": true
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "condition": "dark",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2,
+    "ms": [
+     2760
+    ],
+    "ok": true
    }
   ]
  }

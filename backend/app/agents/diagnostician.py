@@ -283,10 +283,17 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
     When the two disagree, the verifier wins if a mal-rule reproduced the wrong line; otherwise the result is marked
     "please check" for the teacher."""
     topic = get_topic()
+    # a name or roll number the model transcribed at the top is not working: drop it, and its box, and shift the
+    # model's own step so every line number counts from the first line of working
+    steps, dropped = verifier.strip_headers(steps)
+    boxes = list(result.boxes or [])[dropped:] if result.boxes else []
+    model_step = result.error_step - dropped if result.error_step is not None else None
+    if model_step is not None and model_step < 1:
+        model_step = None
     verdict = check_steps(q, steps)
     tag, confidence = rules.validate_llm_tag(topic, result.misconception_tag, result.confidence)
     correct, source = result.correct, "vision"
-    error_step = result.error_step if not correct else None
+    error_step = model_step if not correct else None
     if error_step is not None and not 1 <= error_step <= len(steps):
         error_step = None
     rule_check = rule_check_for(q, result.final_answer_read, correct, tag) if q.id != AUTO else None
@@ -300,13 +307,13 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
             rule_check = {"status": "verified", "note": verdict.evidence}
         else:
             correct = False
-            model_agrees = result.error_step == verdict.error_step and (tag == verdict.tag or verdict.tag is None)
+            model_agrees = model_step == verdict.error_step and (tag == verdict.tag or verdict.tag is None)
             if verdict.reproduced_by:
                 reproduced_by = verdict.reproduced_by
                 tag, error_step = verdict.tag, verdict.error_step
                 confidence = max(confidence, 0.9)
                 rule_check = {"status": "verified", "note": verdict.evidence.capitalize()}
-            elif model_agrees or result.error_step is None:
+            elif model_agrees or model_step is None:
                 error_step = verdict.error_step
                 rule_check = {
                     "status": "consistent",
@@ -317,7 +324,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
                 error_step = verdict.error_step
                 rule_check = {
                     "status": "mismatch",
-                    "note": f"{verdict.evidence} The model circled line {result.error_step}; please check.",
+                    "note": f"{verdict.evidence} The model circled line {model_step}; please check.",
                 }
     elif q.id == AUTO:
         rule_check = {
@@ -352,7 +359,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         "source": source,
         "needs_typed_answer": not correct and tag == "unclassified" and verdict.status != "verified",
         "line_values": [x.value for x in verdict.lines],
-        "line_boxes": line_boxes(result.boxes, len(steps)),
+        "line_boxes": line_boxes(boxes, len(steps)),
         "reproduced_by": reproduced_by,
         "verifier": verdict.as_dict(),
         "problem": (steps[verdict.problem_line] if q.id == AUTO and steps else q.stem),

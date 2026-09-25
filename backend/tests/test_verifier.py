@@ -288,3 +288,30 @@ def test_line_boxes_are_validated():
     assert diagnostician.line_boxes(["100,50,1800,600", "200,50,280,700"], 2) is None  # outside the image
     assert diagnostician.line_boxes(["100,50,101,600", "200,50,280,700"], 2) is None  # too thin
     assert diagnostician.line_boxes(["a,b,c,d", "200,50,280,700"], 2) is None
+
+
+def test_headers_are_dropped_before_the_working_is_judged():
+    from app.verifier import is_header, strip_headers
+
+    assert is_header("Asha") and is_header("Roll 7") and is_header("Q1") and is_header("25/9/2026") and is_header("12")
+    assert not is_header("2 cakes 3/4 cup each") and not is_header("3/4 + 1/4") and not is_header("= 4/8")
+    assert strip_headers(["Asha", "Roll 7", "2/3 + 1/6", "= (2+1)/6", "= 3/6"]) == (
+        ["2/3 + 1/6", "= (2+1)/6", "= 3/6"],
+        2,
+    )
+    assert strip_headers(["Asha"]) == (["Asha"], 0)  # never drop the last line
+    q = get_topic().question("P2")
+    read = PhotoDiagnosis(
+        steps=["Asha", "2/3 + 1/6", "= (2+1)/6", "= 3/6"],
+        final_answer_read="3/6",
+        correct=False,
+        error_step=3,
+        misconception_tag="unlike_denominators",
+        confidence=0.9,
+        feedback_student="",
+        boxes=["50,50,120,400", "200,50,280,600", "300,50,380,600", "400,50,480,400"],
+    )
+    out = diagnostician.combine(q, read, read.steps)
+    assert out["steps"] == ["2/3 + 1/6", "= (2+1)/6", "= 3/6"] and out["error_step"] == 2
+    assert out["reproduced_by"] == "unlike_denominators" and out["rule_check"]["status"] == "verified"
+    assert out["line_boxes"] == [[200, 50, 280, 600], [300, 50, 380, 600], [400, 50, 480, 400]]

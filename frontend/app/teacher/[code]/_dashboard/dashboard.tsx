@@ -4,9 +4,11 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FLAGS } from "@/lib/flags";
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-import { type AgentEvent, ApiError, type Dashboard as DashboardData, type SessionLookup, api } from "./api";
+import { type AgentEvent, ApiError, type Dashboard as DashboardData, type Digest, type SessionLookup, api } from "./api";
 import s from "./dashboard.module.css";
 import { DebatePanel } from "./debate";
 import { AgentFeed } from "./feed";
@@ -139,6 +141,41 @@ function GapMeter({ data }: { data: DashboardData }) {
   );
 }
 
+/** The morning card: homework that came in overnight, with no upload by the teacher. */
+function DigestCard({ digest }: { digest: Digest }) {
+  const pages = digest.homework_pages + digest.snap_pages;
+  if (pages === 0) return null;
+  const top = digest.top_concepts[0];
+  return (
+    <section className={`${s.sheet} flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3`} aria-label="Since yesterday">
+      <span className={`${s.hand} text-[1.25em]`} style={{ color: "var(--red-pen)" }}>
+        since yesterday
+      </span>
+      <span>
+        <strong className={s.highlight}>
+          {digest.homework_pages} homework page{digest.homework_pages === 1 ? "" : "s"}
+        </strong>
+        {digest.snap_pages > 0 && (
+          <>
+            {" "}
+            and {digest.snap_pages} snapped page{digest.snap_pages === 1 ? "" : "s"}
+          </>
+        )}{" "}
+        from {digest.students} student{digest.students === 1 ? "" : "s"}: {digest.problems} problems, {digest.wrong} wrong
+        {digest.new_gaps > 0 && top ? (
+          <>
+            , <strong>{digest.new_gaps} new gap{digest.new_gaps === 1 ? "" : "s"}</strong> on {top.name.toLowerCase()}
+          </>
+        ) : (
+          ", no new gaps"
+        )}
+        .
+      </span>
+      <span className={`${s.muted} text-[0.85em]`}>The teacher uploaded nothing.</span>
+    </section>
+  );
+}
+
 function Skeleton() {
   return (
     <div className="grid flex-1 gap-4 lg:grid-cols-[0.95fr_1.3fr_1fr]" aria-busy>
@@ -159,6 +196,7 @@ export function Dashboard({ code }: { code: string }) {
   const [student, setStudent] = useState<string | null>(null);
   const [debateOpen, setDebateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [digest, setDigest] = useState<Digest | null>(null);
   const lastSeq = useRef(0);
 
   useEffect(() => {
@@ -198,6 +236,11 @@ export function Dashboard({ code }: { code: string }) {
     }
   }, [session]);
 
+  const loadDigest = useCallback(async () => {
+    if (!session) return;
+    setDigest(await api.digest(session.session_id));
+  }, [session]);
+
   const loadEvents = useCallback(async () => {
     if (!session) return;
     const r = await api.events(session.session_id, lastSeq.current);
@@ -209,6 +252,7 @@ export function Dashboard({ code }: { code: string }) {
 
   usePoll(loadDashboard, DASHBOARD_MS, session !== null);
   usePoll(loadEvents, EVENTS_MS, session !== null);
+  usePoll(loadDigest, 10_000, session !== null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -262,6 +306,11 @@ export function Dashboard({ code }: { code: string }) {
           <Link className={s.button} href={`/teacher/${encodeURIComponent(code)}/pile`}>
             Read a pile
           </Link>
+          {FLAGS.SNAP && (
+            <Link className={s.button} href={`/teacher/${encodeURIComponent(code)}/snap`}>
+              Snap notebooks
+            </Link>
+          )}
           <button
             type="button"
             className={s.button}
@@ -281,6 +330,8 @@ export function Dashboard({ code }: { code: string }) {
           </button>
         </nav>
       </header>
+
+      {digest && data && data.n_students > 0 && <DigestCard digest={digest} />}
 
       {!data ? (
         <Skeleton />

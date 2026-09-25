@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { FLAGS } from "@/lib/flags";
 import { track } from "@/lib/raah";
 import { usePenLength } from "@/lib/use-pen-length";
 
@@ -73,6 +74,54 @@ function RedPenCircle() {
         d="M8,22 C6,9 32,3 55,4 C80,5 97,11 95,21 C93,32 70,37 48,36 C24,35 5,31 7,19 C8,13 16,9 26,7"
       />
     </svg>
+  );
+}
+
+/** The red pen drawn on the photo itself: the ellipse sits on the model's box for the wrong line (0–1000 scale). */
+function PhotoResult({ src, result }: { src: string; result: PhotoResult }) {
+  const pen = usePenLength<SVGPathElement>();
+  const boxes = result.line_boxes ?? null;
+  const box = result.error_step && boxes ? boxes[result.error_step - 1] : null;
+  const pct = (v: number) => `${v / 10}%`;
+  return (
+    <div className={k.photoWrap}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="The notebook photo" className={k.photoImg} />
+      {box && (
+        <svg
+          className={k.photoPen}
+          viewBox="0 0 100 40"
+          preserveAspectRatio="none"
+          aria-hidden
+          style={{
+            top: `calc(${pct(box[0])} - 1.5%)`,
+            left: `calc(${pct(box[1])} - 2%)`,
+            height: `calc(${pct(box[2] - box[0])} + 3%)`,
+            width: `calc(${pct(box[3] - box[1])} + 4%)`,
+          }}
+        >
+          <path
+            ref={pen}
+            className={k.circlePath}
+            d="M8,22 C6,9 32,3 55,4 C80,5 97,11 95,21 C93,32 70,37 48,36 C24,35 5,31 7,19 C8,13 16,9 26,7"
+          />
+        </svg>
+      )}
+      {box && result.label && (
+        <span
+          className={`${k.photoLabel} ${s.hand}`}
+          style={{ top: pct(box[2]), left: pct(box[1]) }}
+          aria-label={`Line ${result.error_step} is wrong: ${result.label}`}
+        >
+          {result.label}
+        </span>
+      )}
+      {result.correct && (
+        <span className={`${k.tick} ${s.hand}`} aria-label="All steps right">
+          ✓ all right
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -153,6 +202,7 @@ export function Scan({ code }: { code: string }) {
   const [picking, setPicking] = useState<"none" | "tag" | "step">("none");
   const [typed, setTyped] = useState("");
   const [wrongProblem, setWrongProblem] = useState<string | null>(null);
+  const [view, setView] = useState<"photo" | "transcript">("photo");
   const fileInput = useRef<HTMLInputElement>(null);
   // the last photo and whose it was, so "read it as the other problem" doesn't need a new photo
   const lastPhoto = useRef<{ blob: Blob; studentId: string; source: "camera" | "sample" } | null>(null);
@@ -431,11 +481,31 @@ export function Scan({ code }: { code: string }) {
                   </h2>
                   {picking === "step" && <span className={`${s.hand}`} style={{ color: "var(--red-pen)" }}>tap the wrong line</span>}
                 </div>
-                <NotebookResult
-                  result={result}
-                  movingStep={picking === "step"}
-                  onPickStep={(step) => void sendReview("change_step", { step })}
-                />
+                {FLAGS.PHOTO_PEN && result.line_boxes && preview && picking !== "step" && (
+                  <div className="flex gap-1" role="tablist" aria-label="Show the photo or the transcript">
+                    {(["photo", "transcript"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        role="tab"
+                        aria-selected={view === v}
+                        className={`${s.button} ${view === v ? s.primary : ""} min-h-9 text-[0.9em]`}
+                        onClick={() => setView(v)}
+                      >
+                        {v === "photo" ? "Red pen on the photo" : "Transcript"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {FLAGS.PHOTO_PEN && result.line_boxes && preview && view === "photo" && picking !== "step" ? (
+                  <PhotoResult src={preview} result={result} />
+                ) : (
+                  <NotebookResult
+                    result={result}
+                    movingStep={picking === "step"}
+                    onPickStep={(step) => void sendReview("change_step", { step })}
+                  />
+                )}
                 {!result.correct && result.label && (
                   <p className="text-[1.05em]">
                     <strong>Line {result.error_step ?? "?"}:</strong> {result.label}.{" "}

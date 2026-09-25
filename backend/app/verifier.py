@@ -520,6 +520,34 @@ def _is_problem(node: Node) -> bool:
     return node.leaf.num is not None
 
 
+_HAS_MATHS = re.compile(r"[\d+\-−–×x*·÷:/=()]")
+
+
+def is_header(line: str) -> bool:
+    """A name, a roll number, a question number or a date at the top of the page: not a line of working."""
+    text = line.strip()
+    if not text:
+        return True
+    if not re.search(r"\d", text) and len(text.split()) <= 4:
+        return True  # "Asha", "Maths homework"
+    node = parse_expression(text)
+    if node is not None and node.leaf is not None and node.leaf.num is None:
+        return True  # "Roll 7", "Q1", "12" alone
+    if re.fullmatch(r"(?:q|question|qn|ex|exercise|sum)\.?\s*\d+[a-z)]?\.?", text, flags=re.I):
+        return True
+    if re.fullmatch(r"\d{1,2}\s*[/.-]\s*\d{1,2}\s*[/.-]\s*\d{2,4}", text):
+        return True  # a date
+    return False
+
+
+def strip_headers(lines: list[str]) -> tuple[list[str], int]:
+    """Drops leading header lines; returns the working and how many lines were dropped."""
+    n = 0
+    while n < len(lines) - 1 and is_header(lines[n]):
+        n += 1
+    return lines[n:], n
+
+
 def _first_expression(lines: list[str]) -> tuple[int, Node] | None:
     for i, line in enumerate(lines):
         if line.lstrip().startswith("="):

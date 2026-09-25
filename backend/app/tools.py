@@ -4,6 +4,10 @@ python -m app.tools warm-lessons     pre-generate lessons into data/lessons_cach
 python -m app.tools lessons-review   write docs/research/LESSONS_REVIEW.md for Risheeth
 python -m app.tools smoke <api-url>  run the demo path against a deployed API and print PASS/FAIL per beat
 python -m app.tools warm <api-url>   run every demo beat in demo order (fills the AI cache), then reset the class
+python -m app.tools load <api-url> [students=40] [pages=36]
+                                     load test on its OWN class: simulated students answering at once (rules path,
+                                     p50/p95/errors) and pages read 6 at a time (throughput); never the demo class.
+                                     Point it at a no-traffic tagged revision. Gemini calls are capped at ~200.
 python -m app.tools cache-seed <api-url>  save the live API's LLM cache as data/llm_cache_seed.jsonl (needs
                                      PROD_ADMIN_TOKEN in the environment or backend/.env; the token is never printed)
 """
@@ -267,6 +271,122 @@ def warm(base: str) -> int:
     return 1 if failures else 0
 
 
+def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
+    """A load test that never touches class 7B. Answers go through the rules path (0 Gemini calls); pages go through
+    the vision model 6 at a time (capped). Writes data/evals/load.json with p50/p95 and errors."""
+    import concurrent.futures as cf
+    import statistics
+
+    topic = get_topic()
+    samples = settings.data_dir.parent / "frontend" / "public" / "samples"
+    client = httpx.Client(base_url=base.rstrip("/"), timeout=120)
+    session = client.post("/sessions/create", json={"class_name": "Load test"}).json()
+    code, session_id = session["code"], session["session_id"]
+    out: dict = {"api": base, "class": code, "students": n_students, "pages": n_pages}
+
+    # 1) many students answering at once: join + 5 answers each, in parallel threads
+    def student(i: int) -> list[tuple[float, bool]]:
+        c = httpx.Client(base_url=base.rstrip("/"), timeout=60)
+        times: list[tuple[float, bool]] = []
+        t = time.perf_counter()
+        r = c.post("/students/join", json={"code": code, "nickname": f"Load {i}", "language": "kn", "roll_no": i + 1})
+        times.append((time.perf_counter() - t, r.status_code == 200))
+        if r.status_code != 200:
+            return times
+        sid = r.json()["student_id"]
+        for _ in range(5):
+            t = time.perf_counter()
+            n = c.post("/agents/examiner/next", json={"student_id": sid})
+            ok = n.status_code == 200
+            times.append((time.perf_counter() - t, ok))
+            if not ok or n.json()["done"]:
+                break
+            q = topic.question(n.json()["question"]["id"])
+            answer = q.answer if q.kind != "mcq" else next(o.text for o in q.options if o.correct)
+            if _ % 2 == 1:  # every second answer is a known wrong answer, so gaps open (still rules only)
+                if q.kind == "mcq":
+                    answer = next((o.text for o in q.options if o.tag), answer)
+                elif q.wrong_answers:
+                    answer = next(iter(q.wrong_answers))
+            t = time.perf_counter()
+            a = c.post("/agents/diagnostician/answer", json={"student_id": sid, "question_id": q.id, "answer": answer})
+            times.append((time.perf_counter() - t, a.status_code == 200))
+        return times
+
+    started = time.perf_counter()
+    with cf.ThreadPoolExecutor(max_workers=min(n_students, 40)) as pool:
+        results = list(pool.map(student, range(n_students)))
+    wall = time.perf_counter() - started
+    flat = [x for r in results for x in r]
+    ms = sorted(t * 1000 for t, _ in flat)
+    errors = sum(1 for _, ok in flat if not ok)
+    out["answers"] = {
+        "requests": len(flat),
+        "wall_s": round(wall, 1),
+        "rps": round(len(flat) / wall, 1),
+        "p50_ms": round(statistics.median(ms)) if ms else None,
+        "p95_ms": round(ms[int(0.95 * (len(ms) - 1))]) if ms else None,
+        "errors": errors,
+        "gemini_calls": 0,
+    }
+    print("answers", out["answers"])
+
+    # 2) pages read 6 at a time (the vision model), capped
+    n_pages = min(n_pages, 60)
+    files = sorted((samples / "pile").glob("p1-*.jpg")) + [samples / "asha-p1-photo.jpg", samples / "asha-p2-photo.jpg"]
+    dash = client.get("/teacher/dashboard", params={"session_id": session_id}).json()
+    ids = [s["id"] for s in dash["heatmap"]["students"]] or []
+    if not ids:
+        print("no students joined; skipping pages")
+    else:
+        started = time.perf_counter()
+        durations: list[float] = []
+        errs = 0
+        calls = 0
+
+        def one(i: int) -> tuple[float, bool, int]:
+            c = httpx.Client(base_url=base.rstrip("/"), timeout=120)
+            f = files[i % len(files)]
+            t = time.perf_counter()
+            r = c.post(
+                "/agents/diagnostician/photo",
+                data={"student_id": ids[i % len(ids)], "question_id": "P1"},
+                files={"image": (f.name, f.read_bytes(), "image/jpeg")},
+            )
+            n_calls = (
+                len([t for t in r.json().get("telemetry", []) if not t.get("cached")]) if r.status_code == 200 else 0
+            )
+            return time.perf_counter() - t, r.status_code == 200, n_calls
+
+        with cf.ThreadPoolExecutor(max_workers=6) as pool:
+            for d, ok, n_calls in pool.map(one, range(n_pages)):
+                durations.append(d)
+                errs += int(not ok)
+                calls += n_calls
+        wall = time.perf_counter() - started
+        ds = sorted(durations)
+        out["pages"] = {
+            "pages": n_pages,
+            "parallel": 6,
+            "wall_s": round(wall, 1),
+            "pages_per_min": round(n_pages / wall * 60, 1),
+            "p50_s": round(statistics.median(ds), 2),
+            "p95_s": round(ds[int(0.95 * (len(ds) - 1))], 2),
+            "errors": errs,
+            "gemini_calls": calls,
+        }
+        print("pages", out["pages"])
+    out["method"] = (
+        f"{n_students} simulated students joining and answering 5 questions each at once through the rules path "
+        f"(no AI call), then {n_pages} notebook photos read 6 at a time through the vision model; run on its own "
+        "class on a no-traffic tagged revision of the API with 1 instance, 1 worker"
+    )
+    path = settings.data_dir / "evals" / "load.json"
+    path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+    print(f"saved to {path}")
+    return 0
+
+
 def cache_seed(base: str) -> int:
     token = os.getenv("PROD_ADMIN_TOKEN") or settings.admin_token
     r = httpx.get(f"{base.rstrip('/')}/admin/cache-export", headers={"X-Admin-Token": token}, timeout=60)
@@ -288,6 +408,14 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "cache-seed":
         sys.exit(cache_seed(sys.argv[2]))
+    elif cmd == "load":
+        sys.exit(
+            load(
+                sys.argv[2],
+                int(sys.argv[3]) if len(sys.argv) > 3 else 40,
+                int(sys.argv[4]) if len(sys.argv) > 4 else 36,
+            )
+        )
     elif cmd == "warm":
         sys.exit(warm(sys.argv[2]))
     elif cmd == "warm-lessons":
