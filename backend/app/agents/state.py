@@ -175,7 +175,7 @@ def close_gap(conn: sqlite3.Connection, student_id: str, concept_id: str) -> flo
 def class_state(conn: sqlite3.Connection, session_id: str):
     students = rows(
         conn,
-        "SELECT id, nickname, language, kind FROM student WHERE session_id = ? "
+        "SELECT id, nickname, language, kind, roll_no FROM student WHERE session_id = ? "
         "ORDER BY kind = 'simulated', created_at, nickname",
         (session_id,),
     )

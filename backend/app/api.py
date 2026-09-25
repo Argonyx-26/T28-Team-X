@@ -11,7 +11,7 @@ from fastapi import APIRouter, File, Form, Header, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
 from . import seed, voice
-from .agents import analyst, coach, curator, diagnostician, examiner, review, simulator, state
+from .agents import analyst, coach, curator, diagnostician, examiner, pages, review, simulator, state
 from .config import settings
 from .db import get_conn, log_event, new_id, now, transaction
 from .errors import ApiError
@@ -33,6 +33,7 @@ class Join(BaseModel):
     code: str = Field(min_length=1, max_length=12)
     nickname: str = Field(min_length=1, max_length=40)
     language: Lang = "en"
+    roll_no: int | None = Field(default=None, ge=1, le=999)
 
 
 class StudentRef(BaseModel):
@@ -80,6 +81,17 @@ class Approve(BaseModel):
 
 class RemoveStudent(BaseModel):
     student_id: str
+
+
+class FilePage(BaseModel):
+    student_id: str
+    mode: Literal["homework", "snap"] = "snap"
+    problems: list[dict] = Field(max_length=6)
+
+
+class Speak(BaseModel):
+    text: str = Field(min_length=1, max_length=1200)
+    language: Lang = "en"
 
 
 # a small per-IP limiter for the endpoints that cost money
@@ -171,13 +183,32 @@ def join(body: Join, request: Request) -> dict:
         n_students = conn.execute("SELECT count(*) FROM student WHERE session_id = ?", (session["id"],)).fetchone()[0]
         if n_students >= settings.max_students_per_class:
             raise ApiError(409, "class_full", "This class is full. Ask your teacher to make room.")
+        existing = None
+        if body.roll_no is not None:
+            # a child who joins with their roll number resumes the roster entry the teacher imported
+            existing = conn.execute(
+                "SELECT id, nickname, language FROM student WHERE session_id = ? AND roll_no = ? AND kind = 'real'",
+                (session["id"], body.roll_no),
+            ).fetchone()
+        if existing:
+            with transaction(conn):
+                conn.execute("UPDATE student SET language = ? WHERE id = ?", (body.language, existing["id"]))
+            return {
+                "student_id": existing["id"],
+                "session_id": session["id"],
+                "nickname": existing["nickname"],
+                "language": body.language,
+                "resumed": True,
+            }
         student_id = new_id("stu")
         with transaction(conn):
             conn.execute(
-                "INSERT INTO student (id, session_id, nickname, language, kind, created_at) "
-                "VALUES (?, ?, ?, ?, 'real', ?)",
-                (student_id, session["id"], nickname, body.language, now()),
+                "INSERT INTO student (id, session_id, nickname, language, kind, created_at, roll_no) "
+                "VALUES (?, ?, ?, ?, 'real', ?, ?)",
+                (student_id, session["id"], nickname, body.language, now(), body.roll_no),
             )
+            if body.roll_no is None:
+                seed.assign_roll_numbers(conn, session["id"])
             log_event(conn, session["id"], "Examiner", "join", f"{nickname} joined ({body.language})", student_id)
     return {
         "student_id": student_id,
@@ -234,6 +265,45 @@ async def diagnostician_stack(
 
     results = await asyncio.gather(*(one(s, i) for s, i in zip(student_ids, images, strict=True)))
     return {"results": results}
+
+
+@router.post("/agents/diagnostician/page")
+async def diagnostician_page(
+    request: Request,
+    image: UploadFile = File(...),
+    student_id: str | None = Form(default=None),
+    session_id: str | None = Form(default=None),
+    mode: Literal["homework", "snap"] = Form(default="homework"),
+    language: Lang | None = Form(default=None),
+) -> dict:
+    """A whole notebook page: the header names the child (roll number, else nickname), every problem is found and
+    judged by exact arithmetic. Homework: the child sends student_id. Snap: the teacher sends session_id and the page
+    is filed by its header, or comes back unassigned for one tap."""
+    _limit(request, "photo", 60)
+    data = await image.read(diagnostician.MAX_IMAGE_BYTES + 1)
+    return await pages.page(data, session_id=session_id, student_id=student_id, mode=mode, language=language)
+
+
+@router.post("/agents/diagnostician/page/file")
+def diagnostician_page_file(body: FilePage, request: Request) -> dict:
+    """Files readings that came back unassigned under the student the teacher picked (text only, never the photo)."""
+    _limit(request, "answer", 120)
+    return pages.file_page(body.student_id, body.problems, body.mode)
+
+
+@router.get("/teacher/digest")
+def teacher_digest(session_id: str, hours: int = 24) -> dict:
+    return analyst.digest(session_id, hours)
+
+
+@router.post("/media/speak")
+async def media_speak(body: Speak, request: Request) -> dict:
+    """Text-to-speech for a lesson or feedback, for children who read slowly. Returns the clip's URL."""
+    _limit(request, "speak", 30)
+    url = voice.voice_note(body.text, body.language, lambda _tel: None)
+    if url is None:
+        raise ApiError(503, "no_voice", "Voice is not available on this deployment.")
+    return {"audio_url": url}
 
 
 @router.post("/agents/curator/lesson")

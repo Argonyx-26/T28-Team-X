@@ -50,3 +50,13 @@ class CoachPlan(BaseModel):
 class ParentMessageOut(BaseModel):
     language: str
     message: str
+
+
+class PageRead(BaseModel):
+    """One notebook page: the header and every problem. Kept flat on purpose (nested schemas hang the vision model)."""
+
+    roll_no: int | None = None
+    name_on_page: str | None = None
+    problems: list[str]  # one entry per problem: its lines of working joined with " | ", exactly as written
+    tags: list[str] = []  # parallel to problems: the best misconception tag, or "" when right
+    error_steps: list[int] = []  # parallel to problems: the 1-based wrong line, or 0 when right

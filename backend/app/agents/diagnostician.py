@@ -331,7 +331,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         "line_values": [x.value for x in verdict.lines],
         "reproduced_by": reproduced_by,
         "verifier": verdict.as_dict(),
-        "problem": (steps[0] if q.id == AUTO and steps else q.stem),
+        "problem": (steps[verdict.problem_line] if q.id == AUTO and steps else q.stem),
     }
 
 
@@ -385,8 +385,13 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
     if reading is not None and q.id == AUTO:
         # a problem outside the bank: the concept follows the operator, and the problem line is kept with the answer
         verdict = reading["verifier"]
-        first = verifier.parse_expression(reading["steps"][0]) if reading["steps"] else None
-        problem = verifier.problem_from_node(first, first.value()) if first is not None else None
+        first = verifier.parse_expression(reading["problem"]) if reading["steps"] else None
+        problem = None
+        if first is not None:
+            try:
+                problem = verifier.problem_from_node(first, first.value())
+            except ZeroDivisionError:
+                problem = None
         q = Question(
             id=AUTO,
             concept_id=verifier.guess_concept(problem),

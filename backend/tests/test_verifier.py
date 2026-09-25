@@ -250,3 +250,13 @@ def test_right_answer_is_never_marked_wrong_and_simplest_form_is_checked():
     q08 = get_topic().question("Q08")  # simplest form required
     v = diagnostician.check_steps(q08, ["15/25", "= 6/10"])
     assert not v.correct and v.tag == "not_fully_simplified"
+
+
+def test_header_lines_are_not_the_problem():
+    v = verify(["Roll 7", "2/5 + 1/3", "= (2+1)/(5+3)", "= 3/8"])
+    assert v.problem_line == 1 and v.reference == "11/15"
+    assert v.error_step == 3 and v.tag == "add_denominators" and v.lines[0].ok is None and v.lines[0].value is None
+    v = verify(["Q1", "3/4 + 1/4 = 4/4 = 1"])
+    assert v.correct and v.problem_line == 1
+    v = verify(["Roll 3", "Asha", "12"])
+    assert v.status == "unverified"

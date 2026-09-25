@@ -74,7 +74,13 @@ def dashboard(session_id: str) -> dict:
         "heatmap": {
             "concept_ids": topic.concept_ids,
             "students": [
-                {"id": s["id"], "nickname": s["nickname"], "kind": s["kind"], "language": s["language"]}
+                {
+                    "id": s["id"],
+                    "nickname": s["nickname"],
+                    "kind": s["kind"],
+                    "language": s["language"],
+                    "roll_no": s.get("roll_no"),
+                }
                 for s in students
             ],
             "cells": [
@@ -115,6 +121,48 @@ def events(session_id: str, after: int = 0, limit: int = 200) -> dict:
         for e in items
     ]
     return {"events": events_out, "last_seq": events_out[-1]["seq"] if events_out else after}
+
+
+def digest(session_id: str, hours: int = 24) -> dict:
+    """The morning card: since yesterday, how many homework pages came in and what gaps they opened."""
+    from datetime import UTC, datetime, timedelta
+
+    topic = get_topic()
+    since = (datetime.now(UTC) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with get_conn() as conn:
+        state.require_session(conn, session_id)
+        pages_ = rows(
+            conn,
+            "SELECT action, student_id FROM agent_event WHERE session_id = ? AND ts >= ? "
+            "AND action IN ('homework_page', 'snap_page')",
+            (session_id, since),
+        )
+        new_gaps = rows(
+            conn,
+            "SELECT g.concept_id, g.tag FROM gap g JOIN student s ON s.id = g.student_id "
+            "WHERE s.session_id = ? AND g.status = 'open' AND g.opened_at >= ?",
+            (session_id, since),
+        )
+        problems = rows(
+            conn,
+            "SELECT r.correct, r.concept_id, r.tag FROM response r JOIN student s ON s.id = r.student_id "
+            "WHERE s.session_id = ? AND r.created_at >= ? AND r.phase IN ('homework', 'snap')",
+            (session_id, since),
+        )
+    by_concept: dict[str, int] = {}
+    for g in new_gaps:
+        by_concept[g["concept_id"]] = by_concept.get(g["concept_id"], 0) + 1
+    top = sorted(by_concept.items(), key=lambda kv: (-kv[1], kv[0]))[:2]
+    return {
+        "hours": hours,
+        "homework_pages": sum(1 for p in pages_ if p["action"] == "homework_page"),
+        "snap_pages": sum(1 for p in pages_ if p["action"] == "snap_page"),
+        "students": len({p["student_id"] for p in pages_ if p["student_id"]}),
+        "problems": len(problems),
+        "wrong": sum(1 for p in problems if not p["correct"]),
+        "new_gaps": len(new_gaps),
+        "top_concepts": [{"id": c, "name": topic.concept(c).name, "gaps": n} for c, n in top],
+    }
 
 
 def student_detail(student_id: str) -> dict:

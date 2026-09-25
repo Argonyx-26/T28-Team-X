@@ -20,8 +20,8 @@ ASHA_HISTORY = [("Q01", True), ("Q04", True), ("Q05", True), ("Q09", True)]
 def create_asha(conn) -> None:
     topic = get_topic()
     conn.execute(
-        "INSERT INTO student (id, session_id, nickname, language, kind, created_at) "
-        "VALUES (?, ?, 'Asha', 'kn', 'demo', ?)",
+        "INSERT INTO student (id, session_id, nickname, language, kind, created_at, roll_no) "
+        "VALUES (?, ?, 'Asha', 'kn', 'demo', ?, 1)",
         (ASHA_ID, DEMO_SESSION_ID, now()),
     )
     for qid, ok in ASHA_HISTORY:
@@ -54,6 +54,22 @@ def load_cache_seed() -> int:
     return n
 
 
+def assign_roll_numbers(conn, session_id: str, start: int = 1) -> None:
+    """Roll numbers in class-list order for students who have none (a page's header files it under the right child)."""
+    taken = {
+        r[0]
+        for r in conn.execute("SELECT roll_no FROM student WHERE session_id = ? AND roll_no IS NOT NULL", (session_id,))
+    }
+    n = start
+    for (sid,) in conn.execute(
+        "SELECT id FROM student WHERE session_id = ? AND roll_no IS NULL ORDER BY created_at, rowid", (session_id,)
+    ).fetchall():
+        while n in taken:
+            n += 1
+        conn.execute("UPDATE student SET roll_no = ? WHERE id = ?", (n, sid))
+        taken.add(n)
+
+
 def seed() -> bool:
     """Idempotent. Returns True when it created the demo class."""
     topic = get_topic()
@@ -68,6 +84,7 @@ def seed() -> bool:
                 (DEMO_SESSION_ID, DEMO_CODE, "Class 7B · Fractions", topic.id, now()),
             )
             simulator.run(conn, DEMO_SESSION_ID, 30)
+            assign_roll_numbers(conn, DEMO_SESSION_ID, start=2)
             create_asha(conn)
             log_event(
                 conn,

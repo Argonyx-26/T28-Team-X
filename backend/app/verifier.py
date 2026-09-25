@@ -473,6 +473,7 @@ class Verdict:
     reference: str | None
     final: str | None
     lines: list[LineCheck]
+    problem_line: int = 0  # 0-based index of the line that states the problem
 
     def as_dict(self) -> dict:
         return {
@@ -484,14 +485,24 @@ class Verdict:
             "evidence": self.evidence,
             "reference": self.reference,
             "final": self.final,
+            "problem_line": self.problem_line,
             "lines": [{"text": x.text, "value": x.value, "values": x.values, "ok": x.ok} for x in self.lines],
         }
 
 
+def _is_problem(node: Node) -> bool:
+    """A problem has an operator or a fraction bar; a bare integer ("Roll 7", "Q1", a page number) is a header."""
+    if node.leaf is None:
+        return True
+    return node.leaf.num is not None
+
+
 def _first_expression(lines: list[str]) -> tuple[int, Node] | None:
     for i, line in enumerate(lines):
+        if line.lstrip().startswith("="):
+            continue
         segs = split_chain(line)
-        if segs and segs[0].node is not None and segs[0].value is not None:
+        if segs and segs[0].node is not None and segs[0].value is not None and _is_problem(segs[0].node):
             return i, segs[0].node
     return None
 
@@ -510,8 +521,9 @@ def verify(
     whatever the student wrote first, and its exact value is the reference.
     """
     lines = [x.strip() for x in lines if x and x.strip()]
+    found = _first_expression(lines)
+    problem_line = found[0] if found is not None else 0
     if problem is None and reference is None:
-        found = _first_expression(lines)
         if found is not None:
             _, node = found
             try:
@@ -520,12 +532,13 @@ def verify(
             except ZeroDivisionError:
                 reference = None
     elif problem is None and reference is not None:
-        found = _first_expression(lines)
         if found is not None:
             problem = problem_from_node(found[1], reference, word_problem)
             if problem is not None and problem.reference != reference:
                 # the first line isn't the problem itself (a word problem restated); keep the reference we were given
                 problem = Problem(problem.op, problem.a, problem.b, reference, word_problem)
+    elif found is None:
+        problem_line = 0
 
     checks: list[LineCheck] = []
     error_step: int | None = None
@@ -538,6 +551,10 @@ def verify(
         values = [s.value for s in segs]
         parsable = [v for v in values if v is not None]
         check = LineCheck(line, _f(parsable[-1]) if parsable else None, [_f(v) for v in values])
+        if i < problem_line:
+            check.value, check.values = None, [None] * len(values)  # a header: "Roll 7", "Q1"
+            checks.append(check)
+            continue
         if parsable and reference is not None:
             bad = [(s.value, s) for s in segs if s.value is not None and s.value != reference]
             check.ok = not bad
@@ -551,7 +568,18 @@ def verify(
         checks.append(check)
 
     if reference is None or all(c.ok is None for c in checks):
-        return Verdict("unverified", None, None, None, None, "No line could be read as arithmetic.", None, None, checks)
+        return Verdict(
+            "unverified",
+            None,
+            None,
+            None,
+            None,
+            "No line could be read as arithmetic.",
+            None,
+            None,
+            checks,
+            problem_line,
+        )
 
     if error_step is None:
         if simplest_required and final_written is not None and not final_written.simplest and final == reference:
@@ -565,6 +593,7 @@ def verify(
                 _f(reference),
                 _f(final),
                 checks,
+                problem_line,
             )
         return Verdict(
             "verified",
@@ -576,6 +605,7 @@ def verify(
             _f(reference),
             _f(final),
             checks,
+            problem_line,
         )
 
     tag = None
@@ -604,7 +634,9 @@ def verify(
         evidence = f"{RULE_WORDS[reproduced]} gives exactly {shown}."
     else:
         evidence = f"Line {error_step} equals {_f(wrong_value)}, not {_f(reference)}; no known mistake reproduces it."
-    return Verdict("verified", False, error_step, tag, reproduced, evidence, _f(reference), _f(final), checks)
+    return Verdict(
+        "verified", False, error_step, tag, reproduced, evidence, _f(reference), _f(final), checks, problem_line
+    )
 
 
 def guess_concept(problem: Problem | None) -> str:

@@ -67,6 +67,14 @@ def _fake_payload(schema_name: str, prompt: str) -> dict:
         }
     if schema_name == "ParentMessageOut":
         return {"language": "kn", "message": "ನಮಸ್ಕಾರ! ಇಂದು ಆಶಾ ಭಿನ್ನರಾಶಿಗಳ ಸಂಕಲನ ಅಭ್ಯಾಸ ಮಾಡಿದರು."}
+    if schema_name == "PageRead":
+        return {
+            "roll_no": 1,
+            "name_on_page": "Asha",
+            "problems": ["3/4 + 1/4 | = (3+1)/(4+4) | = 4/8", "2/5 + 1/3 | = 3/8", "1/2 + 1/4 | = 2/4 + 1/4 | = 3/4"],
+            "tags": ["add_denominators", "add_denominators", ""],
+            "error_steps": [2, 2, 0],
+        }
     if schema_name == "Out":
         return {"answer": "4/4"}
     raise AssertionError(schema_name)

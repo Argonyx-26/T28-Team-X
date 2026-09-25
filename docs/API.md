@@ -13,8 +13,9 @@ The frontend calls **`/backend/<path>`**, and `next.config` rewrites that to `${
 - An LLM failure never returns a 500. It degrades to a template or to `needs_typed_answer`.
 
 **Seeded on boot:**
-- class **7B** ("Class 7B · Fractions") with **30 simulated students**;
-- **Asha**, a demo student (Kannada), who already has practice on C1–C3, so her first question is on C4.
+- class **7B** ("Class 7B · Fractions") with **30 simulated students** (roll numbers 2–31);
+- **Asha**, a demo student (Kannada, roll 1), who already has practice on C1–C3, so her first question is on C4.
+- Every student has a `roll_no`; a page whose header says "Roll 7" is filed under roll 7, else under the nickname it names.
 
 ## TypeScript types (copy into `frontend/lib/types.ts`)
 
@@ -90,6 +91,31 @@ export interface PhotoResponse {
   problem: string;                    // the problem as posed: the bank stem, or the first line the student wrote (question_id AUTO)
 }
 
+// F2 snap mode and F3 homework check: one vision call reads a whole page (the header and every problem)
+export interface PageProblem extends Omit<PhotoResponse, "student_id" | "mastery_after" | "gap_opened" | "telemetry"> {
+  question_id: string;                // a bank id (P1–P4) when the fractions match exactly, else "AUTO"
+  problem: string;                    // the problem as written on the page
+  answer: string;                     // the right answer, from the bank or from exact arithmetic
+  label_local: string | null;         // the mistake in the student's language
+  feedback_local: string;             // one or two sentences in the student's language
+}
+export interface PageResponse {
+  session_id: string; mode: "homework" | "snap";
+  student_id: string | null; student_nickname: string | null;
+  matched_by: "given" | "roll" | "nickname" | null;   // how the page was filed; null = unassigned (snap only)
+  roll_no: number | null; name_on_page: string | null; // what the header said
+  problems: PageProblem[];
+  saved: boolean;                     // false when unassigned or unreadable; then POST /agents/diagnostician/page/file
+  summary: { saved: number; wrong: number; gaps_opened: number } | null;
+  unreadable: boolean;
+  telemetry: Telemetry[];
+}
+export interface Digest {
+  hours: number; homework_pages: number; snap_pages: number; students: number;
+  problems: number; wrong: number; new_gaps: number;
+  top_concepts: { id: string; name: string; gaps: number }[];
+}
+
 export interface RetryItem { id: string; kind: "mcq" | "text"; stem: string; options: string[] | null }
 export interface Lesson {
   language: Lang; language_label: string;
@@ -142,7 +168,7 @@ export interface Dashboard {
   edges: [string, string][];
   heatmap: {
     concept_ids: string[];
-    students: { id: string; nickname: string; kind: StudentKind; language: Lang }[];
+    students: { id: string; nickname: string; kind: StudentKind; language: Lang; roll_no: number | null }[];
     cells: (number | null)[][];       // [student][concept], null = not assessed
   };
   groups: { reteach: StudentRef[]; practice: StudentRef[]; extend: StudentRef[]; not_assessed: StudentRef[] };
@@ -187,10 +213,14 @@ export interface JudgesSummary {
 | `GET /topic` | – | `TopicResponse` |
 | `POST /sessions/create` | `{class_name, code?}` | `SessionLookup & {join_url}` |
 | `GET /sessions/lookup` | `?code=7B` | `SessionLookup` (404 if the code is unknown) |
-| `POST /students/join` | `{code, nickname, language}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 30 joins per minute per IP |
+| `POST /students/join` | `{code, nickname, language, roll_no?}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 30 joins per minute per IP |
 | `POST /agents/examiner/next` | `{student_id}` | `NextResponse` (5 questions per quiz) |
 | `POST /agents/diagnostician/answer` | `{student_id, question_id, answer, phase?}`. For an MCQ, send the option text exactly. `phase` is `"quiz"` (default) or `"photo"`: the teacher typing the final answer from an unreadable page, which never counts toward the student's quiz | `AnswerResponse` |
 | `POST /agents/diagnostician/photo` | *multipart*: `student_id`, `question_id` (P1–P4, or `AUTO` for any fraction problem: the first line the student wrote is the problem and exact arithmetic judges it; the concept follows the operator), `image` | `PhotoResponse` (≈3–8 s) |
+| `POST /agents/diagnostician/page` | *multipart*: `image`, plus `student_id` (homework: the child's own page) or `session_id` (snap: filed by the roll number, else the nickname, written at the top), `mode` (`homework` \| `snap`), `language?` | `PageResponse` (≈3–8 s). One vision call reads the header and every problem; exact arithmetic judges each; readings are saved, the photo is discarded. Feed event `homework_page` / `snap_page`: "Homework · Asha (roll 1) · 3 problems · 1 wrong" |
+| `POST /agents/diagnostician/page/file` | `{student_id, mode, problems: PageProblem[]}` (the readings that came back unassigned; text only) | `{student_id, student_nickname, problems, summary}` |
+| `GET /teacher/digest` | `?session_id=&hours=24` | `Digest`: the morning card ("Since yesterday: 12 homework pages, 4 new gaps on adding fractions") |
+| `POST /media/speak` | `{text, language}` | `{audio_url}`: text-to-speech (Chirp 3 HD) for feedback and lessons; fetch `/media/voice?id=` (503 `no_voice` when TTS is off) |
 | `POST /agents/diagnostician/stack` | *multipart*: `question_id`, repeated `student_ids`, repeated `images` (same order, ≤40) | `{results: (PhotoResponse \| {student_id, error})[]}`. Reads 6 at a time (SHOULD: the notebook pile) |
 | `POST /agents/curator/lesson` | `{student_id}` | `LessonResponse`. Poll while `generating` |
 | `POST /agents/examiner/retry` | `{student_id, answers:[{question_id, answer}]}` | `RetryResponse` |

@@ -51,7 +51,7 @@ export interface Dashboard {
   edges: [string, string][];
   heatmap: {
     concept_ids: string[];
-    students: { id: string; nickname: string; kind: StudentKind; language: Lang }[];
+    students: { id: string; nickname: string; kind: StudentKind; language: Lang; roll_no?: number | null }[];
     cells: (number | null)[][];
   };
   groups: { reteach: StudentRef[]; practice: StudentRef[]; extend: StudentRef[]; not_assessed: StudentRef[] };
@@ -199,6 +199,58 @@ export interface PhotoResult {
 
 /** Any fraction problem, not only the four in the bank: the first line the student wrote is the problem. */
 export const AUTO_QUESTION = "AUTO";
+
+/** One problem read from a whole page (F2 snap, F3 homework). */
+export interface PageProblem {
+  question_id: string;
+  concept_id: string;
+  problem: string;
+  answer: string;
+  steps: string[];
+  final_answer_read: string | null;
+  correct: boolean;
+  error_step: number | null;
+  misconception_tag: string | null;
+  label: string | null;
+  label_local: string | null;
+  feedback: string;
+  feedback_local: string;
+  confidence: number;
+  source: string;
+  needs_typed_answer: boolean;
+  rule_check: RuleCheck;
+  line_values: (string | null)[];
+  reproduced_by: string | null;
+  verifier: Verifier | null;
+}
+
+export type PageMode = "homework" | "snap";
+
+export interface PageResponse {
+  session_id: string;
+  mode: PageMode;
+  student_id: string | null;
+  student_nickname: string | null;
+  matched_by: "given" | "roll" | "nickname" | null;
+  roll_no: number | null;
+  name_on_page: string | null;
+  problems: PageProblem[];
+  saved: boolean;
+  summary: { saved: number; wrong: number; gaps_opened: number } | null;
+  unreadable: boolean;
+  telemetry: Telemetry[];
+}
+
+export interface Digest {
+  hours: number;
+  homework_pages: number;
+  snap_pages: number;
+  students: number;
+  problems: number;
+  wrong: number;
+  new_gaps: number;
+  top_concepts: { id: string; name: string; gaps: number }[];
+}
 
 export interface Topic {
   concepts: { id: string; name: string; short: string }[];
@@ -390,6 +442,29 @@ export const api = {
     post<{ correct: boolean; misconception_tag: string | null; label_en: string | null; correct_answer: string }>(
       "/agents/diagnostician/answer",
       { student_id: studentId, question_id: questionId, answer, phase: "photo" },
+    ),
+  /** One whole page: the child's own homework (studentId) or a snapped notebook filed by its header (sessionId). */
+  page: (image: Blob, who: { studentId?: string; sessionId?: string }, mode: PageMode, language?: Lang) => {
+    const form = new FormData();
+    form.append("image", image, "page.jpg");
+    if (who.studentId) form.append("student_id", who.studentId);
+    if (who.sessionId) form.append("session_id", who.sessionId);
+    form.append("mode", mode);
+    if (language) form.append("language", language);
+    return call<PageResponse>("/agents/diagnostician/page", { method: "POST", body: form });
+  },
+  pageFile: (studentId: string, mode: PageMode, problems: PageProblem[]) =>
+    post<{ student_id: string; student_nickname: string; problems: PageProblem[]; summary: PageResponse["summary"] }>(
+      "/agents/diagnostician/page/file",
+      { student_id: studentId, mode, problems },
+    ),
+  digest: (sessionId: string, hours = 24) =>
+    call<Digest>(`/teacher/digest?session_id=${encodeURIComponent(sessionId)}&hours=${hours}`),
+  speak: (text: string, language: Lang) => post<{ audio_url: string }>("/media/speak", { text, language }),
+  joinWithRoll: (code: string, nickname: string, language: Lang, rollNo: number | null) =>
+    post<{ student_id: string; session_id: string; nickname: string; language: Lang; resumed: boolean }>(
+      "/students/join",
+      { code, nickname, language, roll_no: rollNo },
     ),
   review: (studentId: string, questionId: string, verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) =>
     post<{ ok: true; correct: boolean; misconception_tag: string | null; error_step: number | null }>(

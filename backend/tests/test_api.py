@@ -395,3 +395,69 @@ def test_photo_of_a_problem_outside_the_bank(client):
     assert r["verifier"]["reference"] == "1" and r["source"] == "vision+rule"
     d = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
     assert d["responses"][0]["question_id"] == "AUTO" and d["responses"][0]["stem"] == "3/4 + 1/4"
+
+
+def test_homework_page_files_every_problem_under_the_child(client):
+    r = client.post(
+        "/agents/diagnostician/page",
+        data={"student_id": ASHA_ID, "mode": "homework"},
+        files={"image": ("hw.png", _png(), "image/png")},
+    ).json()
+    assert r["student_id"] == ASHA_ID and r["matched_by"] == "given" and r["saved"] and len(r["problems"]) == 3
+    p1, p2, p3 = r["problems"]
+    assert p1["question_id"] == "P1" and p1["error_step"] == 2 and p1["misconception_tag"] == "add_denominators"
+    assert p2["question_id"] == "AUTO" and p2["problem"] == "2/5 + 1/3" and p2["reproduced_by"] == "add_denominators"
+    assert p3["correct"] and p3["misconception_tag"] is None
+    assert "ಛೇದ" in p1["label_local"] and p1["feedback_local"]  # Asha learns in Kannada
+    assert r["summary"] == {"saved": 3, "wrong": 2, "gaps_opened": 1}
+    events = client.get("/teacher/events", params={"session_id": DEMO_SESSION_ID}).json()["events"]
+    hw = [e for e in events if e["action"] == "homework_page"]
+    assert hw and hw[-1]["reason"].startswith("Homework · Asha (roll 1) · 3 problems · 2 wrong")
+    d = client.get("/teacher/digest", params={"session_id": DEMO_SESSION_ID}).json()
+    assert d["homework_pages"] == 1 and d["problems"] == 3 and d["wrong"] == 2 and d["new_gaps"] >= 1
+    assert d["top_concepts"][0]["id"] == "C4"
+    # the child now has a gap, so "Fix this now" has a lesson
+    lesson = _lesson_ready(client, ASHA_ID)
+    assert lesson["status"] == "ready" and lesson["lesson"]["concept_id"] == "C4"
+
+
+def test_snap_page_is_filed_by_roll_number_or_comes_back_unassigned(client):
+    r = client.post(
+        "/agents/diagnostician/page",
+        data={"session_id": DEMO_SESSION_ID, "mode": "snap"},
+        files={"image": ("p.png", _png(), "image/png")},
+    ).json()
+    assert r["roll_no"] == 1 and r["matched_by"] == "roll" and r["student_id"] == ASHA_ID and r["saved"]
+    events = client.get("/teacher/events", params={"session_id": DEMO_SESSION_ID}).json()["events"]
+    assert any(e["reason"].startswith("Snap · Asha (roll 1) · 3 problems · 2 wrong") for e in events)
+    # a page whose header matches nobody comes back unassigned; one tap files it (text only, no photo)
+    other = client.post("/sessions/create", json={"class_name": "Snap test"}).json()
+    r = client.post(
+        "/agents/diagnostician/page",
+        data={"session_id": other["session_id"], "mode": "snap"},
+        files={"image": ("p.png", _png(), "image/png")},
+    ).json()
+    assert r["student_id"] is None and not r["saved"] and len(r["problems"]) == 3
+    j = client.post(
+        "/students/join", json={"code": other["code"], "nickname": "Ravi", "language": "hi", "roll_no": 4}
+    ).json()
+    filed = client.post(
+        "/agents/diagnostician/page/file",
+        json={"student_id": j["student_id"], "mode": "snap", "problems": r["problems"]},
+    ).json()
+    assert filed["summary"]["saved"] == 3 and filed["problems"][0]["label_local"].startswith("हर")
+    # joining again with the same roll number resumes that child
+    again = client.post(
+        "/students/join", json={"code": other["code"], "nickname": "Ravi K", "language": "hi", "roll_no": 4}
+    ).json()
+    assert again["student_id"] == j["student_id"] and again["resumed"]
+    d = client.get("/teacher/dashboard", params={"session_id": DEMO_SESSION_ID}).json()
+    rolls = {s["nickname"]: s["roll_no"] for s in d["heatmap"]["students"]}
+    assert rolls["Asha"] == 1 and sorted(v for v in rolls.values() if v) == list(range(1, 32))
+
+
+def test_speak_returns_a_clip(client):
+    r = client.post("/media/speak", json={"text": "ಸರಿ! ಚೆನ್ನಾಗಿದೆ.", "language": "kn"}).json()
+    assert r["audio_url"].startswith("/media/voice?id=")
+    audio = client.get(r["audio_url"])
+    assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
