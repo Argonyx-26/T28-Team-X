@@ -356,3 +356,23 @@ def test_the_problem_text_is_the_problem_not_the_whole_line():
     assert diagnostician._problem_text("1) 3/8 + 1/8 = 4/16") == "3/8 + 1/8"
     assert diagnostician._problem_text("Q1) 2/3 + 4/7") == "2/3 + 4/7"
     assert diagnostician._problem_text("3/9 + 6/9 = (3+6)/(9+9)") == "3/9 + 6/9"
+
+
+def test_a_blank_is_not_a_value():
+    assert parse_value("?/6") is None and parse_value("__/24") is None
+    v = verify(["2/3 = ?/6", "= (2+3)/(3+3)", "= 5/6"])
+    assert v.reference == "2/3" and v.error_step == 2 and v.tag == "equivalence_additive"
+    v = verify(["2/3 = ?/6", "= (2×2)/(3×2)", "= 4/6"])
+    assert v.correct
+
+
+def test_a_word_problem_on_a_page_is_matched_to_the_bank():
+    from app.agents.pages import diagnose_problem, match_bank
+
+    story = "A cake needs 3/4 cup of sugar. How much sugar for 2 cakes?"
+    assert match_bank(story).id == "P4"
+    assert match_bank("2 + 3/4") is None  # a bare sum is never taken for the story
+    out = diagnose_problem([story, "2 + 3/4", "= 2 3/4 cups"], None, None)
+    assert out["question_id"] == "P4" and not out["correct"] and out["misconception_tag"] == "word_problem_operation"
+    right = diagnose_problem([story, "2 × 3/4 = 6/4", "= 1 1/2 cups"], None, None)
+    assert right["correct"]

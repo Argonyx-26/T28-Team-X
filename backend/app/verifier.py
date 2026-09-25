@@ -245,11 +245,18 @@ def _parse(text: str) -> Node | None:
         return None
 
 
+_BLANK = re.compile(r"\?|_{2,}|□|☐")
+
+
 def parse_expression(text: str) -> Node | None:
     """One side of an '=' as an exact expression tree, or None when it isn't one (words, empty, unbalanced).
 
+    A blank to fill in ("?/6", "__/24", "□") is not a value: "2/3 = ?/6" states the problem, it doesn't claim 6.
+
     A problem number in front ("Q1)", "Q.2", "2.", "(a)") is read first as a number and dropped; if what is left
     doesn't parse, the line is read as written, so "(3) + 4" keeps its bracket but "(1) 3/4 + 1/4" loses its number."""
+    if _BLANK.search(text):
+        return None
     stripped = strip_enumerator(text)
     if stripped != text:
         node = _parse(stripped)

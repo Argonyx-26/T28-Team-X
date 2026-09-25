@@ -85,27 +85,6 @@
    "kind": "robust"
   },
   {
-   "label": "Right or wrong decided by arithmetic alone",
-   "value": "12/12",
-   "n": 12,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
-   "kind": "verifier"
-  },
-  {
-   "label": "Wrong step found by arithmetic alone",
-   "value": "8/8",
-   "n": 8,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
-   "kind": "verifier"
-  },
-  {
-   "label": "Mistake reproduced exactly by a mal-rule",
-   "value": "8/8",
-   "n": 8,
-   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
-   "kind": "verifier"
-  },
-  {
    "label": "Problems found on a whole page",
    "value": "9/9",
    "n": 9,
@@ -139,6 +118,27 @@
    "n": 3,
    "method": "server-side model time per page during this evaluation",
    "kind": "pages"
+  },
+  {
+   "label": "Right or wrong decided by arithmetic alone",
+   "value": "12/12",
+   "n": 12,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
+   "kind": "verifier"
+  },
+  {
+   "label": "Wrong step found by arithmetic alone",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
+   "kind": "verifier"
+  },
+  {
+   "label": "Mistake reproduced exactly by a mal-rule",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
+   "kind": "verifier"
   }
  ],
  "runs": {

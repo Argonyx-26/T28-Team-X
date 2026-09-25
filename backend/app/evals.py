@@ -6,6 +6,8 @@ python -m app.evals verifier the 12 labelled pages diagnosed from their transcri
 python -m app.evals robust   every real photo rotated ±8°, JPEG quality 40, 640 px and darkened; accuracy per condition
 python -m app.evals pages    whole notebook pages (several problems each, none from the bank), against
                              data/evidence/pages.csv; refuses to run until every row is checked by its writer
+python -m app.evals pages2   round 2: pages copied from data/evidence/ROUND2.md (planted mistakes, roll numbers),
+                             against data/evidence/pages_round2.csv
 """
 
 import asyncio
@@ -352,12 +354,39 @@ async def run_robust() -> list[dict]:
     return numbers
 
 
-PAGES_CSV = settings.data_dir / "evidence" / "pages.csv"
 PAGES_DIR = settings.data_dir / "evidence" / "incoming"
 
 
-def _page_labels() -> list[dict]:
-    rows = list(csv.DictReader(open(PAGES_CSV, encoding="utf-8")))
+ROUNDS = {
+    # round 1: pages written freely, labels drafted from the photos by our coding assistant and checked by a teammate
+    "pages": {
+        "csv": "pages.csv",
+        "what": "none from our question bank",
+        "photos": "WhatsApp photos",
+        "labels": "labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) "
+        "before any GuruGraph run",
+        "note": "The first run matched only 1 of 9 problems because our parser didn't read problem numbers like 'Q1)' "
+        "or a problem written on one line with its answer; we fixed the parser and ran the evaluation again with fresh "
+        "model readings of the same photos",
+        "prefix": "",
+        "suffix": " not in the bank",
+    },
+    # round 2: the working (with its planted mistakes) was planned first and copied by hand, so the labels came first
+    "pages2": {
+        "csv": "pages_round2.csv",
+        "what": "bank and textbook problems with planted mistakes",
+        "photos": "phone photos",
+        "labels": "the working, including every planted mistake, was written down before the pages were written, then "
+        "copied by hand; each writer confirmed their pages match",
+        "note": "",
+        "prefix": "Round 2: ",
+        "suffix": "",
+    },
+}
+
+
+def _page_labels(csv_name: str = "pages.csv") -> list[dict]:
+    rows = list(csv.DictReader(open(settings.data_dir / "evidence" / csv_name, encoding="utf-8")))
     unchecked = [f"{r['photo']} {r['problem_no']}" for r in rows if r.get("checked", "").strip().lower() != "yes"]
     if unchecked:
         raise SystemExit(f"{len(unchecked)} label rows are not checked by their writer yet: {', '.join(unchecked)}")
@@ -375,22 +404,54 @@ def _wrong_value(lines: list[str], answer: Fraction) -> Fraction | None:
     return None
 
 
-async def run_pages() -> list[dict]:
+def _written_fractions(text: str) -> list[str]:
+    import re
+
+    return sorted(re.sub(r"\s+", "", m) for m in re.findall(r"\d+\s*/\s*\d+", text or ""))
+
+
+def _match_problem(found: list[dict], used: set[int], label: dict, answer: Fraction | None) -> int | None:
+    """Which problem read from the page is this label's: the same fractions as written, else the same exact value,
+    else the same bank problem (a word problem)."""
+    from .agents.pages import match_bank
+    from .verifier import parse_value, split_chain
+
+    posed = split_chain(label["problem"])
+    posed_text = posed[0].text if posed else label["problem"]
+    written = _written_fractions(posed_text)
+    bank = match_bank(label["problem"])
+    tests = [
+        lambda f: bool(written) and _written_fractions(f.get("problem")) == written,
+        lambda f: answer is not None and parse_value(f.get("problem") or "") == answer,
+        lambda f: bank is not None and f.get("question_id") == bank.id,
+    ]
+    for test in tests:
+        hit = next((i for i, f in enumerate(found) if i not in used and test(f)), None)
+        if hit is not None:
+            return hit
+    return None
+
+
+async def run_pages(kind: str = "pages") -> list[dict]:
     """One vision call per page, then the verifier on every problem it found. Problems are matched to the labels by
-    the exact value of the problem line. The wrong step counts as found when the circled line's value is the value
-    of the labelled wrong step, so splitting one written line into two doesn't change the score."""
+    the fractions as written, then by the exact value of the problem, then by the bank problem it matches. The wrong
+    step counts as found when the circled line's value is the value of the labelled wrong step, so splitting one
+    written line into two doesn't change the score."""
     from .agents.pages import diagnose_problem, read_page
     from .verifier import parse_value
 
     init_db()
-    labels = _page_labels()
+    cfg = ROUNDS[kind]
+    labels = _page_labels(cfg["csv"])
     photos = sorted({r["photo"] for r in labels})
-    rows, ms, writers = [], [], set()
+    rows, ms, writers, rolls = [], [], set(), []
     for photo in photos:
         mine = [r for r in labels if r["photo"] == photo]
         writers.add(mine[0]["writer"])
         result, telemetry = await read_page(prepare_image((PAGES_DIR / photo).read_bytes()), use_cache=False)
         ms += [t["ms"] for t in telemetry if t["ok"] and not t["cached"]]
+        if mine[0].get("roll"):
+            rolls.append(result is not None and result.roll_no == int(mine[0]["roll"]))
         found = []
         for text in result.problems if result else []:
             lines = [x for x in text.split("|") if x.strip()]
@@ -403,14 +464,7 @@ async def run_pages() -> list[dict]:
             answer = parse_value(label["answer"])
             label_lines = [x.strip() for x in label["lines"].split("|")]
             truth_correct = label["correct"] == "true"
-            match = None
-            for i, f in enumerate(found):
-                if i in used:
-                    continue
-                value = parse_value(f.get("problem") or "")
-                if value is not None and value == answer:
-                    match = i
-                    break
+            match = _match_problem(found, used, label, answer)
             got = found[match] if match is not None else None
             if match is not None:
                 used.add(match)
@@ -450,42 +504,50 @@ async def run_pages() -> list[dict]:
     tag_ok = sum(r["found"] and r["tag"] == r["truth_tag"] for r in tagged)
     who = f"{len(writers)} writers"
     method = (
-        f"{len(photos)} WhatsApp photos of whole notebook pages by {who}, {len(rows)} problems, none from our question "
-        "bank; labels drafted by our coding assistant from the photos and checked by a teammate (Risheeth) before any "
-        "GuruGraph run; one vision call per page, then exact arithmetic on every problem. The first run matched only "
-        "1 of 9 problems because our parser didn't read problem numbers like 'Q1)' or a problem written on one line "
-        "with its answer; we fixed the parser and ran the evaluation again with fresh model readings of the same photos"
+        f"{len(photos)} {cfg['photos']} of whole notebook pages by {who}, {len(rows)} problem readings, {cfg['what']}; "
+        f"{cfg['labels']}; one vision call per page, then exact arithmetic on every problem"
+        + (f". {cfg['note']}" if cfg["note"] else "")
     )
+    pre, suf = cfg["prefix"], cfg["suffix"]
     numbers = [
         {
-            "label": "Problems found on a whole page",
+            "label": f"{pre}Problems found on a whole page",
             "value": f"{found_ok}/{len(rows)}",
             "n": len(rows),
             "method": method,
         },
         {
-            "label": "Fraction problems (not in the bank) marked right or wrong correctly",
+            "label": f"{pre}Fraction problems{suf} marked right or wrong correctly",
             "value": f"{verdict_ok}/{len(fr)}",
             "n": len(fr),
             "method": method + "; fraction problems only",
         },
         {
-            "label": "Wrong step found on a problem not in the bank",
+            "label": f"{pre}Wrong step found on a problem{suf}",
             "value": f"{step_ok}/{len(wrong)}",
             "n": len(wrong),
             "method": method + "; wrong fraction problems only; the circled line must hold the labelled wrong value",
         },
         {
-            "label": "Mistake named on a problem not in the bank",
+            "label": f"{pre}Mistake named on a problem{suf}",
             "value": f"{tag_ok}/{len(tagged)}",
             "n": len(tagged),
             "method": method + "; wrong fraction problems only",
         },
     ]
+    if rolls:
+        numbers.append(
+            {
+                "label": f"{pre}Roll number read from the top of the page",
+                "value": f"{sum(rolls)}/{len(rolls)}",
+                "n": len(rolls),
+                "method": method + "; the roll number is what files a snapped page under the right child",
+            }
+        )
     if ms:
         numbers.append(
             {
-                "label": "Whole-page read time (median)",
+                "label": f"{pre}Whole-page read time (median)",
                 "value": f"{statistics.median(ms) / 1000:.1f} s",
                 "n": len(ms),
                 "method": "server-side model time per page during this evaluation",
@@ -493,7 +555,7 @@ async def run_pages() -> list[dict]:
         )
     for x in numbers:
         print(x)
-    _save("pages", numbers, rows)
+    _save(kind, numbers, rows)
     return numbers
 
 
@@ -578,6 +640,8 @@ if __name__ == "__main__":
     elif cmd == "robust":
         asyncio.run(run_robust())
     elif cmd == "pages":
-        asyncio.run(run_pages())
+        asyncio.run(run_pages("pages"))
+    elif cmd == "pages2":
+        asyncio.run(run_pages("pages2"))
     else:
         print(__doc__)

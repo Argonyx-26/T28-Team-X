@@ -28,14 +28,27 @@ def _fractions(text: str) -> set[Fraction]:
     return {Fraction(int(a), int(b)) for a, b in _FRACTION.findall(text) if int(b)}
 
 
+_INTEGER = re.compile(r"(?<![\d/])\b(\d+)\b(?!\s*/\s*\d)")
+
+
+def _numbers(text: str) -> set[Fraction]:
+    """Every number in a sentence: its fractions, plus the whole numbers that aren't part of one."""
+    return _fractions(text) | {Fraction(int(n)) for n in _INTEGER.findall(text)}
+
+
 def match_bank(first_line: str) -> Question | None:
-    """A problem on the page that is one of the bank's photo problems (the same fractions, exactly)."""
+    """A problem on the page that is one of the bank's photo problems: the same fractions exactly, or, for a word
+    problem written out in words, the same numbers (the cake problem: 3/4 and 2). A bare sum like "2 + 3/4" is never
+    matched to a story by its numbers alone."""
     seen = _fractions(first_line)
-    if len(seen) < 2:
-        return None
-    for q in get_topic().questions:
-        if q.kind == "photo" and _fractions(q.stem) == seen:
-            return q
+    photo = [q for q in get_topic().questions if q.kind == "photo"]
+    if len(seen) >= 2:
+        return next((q for q in photo if _fractions(q.stem) == seen), None)
+    words = len(re.findall(r"[A-Za-z]{3,}", first_line))
+    if words >= 3:
+        numbers = _numbers(first_line)
+        if len(numbers) >= 2:
+            return next((q for q in photo if _numbers(q.stem) == numbers), None)
     return None
 
 
