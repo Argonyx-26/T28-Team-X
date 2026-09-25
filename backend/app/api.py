@@ -227,7 +227,8 @@ def examiner_retry(body: Retry) -> dict:
 
 
 @router.post("/agents/simulator/run")
-def simulator_run(body: Simulate) -> dict:
+def simulator_run(body: Simulate, request: Request) -> dict:
+    _limit(request, "simulate", 3)
     with get_conn() as conn:
         state.require_session(conn, body.session_id)
         start = conn.execute(

@@ -108,7 +108,7 @@ When `vercel` asks, pick a new project named `gurugraph`. Use the Vercel CLI onl
 >    - correct: a green tick that animates in, then "Correct!";
 >    - wrong: a red-pen underline on the student's answer, the `label` in plain words, and "The answer is X".
 >
->    Then a Next button. **If the answer has `gap_opened: true`, also show a primary "Fix this now" button**. It goes straight to the lesson and the 2 retries (step 4), then back to the quiz. This is the demo path: the judge playing Asha taps one wrong answer and reaches "Gap closed" in under a minute.
+>    Then a Next button. **If the answer has `gap_open: true` (not `gap_opened`: in the demo the teacher's scan opens Asha's gap first), also show a primary "Fix this now" button**. It goes straight to the lesson and the 2 retries (step 4), then back to the quiz. This is the demo path: the judge playing Asha taps one wrong answer and reaches "Gap closed" in under a minute.
 > 4. **When `next` returns `done`**, call `curatorLesson`. While `generating`, show a friendly skeleton ("Your mini-lesson is being written…") and poll every 1.5 s. When `ready`, render the lesson:
 >    - the markdown in the student's language, with a Kalam heading and the Kannada font for kn;
 >    - a small language badge; show "English (translation unavailable)" if `translated` is false;

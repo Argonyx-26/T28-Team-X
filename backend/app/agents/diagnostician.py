@@ -43,6 +43,7 @@ async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
             (student_id, question_id),
         )
         mastery_now = state.mastery_map(conn, student_id).get(q.concept_id, rules.START_MASTERY)
+        gap_open_before = state.has_open_gap(conn, student_id, q.concept_id)
     language = student["language"]
     if previous:  # a double tap or a retried request: return the first result instead of counting twice
         tag = previous["tag"]
@@ -60,6 +61,7 @@ async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
             "mastery_before": mastery_now,
             "mastery_after": mastery_now,
             "gap_opened": False,
+            "gap_open": gap_open_before,
             "telemetry": [],
         }
     telemetry: list[dict] = []
@@ -115,11 +117,14 @@ async def answer(student_id: str, question_id: str, answer_text: str) -> dict:
                 student_id,
                 telemetry,
             )
+    with get_conn() as conn:
+        gap_open = state.has_open_gap(conn, student_id, q.concept_id)
     return {
         "correct": correct,
         "misconception_tag": tag,
         "label": label,
         "label_en": topic.tag(tag).label() if tag else None,
+        "gap_open": gap_open,
         "feedback": llm_feedback or feedback_text(language, correct, tag, label, q.answer),
         "correct_answer": q.answer,
         "source": source,

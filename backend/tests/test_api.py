@@ -77,7 +77,7 @@ def test_asha_demo_loop_closes_the_gap(client):
         },
     ).json()
     assert a["misconception_tag"] == "add_denominators" and a["source"] == "key" and a["gap_opened"]
-    assert "ಛೇದ" in a["label"] and a["telemetry"] == []
+    assert "ಛೇದ" in a["label"] and a["telemetry"] == [] and a["gap_open"]
 
     lesson = _lesson_ready(client, ASHA_ID)
     assert lesson["status"] == "ready" and lesson["lesson"]["language"] == "kn" and lesson["lesson"]["translated"]
@@ -195,3 +195,22 @@ def test_notebook_stack_reads_photos_in_parallel(client):
     data = {"question_id": "P1", "student_ids": [s["id"] for s in ids]}
     r = client.post("/agents/diagnostician/stack", data=data, files=files).json()
     assert len(r["results"]) == 3 and all(x["error_step"] == 2 for x in r["results"])
+
+
+def test_gap_open_is_reported_when_the_scan_opened_the_gap_first(client):
+    # demo order: the teacher scans Asha's notebook (gap opens), then the judge answers wrong on her phone
+    client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": ASHA_ID, "question_id": "P1"},
+        files={"image": ("a.png", _png(), "image/png")},
+    )
+    n = client.post("/agents/examiner/next", json={"student_id": ASHA_ID}).json()
+    a = client.post(
+        "/agents/diagnostician/answer",
+        json={
+            "student_id": ASHA_ID,
+            "question_id": n["question"]["id"],
+            "answer": _wrong_option(client, n["question"]),
+        },
+    ).json()
+    assert not a["gap_opened"] and a["gap_open"]

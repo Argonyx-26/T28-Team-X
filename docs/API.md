@@ -57,7 +57,8 @@ export interface AnswerResponse {
   confidence: number;
   concept_id: string;
   mastery_before: number; mastery_after: number;
-  gap_opened: boolean;
+  gap_opened: boolean;              // this answer opened the gap
+  gap_open: boolean;                // a gap is open on this concept now (show "Fix this now" when true)
   telemetry: Telemetry[];
 }
 

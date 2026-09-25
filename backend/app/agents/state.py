@@ -136,6 +136,15 @@ def record_response(
     return {"mastery_before": before, "mastery_after": after, "gap_opened": gap_opened}
 
 
+def has_open_gap(conn: sqlite3.Connection, student_id: str, concept_id: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM gap WHERE student_id = ? AND concept_id = ? AND status = 'open'", (student_id, concept_id)
+        ).fetchone()
+        is not None
+    )
+
+
 def top_open_gap(conn: sqlite3.Connection, student_id: str) -> dict | None:
     """The open gap with the lowest mastery."""
     return row(
