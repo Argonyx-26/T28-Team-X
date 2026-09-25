@@ -350,11 +350,12 @@ def judges_summary() -> dict:
         if pg:
             numbers.append(
                 {
-                    "label": "Notebook pages read per minute under load",
-                    "value": f"{pg['pages_per_min']} pages/min (p50 {pg['p50_s']} s, {pg['errors']} errors)",
+                    "label": "Notebook pages read 6 at a time under load",
+                    "value": f"{pg['pages'] - pg['errors']}/{pg['pages']} read, p95 {pg['p95_s']} s",
                     "n": pg["pages"],
-                    "method": f"{pg['pages']} photos read 6 at a time through the vision model on a tagged revision "
-                    f"with 1 instance; {pg['gemini_calls']} model calls",
+                    "method": f"{pg['pages']} photos sent 6 at a time on a no-traffic revision with 1 instance; "
+                    f"{pg['gemini_calls']} model calls, the rest were repeats served from the cache, so this tests "
+                    "the API and the queue, not model throughput",
                     "kind": "load",
                 }
             )
