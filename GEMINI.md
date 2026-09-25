@@ -10,7 +10,7 @@ GuruGraph turns a photo of a student's fractions working into a diagnosis a teac
 We're built for ARGONYX '26. **Everything in this repo is made during the event (25 Sep 11:00 → 26 Sep 11:00).** Never paste in code or text from outside this repo.
 
 ## Who owns what
-- **From Friday evening, one person at a time (with Claude Code) owns the entire codebase**: `backend/`, `frontend/`, `data/`, `docs/`, deployment. Samartha until about 23:15; from then, Risheeth continues on the same machine.
+- **From Friday evening, one person at a time (with Claude Code) owns the entire codebase**: `backend/`, `frontend/`, `data/`, `docs/`, deployment. Samartha until about 23:25; from then, Risheeth continues on the same machine.
 - The others supply data (handwritten pages photographed on a phone, marking timings), review the Kannada and Hindi text, and build the pitch, deck and video.
 - `docs/API.md` is **the contract**. The frontend must match its types exactly. Changes are additive only.
 - Roles and the AI tools used are in `docs/team/TEAM.md`. Rules for AI assistants and the deploy protocol are in `CLAUDE.md`.
