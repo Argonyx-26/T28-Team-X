@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/raah";
 import { usePenLength } from "@/lib/use-pen-length";
 
-import { ApiError, type PhotoResult, type ReviewVerdict, type Topic, api } from "../../_dashboard/api";
+import { AUTO_QUESTION, ApiError, type PhotoResult, type ReviewVerdict, type Topic, api } from "../../_dashboard/api";
 import s from "../../_dashboard/dashboard.module.css";
 import { fontVars } from "../../_dashboard/fonts";
 import { TelemetryChip } from "../../_dashboard/shared";
@@ -27,10 +27,12 @@ const SAMPLES: Sample[] = [
 
 const EVIDENCE: Record<string, { title: string; tone: string }> = {
   verified: { title: "Checked by exact arithmetic", tone: "var(--green)" },
-  consistent: { title: "Answer checked, mistake read by AI", tone: "var(--ink-2)" },
+  consistent: { title: "Steps checked by arithmetic, mistake named by AI", tone: "var(--ink-2)" },
   mismatch: { title: "Please check this one", tone: "var(--amber)" },
   unverified: { title: "Only the AI checked this", tone: "var(--graphite)" },
 };
+
+const ANY_PROBLEM = { id: AUTO_QUESTION, stem: "Any other fraction problem", concept_id: "" };
 
 /** Phones take 4–12 MB photos; send a 1600 px JPEG instead so it uploads fast on mobile data. */
 async function shrink(file: Blob): Promise<Blob> {
@@ -89,6 +91,8 @@ function NotebookResult({
         {result.steps.map((line, i) => {
           const n = i + 1;
           const wrong = result.error_step === n;
+          const value = result.line_values?.[i] ?? null;
+          const check = result.verifier?.lines[i];
           return (
             <li key={`${n}-${result.error_step}`} className={k.line}>
               <button
@@ -106,6 +110,15 @@ function NotebookResult({
                   {result.label}
                 </span>
               )}
+              {value !== null && (
+                <span
+                  className={k.ledger}
+                  style={{ color: check?.ok === false ? "var(--red-pen)" : "var(--graphite)" }}
+                  aria-label={`Line ${n} equals ${value}${check?.ok === false ? ", which is wrong" : ""}`}
+                >
+                  = {value} {check?.ok === false ? "✗" : check?.ok ? "✓" : ""}
+                </span>
+              )}
             </li>
           );
         })}
@@ -114,6 +127,11 @@ function NotebookResult({
         <div className={`${k.tick} ${s.hand}`} aria-label="All steps right">
           ✓ all right
         </div>
+      )}
+      {result.verifier?.status === "verified" && result.verifier.reference && (
+        <p className={k.ledgerNote}>
+          Each line&apos;s exact value, in small type. The right answer is <strong>{result.verifier.reference}</strong>.
+        </p>
       )}
     </div>
   );
@@ -160,7 +178,7 @@ export function Scan({ code }: { code: string }) {
     };
   }, [code]);
 
-  const question = topic?.photo_questions.find((q) => q.id === questionId);
+  const question = questionId === AUTO_QUESTION ? ANY_PROBLEM : topic?.photo_questions.find((q) => q.id === questionId);
   const student = students.find((x) => x.id === studentId);
 
   /** Sends one photo for one student and problem. Every argument is explicit, so it never reads stale state. */
@@ -304,7 +322,7 @@ export function Scan({ code }: { code: string }) {
           <fieldset className="flex flex-col gap-1">
             <legend className="mb-1 font-semibold">Which problem</legend>
             <div className="grid grid-cols-2 gap-2">
-              {topic?.photo_questions.map((q) => (
+              {[...(topic?.photo_questions ?? []), ANY_PROBLEM].map((q) => (
                 <button
                   key={q.id}
                   type="button"
@@ -312,7 +330,10 @@ export function Scan({ code }: { code: string }) {
                   onClick={() => setQuestionId(q.id)}
                   className={`${k.problem} ${q.id === questionId ? k.problemOn : ""}`}
                 >
-                  <span className={s.hand}>{q.stem}</span>
+                  <span className={q.id === AUTO_QUESTION ? "" : s.hand}>{q.stem}</span>
+                  {q.id === AUTO_QUESTION && (
+                    <span className={`${s.muted} block text-[0.75em] leading-tight`}>from the textbook; arithmetic checks it</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -406,7 +427,7 @@ export function Scan({ code }: { code: string }) {
               <>
                 <div className="flex items-baseline justify-between gap-2">
                   <h2 className="text-[1.2em] font-semibold">
-                    {student?.nickname}&apos;s working{question ? `: ${question.stem}` : ""}
+                    {student?.nickname}&apos;s working{result.problem ? `: ${result.problem}` : question ? `: ${question.stem}` : ""}
                   </h2>
                   {picking === "step" && <span className={`${s.hand}`} style={{ color: "var(--red-pen)" }}>tap the wrong line</span>}
                 </div>

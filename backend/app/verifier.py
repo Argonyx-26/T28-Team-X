@@ -102,8 +102,8 @@ def _tokens(text: str) -> list[tuple[str, str]]:
 
 def _strip_words(tokens: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """Leading and trailing words and units are ignored; a word between numbers means this isn't an expression."""
-    while tokens and tokens[0][0] in ("word", "other"):
-        tokens = tokens[1:]
+    while tokens and (tokens[0][0] in ("word", "other") or tokens[0] == ("op", "/")):
+        tokens = tokens[1:]  # "Ans: 4/8": the colon after a word is punctuation, not division
     while tokens and tokens[-1][0] in ("word", "other"):
         tokens = tokens[:-1]
     if any(k in ("word", "other") for k, _ in tokens):
@@ -583,6 +583,17 @@ def verify(
     shown = _f(wrong_value)
     if wrong_written is not None and wrong_written.is_fraction:
         shown = f"{wrong_written.num}/{wrong_written.den}"
+    else:
+        # "(3+1)/(4+4)" is the wrong step; the student writes its value, 4/8, further down: quote that form
+        for line in lines[error_step - 1 :]:
+            for seg in split_chain(line):
+                leaf = _leaf(seg.node)
+                if leaf is not None and leaf.is_fraction and leaf.value == wrong_value:
+                    shown = f"{leaf.num}/{leaf.den}"
+                    break
+            else:
+                continue
+            break
     if problem is not None and wrong_value is not None:
         p = problem
         if p.op is None and p.b is None and wrong_written is not None and wrong_written.is_fraction:

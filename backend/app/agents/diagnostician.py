@@ -6,7 +6,7 @@ from fractions import Fraction
 
 from PIL import Image, ImageOps
 
-from .. import rules
+from .. import rules, verifier
 from ..config import settings
 from ..db import get_conn, log_event, row, transaction
 from ..errors import ApiError
@@ -19,6 +19,17 @@ from ..topic import Question, get_topic
 from . import state
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
+# "AUTO": a problem outside the bank; the problem is whatever the student wrote first, and arithmetic judges it
+AUTO = "AUTO"
+_PLACEHOLDER = Question(id=AUTO, concept_id="C4", kind="photo", stem="Any fraction problem", answer="", method="")
+
+
+def question_for(question_id: str) -> Question:
+    if question_id.upper() == AUTO:
+        return _PLACEHOLDER
+    return state.require_question(question_id, ("photo", "text", "mcq"))
+
+
 # the model reproduces each wrong procedure before choosing a tag; a small thinking budget makes that reliable
 TEXT_THINKING = 1024
 
@@ -192,7 +203,7 @@ def _known_wrong_tag(q: Question, final_answer: str | None) -> str | None:
     return None
 
 
-def rule_check(q: Question, final_answer: str | None, correct: bool, tag: str | None) -> dict:
+def rule_check_for(q: Question, final_answer: str | None, correct: bool, tag: str | None) -> dict:
     """Independent evidence for the model's verdict, computed with exact fractions (no AI)."""
     read = parse_answer(final_answer)
     if read is None:
@@ -221,15 +232,123 @@ def rule_check(q: Question, final_answer: str | None, correct: bool, tag: str | 
     return {"status": "unverified", "note": "Only the model checked this."}
 
 
+def _problem_for(q: Question) -> verifier.Problem | None:
+    if q.id == AUTO or not q.expr:
+        return None
+    return verifier.problem_from_bank_expr(q.expr, word_problem=q.concept_id == "C8")
+
+
+def check_steps(q: Question, steps: list[str]) -> verifier.Verdict:
+    """Exact arithmetic on the transcribed lines. For a bank question the reference is its expression; for AUTO the
+    problem is the first line the student wrote."""
+    if q.id == AUTO:
+        return verifier.verify(steps)
+    problem = _problem_for(q)
+    reference = problem.reference if problem else (parse_answer(q.answer).value if parse_answer(q.answer) else None)
+    return verifier.verify(
+        steps,
+        reference=reference,
+        problem=problem,
+        simplest_required=q.simplest,
+        word_problem=q.concept_id == "C8",
+    )
+
+
+def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
+    """The model transcribes; arithmetic judges. The model's own step and tag are a second opinion.
+
+    When the two disagree, the verifier wins if a mal-rule reproduced the wrong line; otherwise the result is marked
+    "please check" for the teacher."""
+    topic = get_topic()
+    verdict = check_steps(q, steps)
+    tag, confidence = rules.validate_llm_tag(topic, result.misconception_tag, result.confidence)
+    correct, source = result.correct, "vision"
+    error_step = result.error_step if not correct else None
+    if error_step is not None and not 1 <= error_step <= len(steps):
+        error_step = None
+    rule_check = rule_check_for(q, result.final_answer_read, correct, tag) if q.id != AUTO else None
+    reproduced_by = None
+    if verdict.status == "verified":
+        source = "vision+rule"
+        if verdict.correct:
+            correct, tag, error_step = True, None, None
+            if verdict.tag == "not_fully_simplified":
+                correct, tag, error_step = False, "not_fully_simplified", verdict.error_step
+            rule_check = {"status": "verified", "note": verdict.evidence}
+        else:
+            correct = False
+            model_agrees = result.error_step == verdict.error_step and (tag == verdict.tag or verdict.tag is None)
+            if verdict.reproduced_by:
+                reproduced_by = verdict.reproduced_by
+                tag, error_step = verdict.tag, verdict.error_step
+                confidence = max(confidence, 0.9)
+                rule_check = {"status": "verified", "note": verdict.evidence.capitalize()}
+            elif model_agrees or result.error_step is None:
+                error_step = verdict.error_step
+                rule_check = {
+                    "status": "consistent",
+                    "note": verdict.evidence + " The mistake's name is the model's reading.",
+                }
+            else:
+                # the arithmetic finds a different wrong line from the model and no rule explains it
+                error_step = verdict.error_step
+                rule_check = {
+                    "status": "mismatch",
+                    "note": f"{verdict.evidence} The model circled line {result.error_step}; please check.",
+                }
+    elif q.id == AUTO:
+        rule_check = {
+            "status": "unverified",
+            "note": "No line could be read as arithmetic, so only the model checked this.",
+        }
+    else:
+        # nothing to compute (a word problem written in words): fall back to the final-answer rules
+        final = parse_answer(result.final_answer_read)
+        expected = parse_answer(q.answer)
+        if final and expected and (final.value == expected.value) != correct:
+            correct, source = final.value == expected.value, "vision+rule"
+        if not correct:
+            known = _known_wrong_tag(q, result.final_answer_read)
+            if known and tag == "unclassified":
+                tag, confidence, source = known, max(confidence, 0.7), "vision+rule"
+        if correct:
+            tag, error_step = None, None
+        rule_check = rule_check_for(q, result.final_answer_read, correct, tag)
+    if correct:
+        tag = None
+    return {
+        "rule_check": rule_check,
+        "steps": steps,
+        "final_answer_read": result.final_answer_read,
+        "correct": correct,
+        "error_step": error_step,
+        "misconception_tag": tag,
+        "label": topic.tag(tag).label() if tag else None,
+        "confidence": confidence,
+        "feedback": result.feedback_student,
+        "source": source,
+        "needs_typed_answer": not correct and tag == "unclassified" and verdict.status != "verified",
+        "line_values": [x.value for x in verdict.lines],
+        "reproduced_by": reproduced_by,
+        "verifier": verdict.as_dict(),
+        "problem": (steps[0] if q.id == AUTO and steps else q.stem),
+    }
+
+
 async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tuple[dict | None, list[dict]]:
     """The vision model reads the working; rules then check its verdict. No database access (evals use this too)."""
-    topic = get_topic()
-    prompt = f"{_question_block(q)}\n\nThe photo shows this student's working for the question above."
+    if q.id == AUTO:
+        tags = _tag_list()
+        prompt = f"Allowed misconception tags:\n{tags}\n\nThe photo shows a student's working for a problem they wrote."
+        system = prompts.DIAGNOSE_PHOTO_ANY
+    else:
+        prompt = f"{_question_block(q)}\n\nThe photo shows this student's working for the question above."
+        system = prompts.DIAGNOSE_PHOTO
     try:
         result, telemetry = await generate_hedged(
             "Diagnostician",
             "diagnose_photo",
-            prompts.DIAGNOSE_PHOTO,
+            system,
             prompt,
             PhotoDiagnosis,
             primary=("vertex",),
@@ -254,43 +373,28 @@ async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tup
     if result is None:
         return None, telemetry
     steps = [s.strip() for s in result.steps if s.strip()][:12]
-    tag, confidence = rules.validate_llm_tag(topic, result.misconception_tag, result.confidence)
-    correct, source = result.correct, "vision"
-    # rules check the model: the exact value of the final answer decides right or wrong
-    final = parse_answer(result.final_answer_read)
-    expected = parse_answer(q.answer)
-    if final and expected and (final.value == expected.value) != correct:
-        correct, source = final.value == expected.value, "vision+rule"
-    if not correct:
-        known = _known_wrong_tag(q, result.final_answer_read)
-        if known and tag == "unclassified":
-            tag, confidence, source = known, max(confidence, 0.7), "vision+rule"
-    error_step = result.error_step if not correct else None
-    if error_step is not None and not 1 <= error_step <= len(steps):
-        error_step = None
-    if correct:
-        tag = None
-    return {
-        "rule_check": rule_check(q, result.final_answer_read, correct, tag),
-        "steps": steps,
-        "final_answer_read": result.final_answer_read,
-        "correct": correct,
-        "error_step": error_step,
-        "misconception_tag": tag,
-        "label": topic.tag(tag).label() if tag else None,
-        "confidence": confidence,
-        "feedback": result.feedback_student,
-        "source": source,
-        "needs_typed_answer": not correct and tag == "unclassified",
-    }, telemetry
+    return combine(q, result, steps), telemetry
 
 
 async def photo(student_id: str, question_id: str, image: bytes) -> dict:
     topic = get_topic()
-    q = state.require_question(question_id, ("photo", "text", "mcq"))
+    q = question_for(question_id)
     with get_conn() as conn:
         student = state.require_student(conn, student_id)
     reading, telemetry = await read_photo(q, prepare_image(image))
+    if reading is not None and q.id == AUTO:
+        # a problem outside the bank: the concept follows the operator, and the problem line is kept with the answer
+        verdict = reading["verifier"]
+        first = verifier.parse_expression(reading["steps"][0]) if reading["steps"] else None
+        problem = verifier.problem_from_node(first, first.value()) if first is not None else None
+        q = Question(
+            id=AUTO,
+            concept_id=verifier.guess_concept(problem),
+            kind="photo",
+            stem=reading["problem"],
+            answer=verdict.get("reference") or "",
+            method="",
+        )
     base = {"student_id": student_id, "question_id": q.id, "concept_id": q.concept_id, "telemetry": telemetry}
     if reading is None:
         no_provider = any(t.get("error") == "no_vision_provider" for t in telemetry)
@@ -326,9 +430,13 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             "rule_check": {"status": "unverified", "note": "The photo couldn't be read."},
             "mastery_after": None,
             "gap_opened": False,
+            "line_values": [],
+            "reproduced_by": None,
+            "verifier": None,
+            "problem": q.stem,
         }
 
-    other = looks_like_other_problem(q, reading["steps"])
+    other = looks_like_other_problem(q, reading["steps"]) if q.id != AUTO else None
     if other is not None:
         # nothing is saved: a diagnosis against the wrong problem would put a false gap on the heatmap
         raise ApiError(
@@ -353,6 +461,7 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
                 confidence=reading["confidence"],
                 phase="photo",
                 error_step=error_step,
+                stem=q.stem if q.id == AUTO else None,
             )
         if reading["correct"]:
             what = "all steps right"

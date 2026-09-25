@@ -79,6 +79,15 @@ export interface PhotoResponse {
   rule_check: { status: "verified" | "consistent" | "mismatch" | "unverified"; note: string }; // exact-arithmetic evidence; show instead of a raw confidence
   mastery_after: number | null; gap_opened: boolean;
   telemetry: Telemetry[];
+  // the exact step verifier (F1): the AI reads, arithmetic judges
+  line_values: (string | null)[];     // one per transcribed line: its exact value as a/b, or null when the line has no arithmetic
+  reproduced_by: string | null;       // the mal-rule (a misconception tag) whose procedure reproduces the wrong line exactly
+  verifier: {                         // null when the photo couldn't be read
+    status: "verified" | "unverified"; correct: boolean | null; error_step: number | null; tag: string | null;
+    reproduced_by: string | null; evidence: string; reference: string | null; final: string | null;
+    lines: { text: string; value: string | null; values: (string | null)[]; ok: boolean | null }[];
+  } | null;
+  problem: string;                    // the problem as posed: the bank stem, or the first line the student wrote (question_id AUTO)
 }
 
 export interface RetryItem { id: string; kind: "mcq" | "text"; stem: string; options: string[] | null }
@@ -181,7 +190,7 @@ export interface JudgesSummary {
 | `POST /students/join` | `{code, nickname, language}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 30 joins per minute per IP |
 | `POST /agents/examiner/next` | `{student_id}` | `NextResponse` (5 questions per quiz) |
 | `POST /agents/diagnostician/answer` | `{student_id, question_id, answer, phase?}`. For an MCQ, send the option text exactly. `phase` is `"quiz"` (default) or `"photo"`: the teacher typing the final answer from an unreadable page, which never counts toward the student's quiz | `AnswerResponse` |
-| `POST /agents/diagnostician/photo` | *multipart*: `student_id`, `question_id` (P1–P4), `image` | `PhotoResponse` (≈3–8 s) |
+| `POST /agents/diagnostician/photo` | *multipart*: `student_id`, `question_id` (P1–P4, or `AUTO` for any fraction problem: the first line the student wrote is the problem and exact arithmetic judges it; the concept follows the operator), `image` | `PhotoResponse` (≈3–8 s) |
 | `POST /agents/diagnostician/stack` | *multipart*: `question_id`, repeated `student_ids`, repeated `images` (same order, ≤40) | `{results: (PhotoResponse \| {student_id, error})[]}`. Reads 6 at a time (SHOULD: the notebook pile) |
 | `POST /agents/curator/lesson` | `{student_id}` | `LessonResponse`. Poll while `generating` |
 | `POST /agents/examiner/retry` | `{student_id, answers:[{question_id, answer}]}` | `RetryResponse` |

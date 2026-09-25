@@ -20,3 +20,5 @@ node_modules/
 
 # private working notes (audit, competitor notes, checkpoint log)
 .notes/
+test-results/
+playwright-report/

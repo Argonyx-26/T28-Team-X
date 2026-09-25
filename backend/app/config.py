@@ -45,6 +45,12 @@ class Settings:
     repo_url: str = field(default_factory=lambda: _env("REPO_URL", "https://github.com/Argonyx-26/T28-Team-X"))
     status_page_url: str = field(default_factory=lambda: _env("STATUS_PAGE_URL"))
 
+    # the demo-critical AI answers, loaded into the LLM cache at boot; tests point this at a missing file
+    llm_cache_seed: Path = field(
+        default_factory=lambda: Path(
+            _env("LLM_CACHE_SEED") or (Path(_env("DATA_DIR") or BACKEND_DIR.parent / "data") / "llm_cache_seed.jsonl")
+        )
+    )
     quiz_length: int = 5
     max_students_per_class: int = field(default_factory=lambda: int(_env("MAX_STUDENTS_PER_CLASS", "60")))
     version: str = "0.1.0"

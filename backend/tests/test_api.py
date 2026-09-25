@@ -350,6 +350,7 @@ def test_cache_seed_loads_at_boot(tmp_path, monkeypatch):
     from app.db import get_conn, init_db
 
     seed_file = tmp_path / "llm_cache_seed.jsonl"
+    monkeypatch.setattr(settings, "llm_cache_seed", seed_file)
     seed_file.write_text(
         json.dumps({"key": "k1", "agent": "Coach", "provider": "vertex", "model": "m", "response_json": "{}"}) + "\n",
         encoding="utf-8",
@@ -375,3 +376,22 @@ def test_cors_is_not_a_wildcard(client):
         headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
     )
     assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_photo_of_a_problem_outside_the_bank(client):
+    # the fake model transcribes 3/4 + 1/4 = (3+1)/(4+4) = 4/8; with question AUTO the first line is the problem
+    r = client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": ASHA_ID, "question_id": "AUTO"},
+        files={"image": ("a.png", _png(), "image/png")},
+    ).json()
+    assert r["question_id"] == "AUTO" and r["concept_id"] == "C4" and r["problem"] == "3/4 + 1/4"
+    assert (
+        r["error_step"] == 2
+        and r["misconception_tag"] == "add_denominators"
+        and r["reproduced_by"] == "add_denominators"
+    )
+    assert r["line_values"] == ["1", "1/2", "1/2"] and r["rule_check"]["status"] == "verified"
+    assert r["verifier"]["reference"] == "1" and r["source"] == "vision+rule"
+    d = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    assert d["responses"][0]["question_id"] == "AUTO" and d["responses"][0]["stem"] == "3/4 + 1/4"

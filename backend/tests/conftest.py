@@ -80,6 +80,7 @@ async def fake_caller(system, prompt, schema, image, mime, thinking=0):
 @pytest.fixture(autouse=True)
 def offline(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "db_path", tmp_path / "test.db")
+    monkeypatch.setattr(settings, "llm_cache_seed", tmp_path / "no-seed.jsonl")  # tests never see real cached answers
     monkeypatch.setattr(settings, "nebius_api_key", "test-key")
     monkeypatch.setattr(settings, "gcp_project", "test-project")
     monkeypatch.setattr(settings, "demo_mode", "live")

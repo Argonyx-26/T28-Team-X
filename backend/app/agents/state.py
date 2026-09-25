@@ -92,6 +92,7 @@ def record_response(
     phase: str,
     error_step: int | None = None,
     update_mastery: bool = True,
+    stem: str | None = None,
 ) -> dict:
     mastery = mastery_map(conn, student_id)
     before = mastery.get(question.concept_id, rules.START_MASTERY)
@@ -102,7 +103,7 @@ def record_response(
     )
     conn.execute(
         "INSERT INTO response (student_id, question_id, concept_id, answer, correct, tag, source, confidence, "
-        "error_step, phase, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "error_step, phase, created_at, stem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             student_id,
             question.id,
@@ -115,6 +116,7 @@ def record_response(
             error_step,
             phase,
             now(),
+            stem,
         ),
     )
     gap_opened = False

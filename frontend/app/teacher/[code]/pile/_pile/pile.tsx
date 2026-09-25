@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { ApiError, type PhotoResult, type Topic, api } from "../../_dashboard/api";
+import { AUTO_QUESTION, ApiError, type PhotoResult, type Topic, api } from "../../_dashboard/api";
 import s from "../../_dashboard/dashboard.module.css";
 import { fontVars } from "../../_dashboard/fonts";
 import k from "./pile.module.css";
@@ -131,7 +131,8 @@ export function Pile({ code }: { code: string }) {
     byLabel.set(label, (byLabel.get(label) ?? 0) + 1);
   }
   const topMistakes = [...byLabel.entries()].sort((a, b) => b[1] - a[1]);
-  const question = topic?.photo_questions.find((q) => q.id === questionId);
+  const question =
+    questionId === AUTO_QUESTION ? { id: AUTO_QUESTION, stem: "any fraction problem" } : topic?.photo_questions.find((q) => q.id === questionId);
   const nameOf = (id: string) => students.find((x) => x.id === id)?.nickname ?? "?";
 
   return (
@@ -156,8 +157,8 @@ export function Pile({ code }: { code: string }) {
 
         <section className={`${s.sheet} flex flex-col gap-3 p-4`} aria-label="Which problem">
           <span className="font-semibold">Which problem did the class do?</span>
-          <div className="grid gap-2 sm:grid-cols-4">
-            {topic?.photo_questions.map((q) => (
+          <div className="grid gap-2 sm:grid-cols-5">
+            {[...(topic?.photo_questions ?? []), { id: AUTO_QUESTION, stem: "Any fraction problem", concept_id: "" }].map((q) => (
               <button
                 key={q.id}
                 type="button"

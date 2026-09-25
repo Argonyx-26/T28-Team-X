@@ -2,6 +2,7 @@
 
 python -m app.evals typed    30 wrong answers built by applying a known wrong procedure to new problems
 python -m app.evals photos   the handwriting cards in data/evidence/photos, against data/evidence/labels.csv
+python -m app.evals verifier the 12 labelled pages diagnosed from their transcribed lines by exact arithmetic alone
 """
 
 import asyncio
@@ -12,7 +13,7 @@ import statistics
 import sys
 from fractions import Fraction
 
-from .agents.diagnostician import TEXT_THINKING, _question_block, prepare_image, read_photo
+from .agents.diagnostician import TEXT_THINKING, _question_block, check_steps, prepare_image, read_photo
 from .config import settings
 from .db import init_db
 from .fraction_math import parse_answer
@@ -267,6 +268,65 @@ async def run_photos() -> list[dict]:
     return numbers
 
 
+def run_verifier() -> list[dict]:
+    """No model: the labelled lines go straight to the verifier. The label was written before any model ran."""
+    topic = get_topic()
+    labels = list(csv.DictReader(open(settings.data_dir / "evidence" / "labels.csv", encoding="utf-8")))
+    rows, writers = [], set()
+    for label in labels:
+        writers.add(label["writer"])
+        q = topic.question(label["question_id"])
+        lines = [x.strip() for x in label["lines"].split("|")]
+        v = check_steps(q, lines)
+        truth_correct = label["correct"] == "true"
+        truth_step = int(label["error_step"]) if label["error_step"] else None
+        truth_tag = label["tag"] or None
+        row = {
+            "card": label["card"],
+            "lines": lines,
+            "truth_correct": truth_correct,
+            "truth_step": truth_step,
+            "truth_tag": truth_tag,
+            "correct": v.correct,
+            "step": v.error_step,
+            "tag": v.tag,
+            "reproduced_by": v.reproduced_by,
+            "evidence": v.evidence,
+            "line_values": [x.value for x in v.lines],
+        }
+        rows.append(row)
+        ok = row["correct"] == truth_correct and row["step"] == truth_step and row["tag"] == truth_tag
+        print("OK " if ok else "XX ", label["card"], v.evidence)
+    n = len(rows)
+    wrong = [r for r in rows if not r["truth_correct"]]
+    verdict_ok = sum(r["correct"] == r["truth_correct"] for r in rows)
+    step_ok = sum(r["step"] == r["truth_step"] for r in wrong)
+    tag_ok = sum(r["tag"] == r["truth_tag"] for r in wrong)
+    method = (
+        f"{n} handwritten pages by {len(writers)} writers, transcribed by hand and labelled before any model ran "
+        "(data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call"
+    )
+    numbers = [
+        {"label": "Right or wrong decided by arithmetic alone", "value": f"{verdict_ok}/{n}", "n": n, "method": method},
+        {
+            "label": "Wrong step found by arithmetic alone",
+            "value": f"{step_ok}/{len(wrong)}",
+            "n": len(wrong),
+            "method": method + "; wrong answers only",
+        },
+        {
+            "label": "Mistake reproduced exactly by a mal-rule",
+            "value": f"{tag_ok}/{len(wrong)}",
+            "n": len(wrong),
+            "method": method + "; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
+        },
+    ]
+    for x in numbers:
+        print(x)
+    _save("verifier", numbers, rows)
+    return numbers
+
+
 def _save(kind: str, numbers: list[dict], rows: list[dict]) -> None:
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
     data = json.loads(RESULTS.read_text(encoding="utf-8")) if RESULTS.exists() else {"numbers": [], "runs": {}}
@@ -284,5 +344,7 @@ if __name__ == "__main__":
         asyncio.run(run_typed())
     elif cmd == "photos":
         asyncio.run(run_photos())
+    elif cmd == "verifier":
+        run_verifier()
     else:
         print(__doc__)

@@ -122,6 +122,20 @@
   }
 }
 
+/* the ledger: each line's exact value, in small type under the handwriting */
+.ledger {
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.ledgerNote {
+  margin-top: 10px;
+  font-size: 0.82em;
+  color: var(--graphite);
+}
+
 .tick {
   position: absolute;
   right: 18px;

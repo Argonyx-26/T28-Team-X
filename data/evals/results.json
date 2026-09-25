@@ -41,6 +41,27 @@
    "n": 6,
    "method": "measured tokens x published price per token, ₹88 per USD",
    "kind": "photos"
+  },
+  {
+   "label": "Right or wrong decided by arithmetic alone",
+   "value": "12/12",
+   "n": 12,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call",
+   "kind": "verifier"
+  },
+  {
+   "label": "Wrong step found by arithmetic alone",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only",
+   "kind": "verifier"
+  },
+  {
+   "label": "Mistake reproduced exactly by a mal-rule",
+   "value": "8/8",
+   "n": 8,
+   "method": "12 handwritten pages by 3 writers, transcribed by hand and labelled before any model ran (data/evidence/labels.csv); the lines are checked by exact fraction arithmetic and mal-rules only, no AI call; wrong answers only: a rule that recomputes the wrong line exactly names the mistake",
+   "kind": "verifier"
   }
  ],
  "runs": {
@@ -400,6 +421,258 @@
     "correct": false,
     "tag": "divide_no_flip",
     "step": 2
+   }
+  ],
+  "verifier": [
+   {
+    "card": "A_P1",
+    "lines": [
+     "3/4 + 1/4",
+     "= (3+1)/(4+4)",
+     "= 4/8"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "add_denominators",
+    "correct": false,
+    "step": 2,
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators",
+    "evidence": "adding the denominators too gives exactly 4/8.",
+    "line_values": [
+     "1",
+     "1/2",
+     "1/2"
+    ]
+   },
+   {
+    "card": "A_P2",
+    "lines": [
+     "2/3 + 1/6",
+     "= (2+1)/6",
+     "= 3/6"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "unlike_denominators",
+    "correct": false,
+    "step": 2,
+    "tag": "unlike_denominators",
+    "reproduced_by": "unlike_denominators",
+    "evidence": "adding the numerators without a common denominator gives exactly 3/6.",
+    "line_values": [
+     "5/6",
+     "1/2",
+     "1/2"
+    ]
+   },
+   {
+    "card": "A_P3",
+    "lines": [
+     "3/5 ÷ 3/10",
+     "= 3/5 × 3/10",
+     "= 9/50"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "divide_no_flip",
+    "correct": false,
+    "step": 2,
+    "tag": "divide_no_flip",
+    "reproduced_by": "divide_no_flip",
+    "evidence": "multiplying straight across without flipping the second fraction gives exactly 9/50.",
+    "line_values": [
+     "2",
+     "9/50",
+     "9/50"
+    ]
+   },
+   {
+    "card": "A_P4",
+    "lines": [
+     "2 cakes 3/4 cup each",
+     "2 × 3/4 = 6/4",
+     "= 1 1/2 cups"
+    ],
+    "truth_correct": true,
+    "truth_step": null,
+    "truth_tag": null,
+    "correct": true,
+    "step": null,
+    "tag": null,
+    "reproduced_by": null,
+    "evidence": "Every line equals 3/2 (exact arithmetic).",
+    "line_values": [
+     null,
+     "3/2",
+     "3/2"
+    ]
+   },
+   {
+    "card": "B_P1",
+    "lines": [
+     "3/4 + 1/4",
+     "= (3+1)/4",
+     "= 4/4 = 1"
+    ],
+    "truth_correct": true,
+    "truth_step": null,
+    "truth_tag": null,
+    "correct": true,
+    "step": null,
+    "tag": null,
+    "reproduced_by": null,
+    "evidence": "Every line equals 1 (exact arithmetic).",
+    "line_values": [
+     "1",
+     "1",
+     "1"
+    ]
+   },
+   {
+    "card": "B_P2",
+    "lines": [
+     "2/3 + 1/6",
+     "= (2+1)/(3+6)",
+     "= 3/9"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "add_denominators",
+    "correct": false,
+    "step": 2,
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators",
+    "evidence": "adding the denominators too gives exactly 3/9.",
+    "line_values": [
+     "5/6",
+     "1/3",
+     "1/3"
+    ]
+   },
+   {
+    "card": "B_P3",
+    "lines": [
+     "3/5 ÷ 3/10",
+     "= 5/3 × 3/10",
+     "= 15/30 = 1/2"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "divide_flip_first",
+    "correct": false,
+    "step": 2,
+    "tag": "divide_flip_first",
+    "reproduced_by": "divide_flip_first",
+    "evidence": "flipping the first fraction instead of the second gives exactly 15/30.",
+    "line_values": [
+     "2",
+     "1/2",
+     "1/2"
+    ]
+   },
+   {
+    "card": "B_P4",
+    "lines": [
+     "2 cakes 3/4 cup each",
+     "2 + 3/4",
+     "= 2 3/4 cups"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "word_problem_operation",
+    "correct": false,
+    "step": 2,
+    "tag": "word_problem_operation",
+    "reproduced_by": "word_problem_operation",
+    "evidence": "using the wrong operation for the story gives exactly 11/4.",
+    "line_values": [
+     null,
+     "11/4",
+     "11/4"
+    ]
+   },
+   {
+    "card": "C_P1",
+    "lines": [
+     "3/4 + 1/4",
+     "= 4/8"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "add_denominators",
+    "correct": false,
+    "step": 2,
+    "tag": "add_denominators",
+    "reproduced_by": "add_denominators",
+    "evidence": "adding the denominators too gives exactly 4/8.",
+    "line_values": [
+     "1",
+     "1/2"
+    ]
+   },
+   {
+    "card": "C_P2",
+    "lines": [
+     "2/3 + 1/6",
+     "= 4/6 + 1/6",
+     "= 5/6"
+    ],
+    "truth_correct": true,
+    "truth_step": null,
+    "truth_tag": null,
+    "correct": true,
+    "step": null,
+    "tag": null,
+    "reproduced_by": null,
+    "evidence": "Every line equals 5/6 (exact arithmetic).",
+    "line_values": [
+     "5/6",
+     "5/6",
+     "5/6"
+    ]
+   },
+   {
+    "card": "C_P3",
+    "lines": [
+     "3/5 ÷ 3/10",
+     "= 3/5 × 10/3",
+     "= 30/15 = 2"
+    ],
+    "truth_correct": true,
+    "truth_step": null,
+    "truth_tag": null,
+    "correct": true,
+    "step": null,
+    "tag": null,
+    "reproduced_by": null,
+    "evidence": "Every line equals 2 (exact arithmetic).",
+    "line_values": [
+     "2",
+     "2",
+     "2"
+    ]
+   },
+   {
+    "card": "C_P4",
+    "lines": [
+     "2 cakes 3/4 cup each",
+     "2 × 3/4 = 6/8",
+     "= 3/4 cup"
+    ],
+    "truth_correct": false,
+    "truth_step": 2,
+    "truth_tag": "whole_times_both",
+    "correct": false,
+    "step": 2,
+    "tag": "whole_times_both",
+    "reproduced_by": "whole_times_both",
+    "evidence": "multiplying both the top and the bottom by the whole number gives exactly 6/8.",
+    "line_values": [
+     null,
+     "3/4",
+     "3/4"
+    ]
    }
   ]
  }

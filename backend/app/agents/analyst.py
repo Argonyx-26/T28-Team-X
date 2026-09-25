@@ -125,7 +125,7 @@ def student_detail(student_id: str) -> dict:
         gaps = rows(conn, "SELECT concept_id, status, tag FROM gap WHERE student_id = ?", (student_id,))
         resp = rows(
             conn,
-            "SELECT question_id, answer, correct, tag, source, phase, created_at, concept_id "
+            "SELECT question_id, answer, correct, tag, source, phase, created_at, concept_id, stem "
             "FROM response WHERE student_id = ? ORDER BY id DESC LIMIT 30",
             (student_id,),
         )
@@ -141,7 +141,9 @@ def student_detail(student_id: str) -> dict:
         "responses": [
             {
                 "question_id": r["question_id"],
-                "stem": (topic.question(r["question_id"]).stem if topic.question(r["question_id"]) else ""),
+                "stem": (
+                    topic.question(r["question_id"]).stem if topic.question(r["question_id"]) else r["stem"] or ""
+                ),
                 "answer": r["answer"],
                 "correct": bool(r["correct"]),
                 "tag": r["tag"],

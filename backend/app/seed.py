@@ -34,7 +34,7 @@ def create_asha(conn) -> None:
 def load_cache_seed() -> int:
     """Loads data/llm_cache_seed.jsonl (the demo-critical AI answers) into the LLM cache when it is missing them, so a
     fresh deploy starts warm. The UI still marks these answers "cached"."""
-    path = settings.data_dir / "llm_cache_seed.jsonl"
+    path = settings.llm_cache_seed
     if not path.exists():
         return 0
     n = 0

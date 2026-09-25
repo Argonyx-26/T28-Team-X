@@ -151,6 +151,25 @@ export interface RuleCheck {
   note: string;
 }
 
+export interface VerifierLine {
+  text: string;
+  value: string | null;
+  values: (string | null)[];
+  ok: boolean | null;
+}
+
+export interface Verifier {
+  status: "verified" | "unverified";
+  correct: boolean | null;
+  error_step: number | null;
+  tag: string | null;
+  reproduced_by: string | null;
+  evidence: string;
+  reference: string | null;
+  final: string | null;
+  lines: VerifierLine[];
+}
+
 export interface PhotoResult {
   student_id: string;
   question_id: string;
@@ -169,7 +188,17 @@ export interface PhotoResult {
   mastery_after: number | null;
   gap_opened: boolean;
   telemetry: Telemetry[];
+  /** the exact step verifier: one exact value per transcribed line (a/b), null where a line has no arithmetic */
+  line_values?: (string | null)[];
+  /** the mal-rule that reproduces the wrong line exactly, when one does */
+  reproduced_by?: string | null;
+  verifier?: Verifier | null;
+  /** the problem as posed: the bank stem, or the first line the student wrote (question_id AUTO) */
+  problem?: string;
 }
+
+/** Any fraction problem, not only the four in the bank: the first line the student wrote is the problem. */
+export const AUTO_QUESTION = "AUTO";
 
 export interface Topic {
   concepts: { id: string; name: string; short: string }[];

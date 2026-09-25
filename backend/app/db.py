@@ -90,9 +90,22 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
         raise
 
 
+MIGRATIONS = [
+    # problems outside the bank (question_id AUTO) keep the problem as read from the page
+    "ALTER TABLE response ADD COLUMN stem TEXT",
+    # the roll number written at the top of a page files it under the right child (F2 snap mode)
+    "ALTER TABLE student ADD COLUMN roll_no INTEGER",
+]
+
+
 def init_db() -> None:
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        for sql in MIGRATIONS:
+            try:
+                conn.execute(sql)
+            except sqlite3.OperationalError:
+                pass  # already applied
 
 
 def rows(conn: sqlite3.Connection, sql: str, params: tuple = ()) -> list[dict]:
