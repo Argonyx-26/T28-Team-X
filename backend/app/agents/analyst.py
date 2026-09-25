@@ -164,34 +164,6 @@ def judges_summary() -> dict:
         }
     ]
     with get_conn() as conn:
-        real = conn.execute(
-            "SELECT count(*), count(DISTINCT r.student_id) FROM response r JOIN student s ON s.id = r.student_id "
-            "WHERE s.kind = 'real'"
-        ).fetchone()
-        numbers.append(
-            {
-                "label": "Answers from real students",
-                "value": str(real[0]),
-                "n": real[1],
-                "method": "live count; excludes the 30 simulated students and the demo student",
-            }
-        )
-        closed = conn.execute(
-            "SELECT count(*) FROM gap g JOIN student s ON s.id = g.student_id "
-            "WHERE s.kind = 'real' AND g.status = 'closed'"
-        ).fetchone()[0]
-        opened = conn.execute(
-            "SELECT count(*) FROM gap g JOIN student s ON s.id = g.student_id WHERE s.kind = 'real'"
-        ).fetchone()[0]
-        if opened:
-            numbers.append(
-                {
-                    "label": "Gaps closed by real students",
-                    "value": f"{closed} of {opened}",
-                    "n": opened,
-                    "method": "a gap closes only when both retry items are right (exact grading)",
-                }
-            )
         photo_tel = []
         for (tj,) in conn.execute("SELECT telemetry_json FROM agent_event WHERE action = 'diagnose_photo'"):
             photo_tel += [t for t in json.loads(tj or "[]") if t.get("ok") and not t.get("cached")]
@@ -203,7 +175,7 @@ def judges_summary() -> dict:
                 "label": "Median time to diagnose a notebook photo",
                 "value": f"{statistics.median(ms) / 1000:.1f} s",
                 "n": len(ms),
-                "method": "measured server-side on live calls",
+                "method": "measured server-side on every live photo call since the last reset, including our own tests",
             }
         )
         numbers.append(
