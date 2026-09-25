@@ -41,7 +41,7 @@ flowchart LR
 | Job | Who does it | Why |
 |---|---|---|
 | Reading handwriting (transcribing steps, finding the wrong line) | **Gemini 3 Flash** vision on Vertex AI | the only step that needs perception |
-| Writing language (lessons, plans, parent messages, typed-answer feedback) | **LLM** (Nebius Token Factory first, Gemini fallback) | fluent Kannada, Hindi and English |
+| Writing language (lessons, plans, parent messages, typed-answer feedback) | **Gemini 2.5 Flash** on Vertex AI (Nebius Token Factory plugs in as the first choice when a key is set) | fluent Kannada, Hindi and English |
 | Right or wrong | **Rules**: exact `Fraction` arithmetic | a model must never mark a correct answer wrong |
 | Which mistake an MCQ option or known wrong answer shows | **Rules**: the answer key and wrong-answer tables | deterministic, costs nothing |
 | Mastery, the next question, when a gap opens or closes | **Rules** | explainable to a teacher |
@@ -86,7 +86,7 @@ Every number carries *n* and the method. The raw rows are in [data/evals/results
 What we don't claim: we ran no classroom trial, have no users and no learning-gain data. The 30 students in class 7B are simulated, and Asha is a demo student.
 
 ## Sponsor technology
-- **Nebius Token Factory:** the primary provider for the text agents, through its OpenAI-compatible API. Token usage and ₹ cost are shown per call. Gemini on Vertex AI is the automatic fallback.
+- **Nebius Token Factory:** built in as an OpenAI-compatible provider for the text agents, with token usage and ₹ cost shown per call. When `NEBIUS_API_KEY` is set it goes first and Gemini becomes the fallback. The demo currently runs on Gemini.
 - **Raah:** browser-side analytics on the app: per-endpoint latency of each agent (one endpoint per agent action, so each agent gets its own p95), custom events (`diagnosed`, `lesson_viewed`, `gap_closed`, `plan_approved`), a public status page and the badge.
 
 ## Run it locally
