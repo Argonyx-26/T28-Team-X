@@ -4,7 +4,7 @@ The frontend calls **`/backend/<path>`**, and `next.config` rewrites that to `${
 - **Local API:** `http://localhost:8000` (the interactive docs are at `/docs`).
 - **Deployed API (Cloud Run, Mumbai):** `https://gurugraph-api-215071922486.asia-south1.run.app`. Try `/health` or `/docs`.
 
-**Rate limits** (per IP, per minute): join 30, answers 120, photos 60, stack 5, analyze 10, review 60, approve 30, parent message 20. Over the limit: 429 `slow_down`.
+**Rate limits** (per IP, per minute): join 60, answers 300, photos 90, stack 5, analyze 10, review 60, approve 30, parent message 20, create class 10, roster 10, speak 30. Over the limit: 429 `slow_down`.
 
 **Conventions:**
 - All bodies are JSON unless marked *multipart*.
@@ -217,7 +217,7 @@ export interface JudgesSummary {
 | `POST /sessions/roster` | `{session_id, items?: [{roll_no, nickname, language?}], text?: "roll, nickname [lang]" lines}` (admin token for 7B) | `{ok, added, updated}`: a roll number that exists is renamed; a child who joins with that roll number resumes it |
 | `GET /school/summary` | `?school_id=demo` | `{school_id, n_classes, n_students, concepts, classes:[{session_id, code, class_name, n_students, averages:{C1..}, open_gaps:{C1..}, focus_concept, reteach:{concept_id, concept_name, tag, label, students}|null, gaps}], top_misconceptions:[{tag, label, students, concepts}]}` (404 `school_not_found`) |
 | `GET /sessions/lookup` | `?code=7B` | `SessionLookup` (404 if the code is unknown) |
-| `POST /students/join` | `{code, nickname, language, roll_no?}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 30 joins per minute per IP |
+| `POST /students/join` | `{code, nickname, language, roll_no?}` | `JoinResponse`. Joining as "Asha" on 7B resumes the demo Asha. Nickname rules: 2–24 characters, letters and digits in any script, a small blocklist; errors `nickname_too_short`, `nickname_too_long`, `nickname_characters`, `nickname_not_allowed`. `class_full` (409) above 60 students. 60 joins per minute per IP |
 | `POST /agents/examiner/next` | `{student_id}` | `NextResponse` (5 questions per quiz) |
 | `POST /agents/diagnostician/answer` | `{student_id, question_id, answer, phase?}`. For an MCQ, send the option text exactly. `phase` is `"quiz"` (default) or `"photo"`: the teacher typing the final answer from an unreadable page, which never counts toward the student's quiz | `AnswerResponse` |
 | `POST /agents/diagnostician/photo` | *multipart*: `student_id`, `question_id` (P1–P4, or `AUTO` for any fraction problem: the first line the student wrote is the problem and exact arithmetic judges it; the concept follows the operator), `image` | `PhotoResponse` (≈3–8 s) |

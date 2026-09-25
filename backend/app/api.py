@@ -254,7 +254,7 @@ def lookup(code: str) -> dict:
 
 @router.post("/students/join")
 def join(body: Join, request: Request) -> dict:
-    _limit(request, "join", 30)
+    _limit(request, "join", 60)
     with get_conn() as conn:
         session = state.session_by_code(conn, body.code)
         nickname = clean_nickname(body.nickname)
@@ -315,7 +315,7 @@ def examiner_next(body: StudentRef) -> dict:
 
 @router.post("/agents/diagnostician/answer")
 async def diagnostician_answer(body: Answer, request: Request) -> dict:
-    _limit(request, "answer", 120)
+    _limit(request, "answer", 300)
     return await diagnostician.answer(body.student_id, body.question_id, body.answer.strip(), body.phase)
 
 
@@ -326,7 +326,7 @@ async def diagnostician_photo(
     question_id: str = Form(...),
     image: UploadFile = File(...),
 ) -> dict:
-    _limit(request, "photo", 60)
+    _limit(request, "photo", 90)
     data = await image.read(diagnostician.MAX_IMAGE_BYTES + 1)
     return await diagnostician.photo(student_id, question_id, data)
 
@@ -368,7 +368,7 @@ async def diagnostician_page(
     """A whole notebook page: the header names the child (roll number, else nickname), every problem is found and
     judged by exact arithmetic. Homework: the child sends student_id. Snap: the teacher sends session_id and the page
     is filed by its header, or comes back unassigned for one tap."""
-    _limit(request, "photo", 60)
+    _limit(request, "photo", 90)
     data = await image.read(diagnostician.MAX_IMAGE_BYTES + 1)
     return await pages.page(data, session_id=session_id, student_id=student_id, mode=mode, language=language)
 

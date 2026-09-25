@@ -1,0 +1,25 @@
+{
+ "api": "https://next---gurugraph-api-215071922486.asia-south1.run.app",
+ "class": "0C3B",
+ "students": 40,
+ "pages": {
+  "pages": 36,
+  "parallel": 6,
+  "wall_s": 15.9,
+  "pages_per_min": 135.7,
+  "p50_s": 0.19,
+  "p95_s": 6.19,
+  "errors": 4,
+  "gemini_calls": 9
+ },
+ "answers": {
+  "requests": 340,
+  "wall_s": 6.1,
+  "rps": 55.5,
+  "p50_ms": 109,
+  "p95_ms": 192,
+  "errors": 40,
+  "gemini_calls": 0
+ },
+ "method": "40 simulated students joining and answering 5 questions each at once through the rules path (no AI call), then 36 notebook photos read 6 at a time through the vision model; run on its own class on a no-traffic tagged revision of the API with 1 instance, 1 worker"
+}

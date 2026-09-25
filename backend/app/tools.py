@@ -285,19 +285,25 @@ def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
     out: dict = {"api": base, "class": code, "students": n_students, "pages": n_pages}
 
     # 1) many students answering at once: join + 5 answers each, in parallel threads
+    statuses: dict[int, int] = {}
+
+    def note(r) -> bool:
+        statuses[r.status_code] = statuses.get(r.status_code, 0) + 1
+        return r.status_code == 200
+
     def student(i: int) -> list[tuple[float, bool]]:
         c = httpx.Client(base_url=base.rstrip("/"), timeout=60)
         times: list[tuple[float, bool]] = []
         t = time.perf_counter()
         r = c.post("/students/join", json={"code": code, "nickname": f"Load {i}", "language": "kn", "roll_no": i + 1})
-        times.append((time.perf_counter() - t, r.status_code == 200))
+        times.append((time.perf_counter() - t, note(r)))
         if r.status_code != 200:
             return times
         sid = r.json()["student_id"]
         for _ in range(5):
             t = time.perf_counter()
             n = c.post("/agents/examiner/next", json={"student_id": sid})
-            ok = n.status_code == 200
+            ok = note(n)
             times.append((time.perf_counter() - t, ok))
             if not ok or n.json()["done"]:
                 break
@@ -310,7 +316,7 @@ def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
                     answer = next(iter(q.wrong_answers))
             t = time.perf_counter()
             a = c.post("/agents/diagnostician/answer", json={"student_id": sid, "question_id": q.id, "answer": answer})
-            times.append((time.perf_counter() - t, a.status_code == 200))
+            times.append((time.perf_counter() - t, note(a)))
         return times
 
     started = time.perf_counter()
@@ -327,9 +333,11 @@ def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
         "p50_ms": round(statistics.median(ms)) if ms else None,
         "p95_ms": round(ms[int(0.95 * (len(ms) - 1))]) if ms else None,
         "errors": errors,
+        "status_codes": dict(sorted(statuses.items())),
         "gemini_calls": 0,
     }
     print("answers", out["answers"])
+    statuses.clear()
 
     # 2) pages read 6 at a time (the vision model), capped
     n_pages = min(n_pages, 60)
@@ -373,6 +381,7 @@ def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
             "p50_s": round(statistics.median(ds), 2),
             "p95_s": round(ds[int(0.95 * (len(ds) - 1))], 2),
             "errors": errs,
+            "status_codes": dict(sorted(statuses.items())),
             "gemini_calls": calls,
         }
         print("pages", out["pages"])
