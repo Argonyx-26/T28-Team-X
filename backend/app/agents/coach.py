@@ -39,7 +39,7 @@ def _teacher_view(analysis) -> str:
     )
 
 
-def _audience_size(analysis, rec: dict) -> int:
+def _audience_size(analysis, rec: dict, recs: list[dict]) -> int:
     cid, tag, audience = rec.get("concept_id"), rec.get("misconception_tag"), rec.get("audience")
     showing = len(analysis.students_by_tag.get(cid, {}).get(tag, []))
     if audience == "whole_class":
@@ -47,6 +47,10 @@ def _audience_size(analysis, rec: dict) -> int:
     if audience in ("reteach_group", "individuals"):
         return showing or len(analysis.groups["reteach"])
     if audience == "practice_group":
+        # everyone the re-teach plan leaves out practises (13 re-learn, the other 18 practise)
+        m = rules.practice_count(analysis, recs, rec)
+        if m is not None:
+            return m
         return len(analysis.groups["practice"]) if cid == analysis.focus_concept else analysis.n_students - showing
     if audience == "extend_group":
         return len(analysis.groups["extend"])
@@ -84,7 +88,6 @@ def _normalize(recs: list[RecommendationOut] | list[dict], analysis, round_no: i
         cid, tag = d.get("concept_id"), d.get("misconception_tag")
         d["concept_name"] = topic.concept(cid).name if topic.has_concept(cid) else cid
         d["label"] = topic.tag(tag).label() if tag in topic.tags else tag
-        d["n_students"] = _audience_size(analysis, d)
         d.update(
             {
                 "id": new_id("rec"),
@@ -96,6 +99,8 @@ def _normalize(recs: list[RecommendationOut] | list[dict], analysis, round_no: i
             }
         )
         out.append(d)
+    for d in out:
+        d["n_students"] = _audience_size(analysis, d, out)
     return out
 
 

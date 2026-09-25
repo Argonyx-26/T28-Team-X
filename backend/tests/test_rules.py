@@ -189,6 +189,9 @@ def test_analyst_accepts_a_practice_group_without_a_mistake_check():
     first = {**rec, "misconception_tag": "add_denominators", "audience": "reteach_group"}
     verdict, reason = rules.critique(TOPIC, a, [first, rec], 1)
     assert verdict == "accept" and reason.startswith("Fits the data")
+    # the practice group is everyone the re-teach plan leaves out: 9 re-learn, the other 21 practise
+    assert "21 students" in reason
+    assert rules.practice_count(a, [first, rec], rec) == 21
 
 
 def test_analyst_rejects_a_duplicate_plan():

@@ -315,6 +315,21 @@ WHOLE_CLASS = "whole_class"
 PRACTICE_AUDIENCES = {"practice_group", "extend_group"}
 
 
+def practice_count(analysis: ClassAnalysis, recs: list[dict], rec: dict) -> int | None:
+    """A practice group is everyone who doesn't show the mistake re-taught on that concept (None: no such plan)."""
+    cid = rec.get("concept_id")
+    retaught = [
+        r.get("misconception_tag")
+        for r in recs
+        if r.get("audience") in ("reteach_group", "individuals") and r.get("concept_id") == cid
+    ]
+    for tag in [*retaught, rec.get("misconception_tag")]:
+        k = len(analysis.students_by_tag.get(cid, {}).get(tag, []))
+        if k:
+            return analysis.n_students - k
+    return None
+
+
 def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int) -> tuple[str, str]:
     """Binding verdict for recommendation `index`: ("accept" | "revise", reason). The LLM may only reword it."""
     rec = recs[index]
@@ -340,7 +355,9 @@ def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int
     if rec.get("audience") in PRACTICE_AUDIENCES:
         # practice and extension plans are for students who don't show the mistake, so no mistake check applies
         group = "practice" if rec.get("audience") == "practice_group" else "extend"
-        m = len(analysis.groups.get(group, [])) if cid == analysis.focus_concept else None
+        m = practice_count(analysis, recs, rec) if group == "practice" else None
+        if m is None:
+            m = len(analysis.groups.get(group, [])) if cid == analysis.focus_concept else None
         who = f"{m} students" if m is not None else "The students"
         return "accept", f"Fits the data: {who} can move on with practice on {concept.name} while others re-learn."
     if not tag or tag == "unclassified" or tag not in topic.tags:
