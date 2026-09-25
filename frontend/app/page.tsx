@@ -163,7 +163,7 @@ export default function Home() {
               <li className="flex items-center gap-2">
                 <span aria-hidden className="h-2 w-2 rounded-full bg-green" /> Live on Google Cloud
               </li>
-              <li>Photos are never stored</li>
+              <li>Photos stay in memory and are discarded</li>
               <li>The teacher has the last word</li>
             </ul>
           </div>

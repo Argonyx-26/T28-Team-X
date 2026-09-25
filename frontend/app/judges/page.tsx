@@ -64,7 +64,7 @@ const ENGINES = [
     title: "Gemini on Vertex AI",
     lines: ["3 Flash reads photos (2.5 Flash hedges after 6 s)", "2.5 Flash writes; 2.5 Flash-Lite backs it up", "Chirp 3 HD speaks Kannada, Hindi, English"],
   },
-  { title: "SQLite", lines: ["Answers, gaps, the agent feed", "Photos are read in memory, never stored"] },
+  { title: "SQLite", lines: ["Answers, gaps, the agent feed", "Photos stay in memory and are discarded"] },
 ];
 
 const RESILIENCE = [

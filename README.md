@@ -113,8 +113,9 @@ Class 7B (30 simulated students plus Asha) seeds itself on first start. Tests ru
 | Deploy the API | `gcloud run deploy gurugraph-api --source . --region asia-south1` (from the repo root) |
 
 ## Privacy
-- **Photos are never stored.** The server reads the image in memory, keeps only the diagnosis, and discards the photo.
-- **Students join with a nickname.** GuruGraph never reads names off a sheet.
+- **Photos stay in memory and are discarded.** The server reads the image, keeps only the diagnosis (the transcribed lines, the wrong step and the mistake), and never writes the photo to disk or a database.
+- **The app may read the roll number written at the top of a page** (or, as a fallback, the nickname) only to file the page under the right child. Nothing else on the page is used to identify anyone.
+- **No names are stored beyond the nickname on the class list.** Students join with a nickname; there are no accounts, emails or phone numbers.
 - Teacher pages have no login in this demo build; adding one is the first step of a real deployment.
 
 ## Built during the event

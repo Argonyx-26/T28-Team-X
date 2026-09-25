@@ -9,11 +9,11 @@ GuruGraph turns a photo of a student's fractions working into a diagnosis a teac
 
 We're built for ARGONYX '26. **Everything in this repo is made during the event (25 Sep 11:00 → 26 Sep 11:00).** Never paste in code or text from outside this repo.
 
-## Who owns what (edit only your own area unless asked)
-- `frontend/`: Rishabh (Next.js UI)
-- `backend/`: Samartha (FastAPI, agents, rules)
-- `data/evidence/`, `docs/pitch/`, `docs/research/`: Risheeth
-- `docs/API.md` is **the contract**. The frontend must match its types exactly. If something is missing, ask Samartha; don't invent fields.
+## Who owns what
+- **From Friday evening, Samartha (with Claude Code) owns the entire codebase**: `backend/`, `frontend/`, `data/`, `docs/`, deployment.
+- Rishabh and Risheeth no longer push code. They supply data (handwritten pages photographed on a phone, marking timings), review the Kannada and Hindi text, and build the pitch, deck and video.
+- `docs/API.md` is **the contract**. The frontend must match its types exactly. Changes are additive only.
+- Roles and the AI tools used are in `docs/team/TEAM.md`. Rules for AI assistants and the deploy protocol are in `CLAUDE.md`.
 
 ## Frontend stack
 - **Framework:** Next.js (App Router) + TypeScript strict + Tailwind + shadcn/ui + lucide-react icons. `motion` (Framer Motion) is used only for the motion listed below.

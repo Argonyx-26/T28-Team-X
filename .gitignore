@@ -17,3 +17,6 @@ __pycache__/
 node_modules/
 .next/
 .vercel/
+
+# private working notes (audit, competitor notes, checkpoint log)
+.notes/
