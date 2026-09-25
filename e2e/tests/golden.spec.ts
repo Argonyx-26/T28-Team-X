@@ -33,7 +33,27 @@ async function gapsClosed(page: Page): Promise<number> {
   return d.gaps.closed;
 }
 
+/** The presenter's admin token: PROD_ADMIN_TOKEN in the environment, or from backend/.env. Never printed. */
+function adminTokenFromEnv(): string {
+  if (process.env.PROD_ADMIN_TOKEN) return process.env.PROD_ADMIN_TOKEN;
+  try {
+    const env = readFileSync(join(__dirname, "..", "..", "backend", ".env"), "utf-8");
+    const m = env.match(/^PROD_ADMIN_TOKEN=(.+)$/m);
+    return m ? m[1].trim() : "";
+  } catch {
+    return "";
+  }
+}
+
 test.describe.serial("golden path", () => {
+  test.beforeAll(async ({ request }) => {
+    // the path assumes a fresh Asha (her first question is a C4 multiple-choice item, and her C4 cell starts amber)
+    const token = process.env.E2E_NO_RESET ? "" : adminTokenFromEnv();
+    if (!token) return;
+    const r = await request.post("/backend/admin/reset", { headers: { "X-Admin-Token": token }, data: {} });
+    expect(r.ok(), "reset the demo class before the golden path").toBeTruthy();
+  });
+
   test("1. the landing page loads with the live numbers", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("why");

@@ -3,6 +3,7 @@
 python -m app.tools warm-lessons     pre-generate lessons into data/lessons_cache.json (then a native reader checks)
 python -m app.tools lessons-review   write docs/research/LESSONS_REVIEW.md for Risheeth
 python -m app.tools smoke <api-url>  run the demo path against a deployed API and print PASS/FAIL per beat
+python -m app.tools warm <api-url>   run every demo beat in demo order (fills the AI cache), then reset the class
 python -m app.tools cache-seed <api-url>  save the live API's LLM cache as data/llm_cache_seed.jsonl (needs
                                      PROD_ADMIN_TOKEN in the environment or backend/.env; the token is never printed)
 """
@@ -156,6 +157,116 @@ def smoke(base: str) -> int:
     return 0 if all(ok for _, ok, _ in results) else 1
 
 
+def warm(base: str) -> int:
+    """The demo in demo order through the public API, so every AI answer it needs is cached; then a reset.
+
+    Mirrors the "Warm the demo" button on /present, for the command line and the deploy protocol."""
+    token = os.getenv("PROD_ADMIN_TOKEN") or settings.admin_token
+    c = httpx.Client(base_url=base.rstrip("/"), timeout=120, headers={"X-Admin-Token": token})
+    samples = settings.data_dir.parent / "frontend" / "public" / "samples"
+    asha, session = "stu_asha_7b", "ses_7b"
+    topic = get_topic()
+    failures = 0
+
+    def step(name, fn):
+        nonlocal failures
+        t = time.perf_counter()
+        try:
+            detail = fn()
+            print(f"OK    {name:44} {time.perf_counter() - t:5.1f}s  {detail or ''}")
+        except Exception as exc:  # keep going; the summary says what failed
+            failures += 1
+            print(f"FAIL  {name:44} {time.perf_counter() - t:5.1f}s  {repr(exc)[:140]}")
+
+    def reset():
+        r = c.post("/admin/reset", json={})
+        r.raise_for_status()
+        return "fresh Asha"
+
+    def photo(student_id, qid, name):
+        r = c.post(
+            "/agents/diagnostician/photo",
+            data={"student_id": student_id, "question_id": qid},
+            files={"image": (name, (samples / name).read_bytes(), "image/jpeg")},
+        ).json()
+        tel = " / ".join("cached" if t.get("cached") else f"{t.get('ms')} ms" for t in r.get("telemetry", []))
+        return f"step {r.get('error_step')} {r.get('misconception_tag')} [{tel}]"
+
+    def analyze():
+        r = c.post("/agents/analyst/analyze", json={"session_id": session}).json()
+        cached = sum(1 for t in r["telemetry"] if t.get("cached"))
+        return (
+            " -> ".join(f"{s['agent']}:{s['action']}" for s in r["steps"]) + f"; {cached}/{len(r['telemetry'])} cached"
+        )
+
+    def wrong_answer():
+        n = c.post("/agents/examiner/next", json={"student_id": asha}).json()
+        if n["done"]:
+            return "quiz complete"
+        q = topic.question(n["question"]["id"])
+        wrong = next((o.text for o in q.options if o.tag == "add_denominators"), None) or next(
+            o.text for o in q.options if not o.correct
+        )
+        a = c.post(
+            "/agents/diagnostician/answer", json={"student_id": asha, "question_id": q.id, "answer": wrong}
+        ).json()
+        return f"{q.id} '{wrong}' -> {a.get('misconception_tag')}; gap open {a.get('gap_open')}"
+
+    def lesson():
+        for _ in range(30):
+            r = c.post("/agents/curator/lesson", json={"student_id": asha}).json()
+            if r["status"] != "generating":
+                return f"{r['status']} {r['lesson']['language'] if r.get('lesson') else ''}"
+            time.sleep(1.5)
+        return "still generating"
+
+    def parent():
+        r = c.post("/agents/coach/parent-message", json={"student_id": asha}).json()
+        if r.get("audio_url"):
+            c.get(r["audio_url"])
+        return f"{r['language']} {len(r['message'])} chars, voice {'ready' if r.get('audio_url') else 'off'}"
+
+    def others():
+        d = c.get("/teacher/dashboard", params={"session_id": session}).json()
+        who = {s["nickname"].lower(): s["id"] for s in d["heatmap"]["students"]}
+        out = []
+        for name, qid, file in [
+            ("asha", "P2", "asha-p2-photo.jpg"),
+            ("asha", "P3", "asha-p3-photo.jpg"),
+            ("rahul", "P3", "rahul-p3.jpg"),
+            ("meera", "P4", "meera-p4.jpg"),
+        ]:
+            out.append(f"{qid}:" + photo(who.get(name, asha), qid, file).split(" ")[1])
+        return " ".join(out)
+
+    def pile():
+        d = c.get("/teacher/dashboard", params={"session_id": session}).json()
+        sims = [s["id"] for s in d["heatmap"]["students"] if s["kind"] == "simulated"]
+        files = [
+            ("images", (f"p1-{i}.jpg", (samples / "pile" / f"p1-{i}.jpg").read_bytes(), "image/jpeg"))
+            for i in range(1, 7)
+        ]
+        r = c.post(
+            "/agents/diagnostician/stack", data={"question_id": "P1", "student_ids": sims[:6]}, files=files
+        ).json()
+        return " ".join(str(x.get("error_step", "?")) for x in r["results"])
+
+    for name, fn in [
+        ("reset", reset),
+        ("scan Asha P1", lambda: photo(asha, "P1", "asha-p1-photo.jpg")),
+        ("plan tomorrow's lesson", analyze),
+        ("Asha answers wrong", wrong_answer),
+        ("Asha's Kannada lesson", lesson),
+        ("parent message + voice note", parent),
+        ("other sample pages", others),
+        ("sample pile", pile),
+        ("reset again", reset),
+    ]:
+        step(name, fn)
+    print("warm complete" if not failures else f"{failures} step(s) failed")
+    return 1 if failures else 0
+
+
 def cache_seed(base: str) -> int:
     token = os.getenv("PROD_ADMIN_TOKEN") or settings.admin_token
     r = httpx.get(f"{base.rstrip('/')}/admin/cache-export", headers={"X-Admin-Token": token}, timeout=60)
@@ -177,6 +288,8 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "cache-seed":
         sys.exit(cache_seed(sys.argv[2]))
+    elif cmd == "warm":
+        sys.exit(warm(sys.argv[2]))
     elif cmd == "warm-lessons":
         asyncio.run(warm_lessons())
     elif cmd == "lessons-review":
