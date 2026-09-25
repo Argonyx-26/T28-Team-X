@@ -52,10 +52,13 @@ COACH_PROPOSE = (
 
 COACH_REVISE = (
     "You are the same instructional coach. The Analyst checked your plans against every student's answers and "
-    "returned a verdict and reason for each, plus the size of each learner group. Keep every plan marked accept "
-    "unchanged. Rewrite every plan marked revise so it answers the Analyst's reason exactly, for example by narrowing "
-    "the audience to the students who show the mistake and giving the others practice. Keep 3 to 5 steps and one "
-    "worked example, and make why cite the Analyst's numbers. Return all plans in the same order. Reply with JSON only."
+    "returned a verdict and reason for each, plus how many students show each mistake. Keep every plan marked "
+    "accept unchanged. Rewrite every plan marked revise so it answers the Analyst's reason exactly. The structured "
+    "fields must change, not only the wording: if the Analyst says to split the class, set audience to "
+    "reteach_group for the students who show the mistake, and add a second plan with audience practice_group for "
+    "the rest; if the Analyst says no student shows a mistake, switch misconception_tag to the mistake the counts "
+    "show most. Keep 3 to 5 steps and one worked example. In why, use only numbers that appear in the input, copied "
+    "exactly. Return at most 2 plans. Reply with JSON only."
 )
 
 PARENT = (

@@ -1,0 +1,188 @@
+// The dashboard's slice of the API contract (docs/API.md). Calls go through the /backend rewrite.
+
+export type Lang = "en" | "hi" | "kn";
+export type StudentKind = "real" | "simulated" | "demo";
+
+export interface Telemetry {
+  agent: string;
+  action: string;
+  provider: string;
+  model: string;
+  ms: number;
+  in_tokens: number;
+  out_tokens: number;
+  cost_paise: number;
+  fallback: boolean;
+  cached: boolean;
+  ok: boolean;
+}
+
+export interface SessionLookup {
+  session_id: string;
+  code: string;
+  class_name: string;
+  topic_name: string;
+  n_students: number;
+}
+
+export interface ConceptStat {
+  id: string;
+  name: string;
+  short: string;
+  avg: number | null;
+  responders: number;
+  below_gap: number;
+  open_gaps: number;
+  top: { tag: string; label: string; students: number }[];
+}
+
+export interface StudentRef {
+  id: string;
+  nickname: string;
+}
+
+export interface Dashboard {
+  session_id: string;
+  class_name: string;
+  code: string;
+  n_students: number;
+  n_simulated: number;
+  concepts: ConceptStat[];
+  edges: [string, string][];
+  heatmap: {
+    concept_ids: string[];
+    students: { id: string; nickname: string; kind: StudentKind; language: Lang }[];
+    cells: (number | null)[][];
+  };
+  groups: { reteach: StudentRef[]; practice: StudentRef[]; extend: StudentRef[]; not_assessed: StudentRef[] };
+  focus_concept: string | null;
+  gaps: { open: number; closed: number; rate: number };
+  recommendations: Recommendation[];
+}
+
+export interface AgentEvent {
+  seq: number;
+  ts: string;
+  agent: string;
+  action: string;
+  reason: string;
+  student_id: string | null;
+  student_nickname: string | null;
+  telemetry: Telemetry[];
+}
+
+export type Audience = "whole_class" | "reteach_group" | "practice_group" | "extend_group" | "individuals";
+
+export interface Recommendation {
+  id: string;
+  round: number;
+  stage: "draft" | "revised" | "final";
+  audience: Audience;
+  group_label: string;
+  n_students: number;
+  concept_id: string;
+  concept_name: string;
+  misconception_tag: string;
+  label: string;
+  headline: string;
+  plan_5min: string[];
+  worked_example: string;
+  why: string;
+  flagged: boolean;
+  analyst_note: string | null;
+  approved: boolean;
+}
+
+export interface Critique {
+  index: number;
+  verdict: "accept" | "revise";
+  reason: string;
+}
+
+export interface AnalyzeStep {
+  round: number;
+  agent: "Coach" | "Analyst";
+  action: "propose" | "critique" | "revise";
+  recommendations?: Recommendation[];
+  critiques?: Critique[];
+}
+
+export interface AnalyzeResponse {
+  run_id: string;
+  rounds: number;
+  steps: AnalyzeStep[];
+  final: Recommendation[];
+  telemetry: Telemetry[];
+}
+
+export interface StudentDetail {
+  id: string;
+  nickname: string;
+  language: Lang;
+  kind: StudentKind;
+  mastery: Record<string, number>;
+  assessed: string[];
+  gaps: { concept_id: string; status: "open" | "closed"; tag: string | null; label: string | null }[];
+  responses: {
+    question_id: string;
+    stem: string;
+    answer: string;
+    correct: boolean;
+    tag: string | null;
+    label: string | null;
+    source: string;
+    phase: string;
+    created_at: string;
+  }[];
+}
+
+export interface ParentMessage {
+  language: Lang;
+  message: string;
+  whatsapp_url: string;
+  audio_url: string | null;
+  telemetry: Telemetry[];
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+// NEXT_PUBLIC_API_BASE lets the dashboard talk to an API directly in local development; production uses the rewrite.
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/backend";
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: "no-store", ...init });
+  } catch {
+    throw new ApiError(0, "offline", "Can't reach the server. Check the connection.");
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new ApiError(res.status, body?.error?.code ?? "error", body?.error?.message ?? "Something went wrong.");
+  }
+  return body as T;
+}
+
+const post = <T>(path: string, body: unknown) =>
+  call<T>(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+export const api = {
+  lookup: (code: string) => call<SessionLookup>(`/sessions/lookup?code=${encodeURIComponent(code)}`),
+  dashboard: (sessionId: string) => call<Dashboard>(`/teacher/dashboard?session_id=${encodeURIComponent(sessionId)}`),
+  events: (sessionId: string, after: number) =>
+    call<{ events: AgentEvent[]; last_seq: number }>(
+      `/teacher/events?session_id=${encodeURIComponent(sessionId)}&after=${after}`,
+    ),
+  student: (studentId: string) => call<StudentDetail>(`/teacher/student?student_id=${encodeURIComponent(studentId)}`),
+  analyze: (sessionId: string) => post<AnalyzeResponse>("/agents/analyst/analyze", { session_id: sessionId }),
+  approve: (recommendationId: string) => post<{ ok: true }>("/teacher/approve", { recommendation_id: recommendationId }),
+  parentMessage: (studentId: string) => post<ParentMessage>("/agents/coach/parent-message", { student_id: studentId }),
+};

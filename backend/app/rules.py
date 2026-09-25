@@ -284,6 +284,9 @@ def _focus_concept(stats: list[ConceptStats], n: int) -> str | None:
 WHOLE_CLASS = "whole_class"
 
 
+PRACTICE_AUDIENCES = {"practice_group", "extend_group"}
+
+
 def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int) -> tuple[str, str]:
     """Binding verdict for recommendation `index`: ("accept" | "revise", reason). The LLM may only reword it."""
     rec = recs[index]
@@ -292,9 +295,20 @@ def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int
         return "revise", f"{cid} is not part of {topic.name}; pick a concept from this topic."
     stats = analysis.stats(cid)
     concept = topic.concept(cid)
+    n = analysis.n_students
+    steps = rec.get("plan_5min") or []
+    if len(steps) > 5:
+        return "revise", f"The plan has {len(steps)} steps; a 5-minute plan needs 5 or fewer."
+    if not (rec.get("worked_example") or "").strip():
+        return "revise", "The plan has no worked example."
+    if rec.get("audience") in PRACTICE_AUDIENCES:
+        # practice and extension plans are for students who don't show the mistake, so no mistake check applies
+        group = "practice" if rec.get("audience") == "practice_group" else "extend"
+        m = len(analysis.groups.get(group, [])) if cid == analysis.focus_concept else None
+        who = f"{m} students" if m is not None else "The students"
+        return "accept", f"Fits the data: {who} can move on with practice on {concept.name} while others re-learn."
     label = topic.tag(tag).label() if tag in topic.tags else tag
     k = stats.affected_by_tag.get(tag, 0) if stats else 0
-    n = analysis.n_students
     if k == 0:
         return "revise", f"No student shows '{label}' on {concept.name}; target a mistake the class actually makes."
     if rec.get("audience") == WHOLE_CLASS and k / max(n, 1) < 0.5:
@@ -305,16 +319,10 @@ def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int
     if stats and tag not in [t for t, _ in stats.top]:
         top = ", ".join(topic.tag(t).label() for t, _ in stats.top)
         return "revise", f"'{label}' is not among the top mistakes on {concept.name} ({top})."
-    steps = rec.get("plan_5min") or []
-    if len(steps) > 5:
-        return "revise", f"The plan has {len(steps)} steps; a 5-minute plan needs 5 or fewer."
-    if not (rec.get("worked_example") or "").strip():
-        return "revise", "The plan has no worked example."
     if index == 0 and analysis.focus_concept and not any(r.get("concept_id") == analysis.focus_concept for r in recs):
         focus = topic.concept(analysis.focus_concept)
         return "revise", f"No plan targets {focus.name}, the concept with the most open gaps."
-    responders = stats.responders if stats else n
-    return "accept", f"Matches the data: {k} of {responders} students show '{label}' on {concept.name}."
+    return "accept", f"Matches the data: {k} of {n} students show '{label}' on {concept.name}."
 
 
 # ---------- the simulator (zero LLM) ----------

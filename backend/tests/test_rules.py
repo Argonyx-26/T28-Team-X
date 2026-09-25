@@ -175,3 +175,17 @@ def test_simulator_is_deterministic_and_uses_preferred_mistakes():
     assert rules.simulate_answer(rules.stable_rng("y"), q, 1.0, None) == "3/4"
     t = TOPIC.question("Q17")
     assert rules.simulate_answer(rules.stable_rng("z"), t, 0.0, "unlike_denominators") == "1/6"
+
+
+def test_analyst_accepts_a_practice_group_without_a_mistake_check():
+    a = rules.aggregate(TOPIC, *_class())
+    rec = {
+        "concept_id": "C4",
+        "misconception_tag": "divide_no_flip",
+        "audience": "practice_group",
+        "plan_5min": ["a", "b", "c"],
+        "worked_example": "x",
+    }
+    first = {**rec, "misconception_tag": "add_denominators", "audience": "reteach_group"}
+    verdict, reason = rules.critique(TOPIC, a, [first, rec], 1)
+    assert verdict == "accept" and reason.startswith("Fits the data")
