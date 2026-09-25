@@ -214,3 +214,34 @@ def test_gap_open_is_reported_when_the_scan_opened_the_gap_first(client):
         },
     ).json()
     assert not a["gap_opened"] and a["gap_open"]
+
+
+def test_photo_result_carries_rule_evidence(client):
+    r = client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": ASHA_ID, "question_id": "P1"},
+        files={"image": ("a.png", _png(), "image/png")},
+    ).json()
+    assert r["rule_check"]["status"] == "verified" and "4/8" in r["rule_check"]["note"]
+
+
+def test_teacher_review_agree_and_correct(client):
+    client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": ASHA_ID, "question_id": "P1"},
+        files={"image": ("a.png", _png(), "image/png")},
+    )
+    body = {"student_id": ASHA_ID, "question_id": "P1"}
+    assert client.post("/teacher/review", json={**body, "verdict": "agree"}).json()["ok"]
+    changed = client.post(
+        "/teacher/review", json={**body, "verdict": "change_tag", "tag": "unlike_denominators"}
+    ).json()
+    assert changed["misconception_tag"] == "unlike_denominators"
+    fixed = client.post("/teacher/review", json={**body, "verdict": "mark_correct"}).json()
+    assert fixed["correct"] and fixed["mastery_after"] >= 0.4
+    d = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    assert not [g for g in d["gaps"] if g["concept_id"] == "C4" and g["status"] == "open"]
+    numbers = client.get("/judges/summary").json()["numbers"]
+    assert any(n["label"].startswith("Photo diagnoses the teacher kept") and n["value"] == "1 of 3" for n in numbers)
+    r = client.post("/teacher/review", json={**body, "verdict": "change_tag", "tag": "nope"})
+    assert r.status_code == 422

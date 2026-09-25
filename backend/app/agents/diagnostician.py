@@ -162,6 +162,35 @@ def _known_wrong_tag(q: Question, final_answer: str | None) -> str | None:
     return None
 
 
+def rule_check(q: Question, final_answer: str | None, correct: bool, tag: str | None) -> dict:
+    """Independent evidence for the model's verdict, computed with exact fractions (no AI)."""
+    read = parse_answer(final_answer)
+    if read is None:
+        return {
+            "status": "unverified",
+            "note": "The final answer couldn't be read as a number, so only the model checked this.",
+        }
+    shown = final_answer.strip() if final_answer else ""
+    expected = parse_answer(q.answer)
+    if correct:
+        if expected and read.value == expected.value:
+            return {"status": "verified", "note": f"{shown} equals the right answer {q.answer} (exact arithmetic)."}
+        return {"status": "unverified", "note": "Marked right by the model only."}
+    for wrong, wrong_tag in q.wrong_answers.items():
+        known = parse_answer(wrong)
+        if known and known.value == read.value:
+            if wrong_tag == tag:
+                label = get_topic().tag(tag).label()
+                return {"status": "verified", "note": f"{shown} is exactly what you get if you {label}."}
+            return {"status": "mismatch", "note": f"{shown} usually comes from a different mistake; please check."}
+    if expected and read.value != expected.value:
+        return {
+            "status": "consistent",
+            "note": f"{shown} is not the right answer ({q.answer}); the named mistake is the model's reading.",
+        }
+    return {"status": "unverified", "note": "Only the model checked this."}
+
+
 async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tuple[dict | None, list[dict]]:
     """The vision model reads the working; rules then check its verdict. No database access (evals use this too)."""
     topic = get_topic()
@@ -199,6 +228,7 @@ async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tup
     if correct:
         tag = None
     return {
+        "rule_check": rule_check(q, result.final_answer_read, correct, tag),
         "steps": steps,
         "final_answer_read": result.final_answer_read,
         "correct": correct,
@@ -242,6 +272,7 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             "feedback": "I couldn't read this clearly. Please type the final answer.",
             "source": "vision",
             "needs_typed_answer": True,
+            "rule_check": {"status": "unverified", "note": "The photo couldn't be read."},
             "mastery_after": None,
             "gap_opened": False,
         }

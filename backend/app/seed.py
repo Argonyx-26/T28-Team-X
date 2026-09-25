@@ -52,6 +52,6 @@ def seed() -> bool:
 def reset() -> None:
     """Wipe everything except the LLM and lesson caches, then seed again."""
     with get_conn() as conn, transaction(conn):
-        for table in ("response", "mastery", "gap", "agent_event", "recommendation", "student", "session"):
+        for table in ("review", "response", "mastery", "gap", "agent_event", "recommendation", "student", "session"):
             conn.execute(f"DELETE FROM {table}")  # noqa: S608 - fixed table names
     seed()

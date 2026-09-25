@@ -10,7 +10,7 @@ from fastapi import APIRouter, File, Form, Header, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
 from . import seed, voice
-from .agents import analyst, coach, curator, diagnostician, examiner, simulator, state
+from .agents import analyst, coach, curator, diagnostician, examiner, review, simulator, state
 from .config import settings
 from .db import get_conn, log_event, new_id, now, transaction
 from .errors import ApiError
@@ -60,6 +60,14 @@ class Simulate(BaseModel):
 
 class SessionRef(BaseModel):
     session_id: str
+
+
+class Review(BaseModel):
+    student_id: str
+    question_id: str
+    verdict: Literal["agree", "change_tag", "change_step", "mark_correct"]
+    tag: str | None = None
+    step: int | None = Field(default=None, ge=1, le=12)
 
 
 class Approve(BaseModel):
@@ -247,6 +255,12 @@ async def analyst_analyze(body: SessionRef, request: Request) -> dict:
 @router.post("/teacher/approve")
 def teacher_approve(body: Approve) -> dict:
     return coach.approve(body.recommendation_id)
+
+
+@router.post("/teacher/review")
+def teacher_review(body: Review) -> dict:
+    """The teacher confirms or corrects a diagnosis. The teacher always has the last word."""
+    return review.review(body.student_id, body.question_id, body.verdict, body.tag, body.step)
 
 
 @router.get("/teacher/dashboard")

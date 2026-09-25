@@ -74,6 +74,7 @@ export interface PhotoResponse {
   feedback: string;
   source: "vision" | "vision+rule";
   needs_typed_answer: boolean;        // true: show a typed-answer box instead
+  rule_check: { status: "verified" | "consistent" | "mismatch" | "unverified"; note: string }; // exact-arithmetic evidence; show instead of a raw confidence
   mastery_after: number | null; gap_opened: boolean;
   telemetry: Telemetry[];
 }
@@ -184,6 +185,7 @@ export interface JudgesSummary {
 | `POST /agents/examiner/retry` | `{student_id, answers:[{question_id, answer}]}` | `RetryResponse` |
 | `POST /agents/simulator/run` | `{session_id, n?:30}` | `{students_added, answers, gaps_closed, llm_calls:0}` |
 | `POST /agents/analyst/analyze` | `{session_id}` | `AnalyzeResponse` (≤25 s; show a live "agents are debating" state) |
+| `POST /teacher/review` | `{student_id, question_id, verdict: "agree"\|"change_tag"\|"change_step"\|"mark_correct", tag?, step?}` | `{ok, correct, misconception_tag, error_step, mastery_after}`. The teacher's word replaces the AI's |
 | `POST /teacher/approve` | `{recommendation_id}` | `{ok:true}` |
 | `GET /teacher/dashboard` | `?session_id=` | `Dashboard`. Poll every 2 s |
 | `GET /teacher/events` | `?session_id=&after=<last_seq>` | `EventsResponse`. Poll every 1.5 s |

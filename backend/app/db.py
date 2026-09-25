@@ -43,6 +43,11 @@ CREATE TABLE IF NOT EXISTS recommendation (
 CREATE TABLE IF NOT EXISTS llm_cache (
   key TEXT PRIMARY KEY, agent TEXT, provider TEXT, model TEXT, response_json TEXT NOT NULL, created_at TEXT
 );
+CREATE TABLE IF NOT EXISTS review (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, response_id INTEGER NOT NULL, student_id TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  verdict TEXT NOT NULL, ai_tag TEXT, teacher_tag TEXT, ai_step INTEGER, teacher_step INTEGER, created_at TEXT
+);
 CREATE TABLE IF NOT EXISTS lesson_cache (key TEXT PRIMARY KEY, payload_json TEXT NOT NULL, created_at TEXT);
 """
 

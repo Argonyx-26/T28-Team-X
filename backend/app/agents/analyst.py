@@ -6,7 +6,7 @@ import statistics
 from ..config import settings
 from ..db import get_conn, row, rows
 from ..topic import get_topic
-from . import state
+from . import review, state
 
 
 def _recommendations(conn, session_id: str) -> list[dict]:
@@ -184,6 +184,16 @@ def judges_summary() -> dict:
                 "value": f"₹{statistics.mean(paise) / 100:.3f}",
                 "n": len(paise),
                 "method": "measured tokens x published per-token price, ₹88 per USD",
+            }
+        )
+    agreed = review.agreement()
+    if agreed:
+        numbers.append(
+            {
+                "label": "Photo diagnoses the teacher kept unchanged",
+                "value": f"{agreed['agreed']} of {agreed['total']}",
+                "n": agreed["total"],
+                "method": "every teacher review since the last reset; a correction replaces the AI's verdict",
             }
         )
     results = settings.data_dir / "evals" / "results.json"

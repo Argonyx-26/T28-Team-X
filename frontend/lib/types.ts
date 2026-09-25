@@ -54,7 +54,8 @@ export interface PhotoResponse {
   confidence: number;
   feedback: string;
   source: "vision" | "vision+rule";
-  needs_typed_answer: boolean;        // true: show a typed-answer box instead
+  needs_typed_answer: boolean;
+  rule_check: { status: "verified" | "consistent" | "mismatch" | "unverified"; note: string };        // true: show a typed-answer box instead
   mastery_after: number | null; gap_opened: boolean;
   telemetry: Telemetry[];
 }
