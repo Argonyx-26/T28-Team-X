@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GuruGraph frontend
 
-## Getting Started
+Next.js 16 (App Router) + React 19 + Tailwind 4, deployed to Cloud Run as `gurugraph-web`.
 
-First, run the development server:
+| Route | What it is |
+|---|---|
+| `/` | Landing page: the red-pen demo, the loop, the agents' debate, live numbers, a QR code to join class 7B |
+| `/judges` | A 90-second tour, every number from `GET /judges/summary` with its n and method, how it's built |
+| `/teacher/[code]` | Class dashboard: knowledge graph, heatmap, agent feed, Coach vs Analyst plan, projector view |
+| `/teacher/[code]/scan` | Scan one notebook: the wrong step circled in red pen, with the arithmetic proof |
+| `/teacher/[code]/pile` | Read a pile of notebooks, six at a time |
+| `/teacher/[code]/worksheet` | Printable worksheet for an approved re-teach plan |
+| `/join/[code]` | Student flow in English, Hindi or Kannada |
+
+## Run it
 
 ```bash
+cp .env.local.example .env.local   # API_URL points at a local API (default port 8010)
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Every API call goes through the `/backend/*` rewrite in `next.config.ts`. Without `API_URL`, it falls back to the live API.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+From the repo root:
 
-## Learn More
+```bash
+gcloud run deploy gurugraph-web --source frontend --region asia-south1 \
+  --set-build-env-vars API_URL=https://gurugraph-api-215071922486.asia-south1.run.app,NEXT_PUBLIC_RAAH_PID=<raah project id>
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Checks before a commit
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npx tsc --noEmit`, `npm run lint` and `npm run build` must be clean. The design rules are in `../GEMINI.md`.

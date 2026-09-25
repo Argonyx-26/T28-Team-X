@@ -17,8 +17,8 @@ We're built for ARGONYX '26. **Everything in this repo is made during the event 
 
 ## Frontend stack
 - **Framework:** Next.js (App Router) + TypeScript strict + Tailwind + shadcn/ui + lucide-react icons. `motion` (Framer Motion) is used only for the motion listed below.
-- **API calls:** all go through `frontend/lib/api.ts`, which uses `fetch("/backend/...")` with `cache: "no-store"`. Types live in `frontend/lib/types.ts`, copied from `docs/API.md`.
-- **Fixtures:** until the API is live, use fixtures in `frontend/lib/fixtures.ts`, shaped exactly like the types. `NEXT_PUBLIC_USE_FIXTURES=1` switches them on.
+- **API calls:** all go through `fetch("/backend/...")` with `cache: "no-store"`: the teacher and student screens use `app/teacher/[code]/_dashboard/api.ts`, whose types follow `docs/API.md`.
+- **No fixtures:** the API is live, so every screen reads real data. Public URLs live in `frontend/lib/site.ts`; the landing page and `/judges` read their numbers only from `GET /judges/summary` (`frontend/lib/summary.ts`), never hard-coded.
 - **Rewrite:** `next.config` rewrites `/backend/:path*` to `${process.env.API_URL}/:path*`.
 
 ## Design system: the "teacher's notebook"

@@ -8,6 +8,7 @@ Built by Team X (T28) at ARGONYX '26, RV University, 25–26 Sep 2026. Everythin
 
 - **Live API:** https://gurugraph-api-215071922486.asia-south1.run.app/docs
 - **App:** https://gurugraph-web-215071922486.asia-south1.run.app
+  - For judges (a 90-second tour and every number with its n and method): [/judges](https://gurugraph-web-215071922486.asia-south1.run.app/judges)
   - Teacher dashboard: [/teacher/7B](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B)
   - Scan a notebook: [/teacher/7B/scan](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B/scan)
   - Try it as Asha: [/join/7B?as=asha](https://gurugraph-web-215071922486.asia-south1.run.app/join/7B?as=asha)
@@ -33,11 +34,11 @@ Sources, each checked on its source page: [docs/research/EVIDENCE.md](docs/resea
 
 ```mermaid
 flowchart LR
-  T[Teacher's phone<br/>scan + dashboard] --> W[Next.js on Vercel<br/>/backend/* rewrite]
+  T[Teacher's phone<br/>scan + dashboard] --> W[Next.js on Cloud Run<br/>/backend/* rewrite]
   S[Student's phone<br/>quiz + lesson] --> W
   W --> API[FastAPI on Cloud Run<br/>one endpoint per agent action]
   API --> R[(Rules engine<br/>exact fractions, mastery,<br/>gaps, Analyst verdicts)]
-  API --> L[LLM layer<br/>Nebius Token Factory, then Gemini on Vertex, then cache]
+  API --> L[LLM layer<br/>cache, then Gemini on Vertex,<br/>then a second Gemini model]
   API --> D[(SQLite<br/>answers, gaps, agent feed)]
 ```
 
@@ -83,7 +84,7 @@ Every number carries *n* and the method. The raw rows are in [data/evals/results
 
 | What | Result | Method |
 |---|---|---|
-| Question bank verified | 37 of 37 | every answer and every distractor is checked by exact fraction arithmetic in the test suite (part of the 113-test suite) |
+| Question bank verified | 37 of 37 | every answer and every distractor is checked by exact fraction arithmetic in the test suite (part of the backend test suite) |
 | Mistake named from a typed answer alone (the LLM fallback) | **27/30** | new problems, answered by applying a known wrong procedure (the label comes from how the answer was built); final answer only, no working |
 | AI cost per student per month | **₹3.64** | measured calls (3 per action) × published per-token prices, for one photo diagnosis, lesson, parent message and Kannada voice note per student per week plus a shared class plan; the voice note is ₹2.56 of it ([unit_costs.json](data/evals/unit_costs.json)) |
 | Handwritten work: wrong step circled, mistake named | *running on the 24 card photos* | 12 cards by 3 writers, labelled before running the model ([labels](data/evidence/labels.csv)) |
@@ -92,7 +93,7 @@ What we don't claim: we ran no classroom trial, have no users and no learning-ga
 
 ## Sponsor technology
 - **Nebius Token Factory:** built in as an OpenAI-compatible provider for the text agents, with token usage and ₹ cost shown per call. When `NEBIUS_API_KEY` is set it goes first and Gemini becomes the fallback. The demo currently runs on Gemini.
-- **Raah:** browser-side analytics on the app: per-endpoint latency of each agent (one endpoint per agent action, so each agent gets its own p95), custom events (`diagnosed`, `lesson_viewed`, `gap_closed`, `plan_approved`), a public status page and the badge.
+- **Raah:** browser-side analytics, wired into the app in `frontend/lib/raah.ts` and `frontend/components/site/raah.tsx`: the beacon in the root layout (per-endpoint latency of each agent, since there is one endpoint per agent action), custom events (`joined`, `diagnosed`, `photo_diagnosed`, `lesson_viewed`, `gap_closed`, `plan_approved`) and the public badge in the footer. It switches on when `NEXT_PUBLIC_RAAH_PID` is set at build time.
 
 ## Run it locally
 ```bash
@@ -114,7 +115,7 @@ Class 7B (30 simulated students plus Asha) seeds itself on first start. Tests ru
 ## Privacy
 - **Photos are never stored.** The server reads the image in memory, keeps only the diagnosis, and discards the photo.
 - **Students join with a nickname.** GuruGraph never reads names off a sheet.
-- Aggregates are shown only to the class's teacher.
+- Teacher pages have no login in this demo build; adding one is the first step of a real deployment.
 
 ## Built during the event
 - **The code, the question bank, the prompts and the docs were all made here**, between 11:00 on 25 Sep and 11:00 on 26 Sep. The commit history is the record. The idea was the one selected in Round 1.
