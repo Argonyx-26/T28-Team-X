@@ -2,7 +2,7 @@
 
 The frontend calls **`/backend/<path>`**, and `next.config` rewrites that to `${API_URL}/<path>`.
 - **Local API:** `http://localhost:8000` (the interactive docs are at `/docs`).
-- **Deployed API:** posted in the team chat.
+- **Deployed API (Cloud Run, Mumbai):** `https://gurugraph-api-215071922486.asia-south1.run.app`. Try `/health` or `/docs`.
 
 **Conventions:**
 - All bodies are JSON unless marked *multipart*.
@@ -141,7 +141,7 @@ export interface Dashboard {
 export interface AgentEvent {
   seq: number; ts: string;
   agent: "Examiner" | "Diagnostician" | "Curator" | "Analyst" | "Coach" | "Simulator" | "Teacher";
-  action: string;   // select_question diagnose diagnose_photo lesson retry gap_closed analyze_class propose challenge accept revise flag_for_teacher approve parent_message simulate
+  action: string;   // join select_question diagnose diagnose_photo lesson retry gap_closed analyze_class propose challenge accept revise flag_for_teacher approve parent_message simulate
   reason: string;   // one line, ≤240 chars
   student_id: string | null; student_nickname: string | null;
   telemetry: Telemetry[];

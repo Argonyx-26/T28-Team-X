@@ -1,0 +1,9 @@
+#!include:.gitignore
+.git/
+.github/
+frontend/
+docs/
+backend/.venv/
+backend/tests/
+backend/.env
+**/__pycache__/
