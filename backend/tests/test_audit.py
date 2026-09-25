@@ -284,3 +284,41 @@ def test_a_story_written_over_two_lines_is_still_the_bank_problem():
         ["Q1) A cake needs 3/4 cup of sugar.", "How much sugar for 2 cakes?", "= 2 + 3/4 = 2 3/4 cups"], None, None
     )
     assert out["question_id"] == "P4" and out["misconception_tag"] == "word_problem_operation"
+
+
+def test_every_way_the_model_writes_line_boxes_gives_a_circle():
+    from app.agents.pages import diagnose_problem
+
+    # corner to corner with dashes, several in one string
+    dashed = diagnostician.line_boxes(diagnostician.box_groups(["100,43-118,369;197,43-219,796;200,652-218,796"]), 3)
+    assert dashed == [[100, 43, 118, 369], [197, 43, 219, 796], [200, 652, 218, 796]]
+    # one box around the whole problem: cut into evenly ruled rows, top to bottom
+    out = diagnose_problem(["Q1) 3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"], None, None, ["79,16,319,854"])
+    assert out["line_boxes"] == [[79, 16, 159, 854], [159, 16, 239, 854], [239, 16, 319, 854]]
+    assert diagnostician.split_block("79,16,90,854", 4) == []  # too thin to hold four lines
+
+
+def test_a_page_read_one_line_per_problem_is_put_back_together():
+    from app.agents.pages import diagnose_problem, join_continued
+    from app.llm.schemas import PageRead
+
+    read = PageRead(
+        problems=["Q1) 2/3 + 1/6", "= 4/6 + 1/6", "=> 5/6", "Q2) 3/5 + 1/5", "=> (3+1)/5", "=> 5/5 //"],
+        tags=["", "", "", "", "", "careless_arithmetic"],
+        error_steps=[0, 0, 0, 0, 0, 1],
+        boxes=[
+            "94,36,160,683",
+            "200,36,290,739",
+            "300,530,380,739",
+            "400,20,470,504",
+            "480,68,550,560",
+            "560,460,640,590",
+        ],
+    )
+    joined = join_continued(read)
+    assert [len(lines) for lines, *_ in joined] == [3, 3]
+    lines, tag, step, boxes = joined[1]
+    assert tag == "careless_arithmetic" and step == 3 and len(boxes) == 3
+    out = diagnose_problem(lines, tag, step, boxes)
+    assert out["error_step"] == 3 and out["line_boxes"][2] == [560, 460, 640, 590]
+    assert diagnose_problem(*joined[0])["correct"]

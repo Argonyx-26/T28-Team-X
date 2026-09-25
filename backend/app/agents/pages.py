@@ -106,6 +106,30 @@ def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None, 
     return out
 
 
+def join_continued(result: PageRead) -> list[tuple[list[str], str | None, int | None, list[str]]]:
+    """(lines, tag, wrong line, boxes) per problem. A model sometimes returns each line of working as its own problem;
+    an entry that starts by continuing a chain ("= 4/6 + 1/6", "=> 5/6") belongs to the problem before it."""
+    tags = list(result.tags or [])
+    steps = list(result.error_steps or [])
+    all_boxes = list(result.boxes or [])
+    out: list[tuple[list[str], str | None, int | None, list[str]]] = []
+    for i, text in enumerate(p for p in result.problems if p and p.strip()):
+        lines = [x.strip() for x in re.split(r"\s*\|\s*", text) if x.strip()]
+        if not lines:
+            continue
+        tag = tags[i] if i < len(tags) and tags[i] else None
+        step = steps[i] if i < len(steps) and steps[i] else None
+        boxes = diagnostician.box_groups([all_boxes[i]]) if i < len(all_boxes) and all_boxes[i] else []
+        if out and verifier._CHAIN_START.match(lines[0]):
+            before, before_tag, before_step, before_boxes = out[-1]
+            if step and not before_step:
+                step = len(before) + step
+            out[-1] = (before + lines, before_tag or tag, before_step or step, before_boxes + boxes)
+        else:
+            out.append((lines, tag, step, boxes))
+    return out
+
+
 async def read_page(jpeg: bytes, *, use_cache: bool = True) -> tuple[PageRead | None, list[dict]]:
     tags = "\n".join(f"- {t.tag}: {t.definition}" for t in get_topic().tags.values())
     prompt = f"Allowed misconception tags:\n{tags}\n\nThe photo shows one page of a student's fractions homework."
@@ -233,16 +257,8 @@ async def page(
             "saved": False,
             "unreadable": True,
         }
-    raw_problems = [p for p in result.problems if p and p.strip()][:MAX_PROBLEMS]
-    tags = list(result.tags or [])
-    steps = list(result.error_steps or [])
-    all_boxes = list(result.boxes or [])
     problems = []
-    for i, text in enumerate(raw_problems):
-        lines = [x for x in re.split(r"\s*\|\s*", text) if x.strip()]
-        tag = tags[i] if i < len(tags) and tags[i] else None
-        step = steps[i] if i < len(steps) and steps[i] else None
-        boxes = [b.strip() for b in all_boxes[i].split(";") if b.strip()] if i < len(all_boxes) and all_boxes[i] else []
+    for lines, tag, step, boxes in join_continued(result)[:MAX_PROBLEMS]:
         try:
             problems.append(diagnose_problem(lines, tag, step, boxes))
         except ApiError:

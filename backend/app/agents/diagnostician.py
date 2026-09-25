@@ -356,7 +356,23 @@ def _problem_text(line: str) -> str:
     return verifier.strip_enumerator(segs[0].text if segs else line).strip()
 
 
-_BOX = re.compile(r"(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)")
+# four numbers in a row, separated by commas or dashes: "280,95,350,531", "100,43-118,369" (corner to corner)
+_SEP = r"\s*[,\-–]\s*"
+_NUM = r"(\d+(?:\.\d+)?)"
+_BOX = re.compile(_NUM + _SEP + _NUM + _SEP + _NUM + _SEP + _NUM)
+
+
+def split_block(box: str, n: int) -> list[str]:
+    """One box drawn around a whole problem, cut into n equal rows: working on ruled paper is evenly spaced, so row k
+    is where line k is. Empty when the box can't hold n lines."""
+    m = _BOX.search(box)
+    if not m or n < 2:
+        return []
+    ymin, xmin, ymax, xmax = (float(x) for x in m.groups())
+    step = (ymax - ymin) / n
+    if step < 8:
+        return []
+    return [f"{round(ymin + k * step)},{round(xmin)},{round(ymin + (k + 1) * step)},{round(xmax)}" for k in range(n)]
 
 
 def box_groups(boxes: list[str] | None) -> list[str]:
@@ -398,7 +414,10 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
     # a name or roll number the model transcribed at the top is not working: drop it, and its box, and shift the
     # model's own step so every line number counts from the first line of working
     steps, dropped = verifier.strip_headers(steps)
-    boxes = box_groups(result.boxes)[dropped:]
+    groups = box_groups(result.boxes)
+    if len(groups) == 1 and len(steps) + dropped > 1:
+        groups = split_block(groups[0], len(steps) + dropped)  # one box around the whole problem
+    boxes = groups[dropped:]
     if not verifier.looks_like_working(steps):
         return _no_working(q, steps, result)
     if q.id != AUTO and _is_other_problem(q, steps):
