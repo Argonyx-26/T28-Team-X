@@ -1,0 +1,3 @@
+# the fake-camera fixture is raw video; never touch its line endings
+*.y4m binary
+*.png binary

@@ -22,3 +22,6 @@ node_modules/
 .notes/
 test-results/
 playwright-report/
+
+# built by e2e/fixtures/make-y4m.py before the snap test (32 MB; never committed)
+e2e/fixtures/*.y4m

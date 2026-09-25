@@ -9,7 +9,7 @@ export const FLAGS = {
   /** /present: the presenter's reset, warm and health page */
   PRESENT: on(process.env.NEXT_PUBLIC_FLAG_PRESENT, true),
   /** F2: snap mode on /teacher/[code]/snap (auto-capture from the rear camera) */
-  SNAP: on(process.env.NEXT_PUBLIC_FLAG_SNAP, false),
+  SNAP: on(process.env.NEXT_PUBLIC_FLAG_SNAP, true),
   /** F3: "Check my homework" on the student screen */
   HOMEWORK: on(process.env.NEXT_PUBLIC_FLAG_HOMEWORK, true),
   /** F9: text-to-speech on the student screens */
