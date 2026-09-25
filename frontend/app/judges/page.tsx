@@ -135,7 +135,7 @@ export default function JudgesPage() {
         <section aria-labelledby="tour" className="border-y border-rule bg-white/70">
           <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8">
             <h2 id="tour" className="mb-8 text-[clamp(26px,3.6vw,34px)] font-bold tracking-tight text-ink">
-              The tour: six stops, about 20 seconds each
+              The tour: six stops, about 15 seconds each
             </h2>
             <ol className="grid gap-4 md:grid-cols-2">
               {TOUR.map((t, i) => (

@@ -104,7 +104,7 @@ export function School({ id }: { id: string }) {
                         <Link className="font-medium underline-offset-2 hover:underline" href={`/teacher/${encodeURIComponent(c.code)}`}>
                           {c.class_name}
                         </Link>
-                        <span className={`${s.muted} ml-2 text-[0.8em]`}>{c.n_students} students{c.code !== "7B" && c.code.startsWith("7") && c.code.length === 2 ? " · sim" : ""}</span>
+                        <span className={`${s.muted} ml-2 text-[0.8em]`}>{c.n_students} students{c.code === "7B" ? " · 30 of them sim" :c.code.startsWith("7") && c.code.length === 2 ? " · sim" : ""}</span>
                       </th>
                       {data.concepts.map((k) => {
                         const v = c.averages[k.id];

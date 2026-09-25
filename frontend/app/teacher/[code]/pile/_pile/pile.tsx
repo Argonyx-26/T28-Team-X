@@ -228,7 +228,8 @@ export function Pile({ code }: { code: string }) {
               <section className={`${s.sheet} flex flex-col gap-2 p-4`} aria-live="polite" aria-label="Summary">
                 <p className="text-[1.1em]">
                   <span className={s.highlight}>
-                    {done.length} notebook{done.length === 1 ? "" : "s"} read in {elapsed.toFixed(0)} seconds
+                    {done.length} notebook{done.length === 1 ? "" : "s"} read in{" "}
+                    {elapsed < 1 ? "under a second" : `${elapsed.toFixed(0)} second${elapsed.toFixed(0) === "1" ? "" : "s"}`}
                   </span>
                   . {right.length} right, {wrong.length} with a mistake
                   {unreadable.length ? `, ${unreadable.length} need a second look` : ""}.
