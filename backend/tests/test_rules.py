@@ -111,12 +111,21 @@ def test_script_check():
 def _class(n_add=9, n_other=21):
     students = [f"a{i}" for i in range(n_add)] + [f"o{i}" for i in range(n_other)]
     mastery = {s: {"C4": 0.1 if s.startswith("a") else 0.8} for s in students}
-    responses = [{"student_id": s, "concept_id": "C4", "correct": False, "tag": "add_denominators", "phase": "quiz"}
-                 for s in students if s.startswith("a")]
-    responses += [{"student_id": s, "concept_id": "C4", "correct": True, "tag": None, "phase": "quiz"}
-                  for s in students if s.startswith("o")]
-    gaps = [{"student_id": s, "concept_id": "C4", "status": "open", "tag": "add_denominators"}
-            for s in students if s.startswith("a")]
+    responses = [
+        {"student_id": s, "concept_id": "C4", "correct": False, "tag": "add_denominators", "phase": "quiz"}
+        for s in students
+        if s.startswith("a")
+    ]
+    responses += [
+        {"student_id": s, "concept_id": "C4", "correct": True, "tag": None, "phase": "quiz"}
+        for s in students
+        if s.startswith("o")
+    ]
+    gaps = [
+        {"student_id": s, "concept_id": "C4", "status": "open", "tag": "add_denominators"}
+        for s in students
+        if s.startswith("a")
+    ]
     return students, mastery, responses, gaps
 
 
@@ -130,8 +139,13 @@ def test_analyst_aggregation_and_focus():
 
 def test_analyst_vetoes_a_whole_class_plan_with_numbers():
     a = rules.aggregate(TOPIC, *_class())
-    rec = {"concept_id": "C4", "misconception_tag": "add_denominators", "audience": "whole_class",
-           "plan_5min": ["a", "b", "c"], "worked_example": "3/4 + 1/4 = 4/4 = 1"}
+    rec = {
+        "concept_id": "C4",
+        "misconception_tag": "add_denominators",
+        "audience": "whole_class",
+        "plan_5min": ["a", "b", "c"],
+        "worked_example": "3/4 + 1/4 = 4/4 = 1",
+    }
     verdict, reason = rules.critique(TOPIC, a, [rec], 0)
     assert verdict == "revise" and reason.startswith("Only 9 of 30 students")
     rec["audience"] = "reteach_group"
@@ -141,8 +155,13 @@ def test_analyst_vetoes_a_whole_class_plan_with_numbers():
 
 def test_analyst_rejects_plans_without_evidence_or_too_long():
     a = rules.aggregate(TOPIC, *_class())
-    base = {"concept_id": "C4", "misconception_tag": "add_denominators", "audience": "reteach_group",
-            "plan_5min": ["a", "b", "c"], "worked_example": "x"}
+    base = {
+        "concept_id": "C4",
+        "misconception_tag": "add_denominators",
+        "audience": "reteach_group",
+        "plan_5min": ["a", "b", "c"],
+        "worked_example": "x",
+    }
     assert rules.critique(TOPIC, a, [{**base, "concept_id": "C99"}], 0)[0] == "revise"
     assert rules.critique(TOPIC, a, [{**base, "misconception_tag": "divide_no_flip"}], 0)[0] == "revise"
     assert rules.critique(TOPIC, a, [{**base, "plan_5min": list("abcdef")}], 0)[0] == "revise"

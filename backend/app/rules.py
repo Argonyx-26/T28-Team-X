@@ -24,6 +24,7 @@ def stable_rng(*parts: str) -> random.Random:
 
 # ---------- mastery and gaps ----------
 
+
 def update_mastery(value: float, correct: bool) -> float:
     value = value + 0.15 if correct else value - 0.20
     return round(min(1.0, max(0.0, value)), 3)
@@ -38,6 +39,7 @@ def closed_mastery(value: float) -> float:
 
 
 # ---------- diagnosis (rules first) ----------
+
 
 @dataclass
 class RuleDiagnosis:
@@ -90,6 +92,7 @@ def validate_llm_tag(topic: Topic, tag: str | None, confidence: float) -> tuple[
 
 # ---------- the Examiner ----------
 
+
 def shuffled_options(question: Question, student_id: str) -> list[str]:
     texts = [o.text for o in question.options]
     stable_rng(student_id, question.id).shuffle(texts)
@@ -97,10 +100,7 @@ def shuffled_options(question: Question, student_id: str) -> list[str]:
 
 
 def ready_concepts(topic: Topic, mastery: dict[str, float]) -> list[str]:
-    return [
-        c.id for c in topic.concepts
-        if all(mastery.get(p, START_MASTERY) >= READY_AT for p in c.prereqs)
-    ]
+    return [c.id for c in topic.concepts if all(mastery.get(p, START_MASTERY) >= READY_AT for p in c.prereqs)]
 
 
 def _first_unseen(topic: Topic, concept_id: str, seen: set[str], asked_here: int, kinds: tuple[str, ...]):
@@ -168,6 +168,7 @@ def pick_retry(topic: Topic, concept_id: str, tag: str | None, seen: set[str], n
 
 
 # ---------- the Analyst ----------
+
 
 @dataclass
 class ConceptStats:
@@ -318,16 +319,26 @@ def critique(topic: Topic, analysis: ClassAnalysis, recs: list[dict], index: int
 
 # ---------- the simulator (zero LLM) ----------
 
+
+def _slip(question: Question) -> str:
+    """A small calculation slip on a typed answer: right method, numerator off by one."""
+    value = parse_answer(question.answer).value
+    return f"{value.numerator + 1}/{value.denominator}" if value.denominator != 1 else str(value.numerator + 1)
+
+
 def simulate_answer(rng: random.Random, question: Question, p_correct: float, preferred_tag: str | None) -> str:
     if rng.random() < p_correct:
         return question.answer if question.kind != "mcq" else next(o.text for o in question.options if o.correct)
+    # students without a known misconception on this concept mostly make slips, not conceptual mistakes
+    slip = preferred_tag is None and rng.random() < 0.6
     if question.kind == "mcq":
         wrong = [o for o in question.options if not o.correct]
-        preferred = [o for o in wrong if o.tag == preferred_tag]
+        wanted = "careless_arithmetic" if slip else preferred_tag
+        preferred = [o for o in wrong if o.tag == wanted]
         return (preferred[0] if preferred else rng.choice(wrong)).text
     wrong_answers = list(question.wrong_answers.items())
-    if not wrong_answers:
-        return "0"
+    if slip or not wrong_answers:
+        return _slip(question)
     preferred = [a for a, t in wrong_answers if t == preferred_tag]
     return preferred[0] if preferred else rng.choice(wrong_answers)[0]
 
