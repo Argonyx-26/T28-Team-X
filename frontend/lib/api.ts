@@ -79,7 +79,7 @@ export const api = {
     ),
 
   answerQuestion: (data: { student_id: string; question_id: string; answer: string }) =>
-    withFixture(FIXTURES.answerQuestion, () =>
+  withFixture(() => FIXTURES.answerQuestion(data.answer), () =>
       request<T.AnswerResponse>("/agents/diagnostician/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

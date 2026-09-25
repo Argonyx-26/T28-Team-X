@@ -135,22 +135,28 @@ export const FIXTURES = {
     reason: "Next question",
   }),
 
-  answerQuestion: (): AnswerResponse => ({
-    correct: false,
-    misconception_tag: "add_denominators",
-    label: "added the denominators too",
-    label_en: "added the denominators too",
-    feedback: "You added the top numbers and the bottom numbers. Only add the top numbers when the bottoms are the same.",
+  answerQuestion: (answer = "5/6"): AnswerResponse => {
+  const correct = answer.trim() === "5/6";
+
+  return {
+    correct,
+    misconception_tag: correct ? null : "add_denominators",
+    label: correct ? null : "added the denominators too",
+    label_en: correct ? null : "added the denominators too",
+    feedback: correct
+      ? "Great job! You found a common denominator before adding."
+      : "You added the top numbers and the bottom numbers. Find a common denominator first.",
     correct_answer: "5/6",
-    source: "llm",
+    source: correct ? "key" : "llm",
     confidence: 0.9,
     concept_id: "C4",
     mastery_before: 0.5,
-    mastery_after: 0.3,
-    gap_opened: true,
-    gap_open: true,
+    mastery_after: correct ? 0.7 : 0.3,
+    gap_opened: !correct,
+    gap_open: !correct,
     telemetry: mockTelemetry,
-  }),
+  };
+},
 
   photoDiagnose: (): PhotoResponse => ({
     student_id: "demo_asha",
