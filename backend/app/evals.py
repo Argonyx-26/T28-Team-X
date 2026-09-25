@@ -180,9 +180,11 @@ async def run_photos() -> list[dict]:
     topic = get_topic()
     folder = settings.data_dir / "evidence" / "photos"
     labels = list(csv.DictReader(open(settings.data_dir / "evidence" / "labels.csv", encoding="utf-8")))
-    rows, ms, paise = [], [], []
+    rows, ms, paise, writers, cards = [], [], [], set(), set()
     for label in labels:
         for photo in sorted(folder.glob(f"{label['card']}_*")):
+            writers.add(label["writer"])
+            cards.add(label["card"])
             q = topic.question(label["question_id"])
             reading, telemetry = await read_photo(q, prepare_image(photo.read_bytes()), use_cache=False)
             ms += [t["ms"] for t in telemetry if t["ok"]]
@@ -219,7 +221,8 @@ async def run_photos() -> list[dict]:
     wrong = [r for r in rows if not r["truth_correct"]]
     tag_ok = sum(r["tag"] == r["truth_tag"] for r in wrong)
     step_ok = sum(r["step"] == r["truth_step"] for r in wrong)
-    method = f"{n} phone photos of handwritten working by 3 writers, labelled before running the model"
+    who = f"{len(writers)} writer" + ("s" if len(writers) != 1 else "")
+    method = f"{n} phone photos of {len(cards)} handwritten pages by {who}, labelled before running the model"
     numbers = [
         {
             "label": "Handwritten work marked right or wrong correctly",
@@ -275,6 +278,7 @@ def _save(kind: str, numbers: list[dict], rows: list[dict]) -> None:
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # ₹ in the output crashes a Windows console
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "typed":
         asyncio.run(run_typed())

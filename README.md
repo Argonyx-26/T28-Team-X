@@ -87,7 +87,7 @@ Every number carries *n* and the method. The raw rows are in [data/evals/results
 | Question bank verified | 37 of 37 | every answer and every distractor is checked by exact fraction arithmetic in the test suite (part of the backend test suite) |
 | Mistake named from a typed answer alone (the LLM fallback) | **27/30** | new problems, answered by applying a known wrong procedure (the label comes from how the answer was built); final answer only, no working |
 | AI cost per student per month | **₹3.64** | measured calls (3 per action) × published per-token prices, for one photo diagnosis, lesson, parent message and Kannada voice note per student per week plus a shared class plan; the voice note is ₹2.56 of it ([unit_costs.json](data/evals/unit_costs.json)) |
-| Handwritten work: wrong step circled, mistake named | *running on the 24 card photos* | 12 cards by 3 writers, labelled before running the model ([labels](data/evidence/labels.csv)) |
+| Handwritten work: wrong step circled, mistake named | **6/6** and **6/6** (median 2.3 s per photo) | 6 real phone photos of 3 handwritten pages by 1 writer, labelled before running the model ([labels](data/evidence/labels.csv), [photos](data/evidence/photos)). Small n: the other 2 writers' pages are still to be photographed |
 
 What we don't claim: we ran no classroom trial, have no users and no learning-gain data. The 30 students in class 7B are simulated, and Asha is a demo student.
 

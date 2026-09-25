@@ -6,6 +6,41 @@
    "n": 30,
    "method": "wrong answers built by applying a known wrong procedure to new problems (label by construction); final answer only, no working shown",
    "kind": "typed"
+  },
+  {
+   "label": "Handwritten work marked right or wrong correctly",
+   "value": "6/6",
+   "n": 6,
+   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model",
+   "kind": "photos"
+  },
+  {
+   "label": "Wrong step circled correctly",
+   "value": "6/6",
+   "n": 6,
+   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; wrong answers only",
+   "kind": "photos"
+  },
+  {
+   "label": "Misconception named correctly from a photo",
+   "value": "6/6",
+   "n": 6,
+   "method": "6 phone photos of 3 handwritten pages by 1 writer, labelled before running the model; wrong answers only",
+   "kind": "photos"
+  },
+  {
+   "label": "Photo diagnosis time (median / p95)",
+   "value": "2.3 s / 3.4 s",
+   "n": 6,
+   "method": "server-side model time per photo during the evaluation",
+   "kind": "photos"
+  },
+  {
+   "label": "Cost per photo diagnosis",
+   "value": "₹0.15",
+   "n": 6,
+   "method": "measured tokens x published price per token, ₹88 per USD",
+   "kind": "photos"
   }
  ],
  "runs": {
@@ -279,6 +314,92 @@
     "student": "1/10",
     "predicted": "bigger_denominator_bigger",
     "ok": true
+   }
+  ],
+  "photos": [
+   {
+    "photo": "A_P1_1.jpg",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "read": [
+     "3/4 + 1/4",
+     "= (3+1)/(4+4)",
+     "= 4/8"
+    ],
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2
+   },
+   {
+    "photo": "A_P1_2.jpg",
+    "truth_correct": false,
+    "truth_tag": "add_denominators",
+    "truth_step": 2,
+    "read": [
+     "3/4 + 1/4",
+     "= (3+1)/(4+4)",
+     "= 4/8"
+    ],
+    "correct": false,
+    "tag": "add_denominators",
+    "step": 2
+   },
+   {
+    "photo": "A_P2_1.jpg",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "read": [
+     "2/3 + 1/6",
+     "= (2 + 1) / 6",
+     "= 3/6"
+    ],
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 2
+   },
+   {
+    "photo": "A_P2_2.jpg",
+    "truth_correct": false,
+    "truth_tag": "unlike_denominators",
+    "truth_step": 2,
+    "read": [
+     "2/3 + 1/6",
+     "= (2 + 1)/6",
+     "= 3/6"
+    ],
+    "correct": false,
+    "tag": "unlike_denominators",
+    "step": 2
+   },
+   {
+    "photo": "A_P3_1.jpg",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "read": [
+     "3/5 ÷ 3/10",
+     "= 3/5 x 3/10",
+     "= 9/50"
+    ],
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2
+   },
+   {
+    "photo": "A_P3_2.jpg",
+    "truth_correct": false,
+    "truth_tag": "divide_no_flip",
+    "truth_step": 2,
+    "read": [
+     "3/5 ÷ 3/10",
+     "= 3/5 x 3/10",
+     "= 9/50"
+    ],
+    "correct": false,
+    "tag": "divide_no_flip",
+    "step": 2
    }
   ]
  }

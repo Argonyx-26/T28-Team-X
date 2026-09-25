@@ -48,9 +48,11 @@ const KEY_ORDER = [
 // What the landing page shows first, in this order, when the number exists. Live counters since the last
 // reset (they include our own testing) stay on /judges, where their method says so.
 const LANDING_ORDER = [
-  ...KEY_ORDER,
+  "Wrong step circled correctly",
+  "Misconception named correctly from a photo",
   "Photo diagnosis time (median / p95)",
   "AI cost per student per month",
+  "Mistake named correctly from a typed answer alone (LLM fallback)",
   "Questions in the verified bank",
 ];
 
