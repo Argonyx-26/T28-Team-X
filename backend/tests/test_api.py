@@ -187,3 +187,11 @@ def test_cached_demo_mode_needs_no_provider(client, monkeypatch):
     r = client.post("/agents/analyst/analyze", json={"session_id": DEMO_SESSION_ID}).json()
     assert r["steps"][1]["critiques"][0]["verdict"] == "revise" and r["final"]
     assert CALLS == []
+
+
+def test_notebook_stack_reads_photos_in_parallel(client):
+    ids = client.get("/teacher/dashboard", params={"session_id": DEMO_SESSION_ID}).json()["heatmap"]["students"][:3]
+    files = [("images", (f"{i}.png", _png(), "image/png")) for i in range(3)]
+    data = {"question_id": "P1", "student_ids": [s["id"] for s in ids]}
+    r = client.post("/agents/diagnostician/stack", data=data, files=files).json()
+    assert len(r["results"]) == 3 and all(x["error_step"] == 2 for x in r["results"])

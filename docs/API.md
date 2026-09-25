@@ -178,6 +178,7 @@ export interface JudgesSummary {
 | `POST /agents/examiner/next` | `{student_id}` | `NextResponse` (5 questions per quiz) |
 | `POST /agents/diagnostician/answer` | `{student_id, question_id, answer}`. For an MCQ, send the option text exactly | `AnswerResponse` |
 | `POST /agents/diagnostician/photo` | *multipart*: `student_id`, `question_id` (P1–P4), `image` | `PhotoResponse` (≈3–8 s) |
+| `POST /agents/diagnostician/stack` | *multipart*: `question_id`, repeated `student_ids`, repeated `images` (same order, ≤40) | `{results: (PhotoResponse \| {student_id, error})[]}`. Reads 6 at a time (SHOULD: the notebook pile) |
 | `POST /agents/curator/lesson` | `{student_id}` | `LessonResponse`. Poll while `generating` |
 | `POST /agents/examiner/retry` | `{student_id, answers:[{question_id, answer}]}` | `RetryResponse` |
 | `POST /agents/simulator/run` | `{session_id, n?:30}` | `{students_added, answers, gaps_closed, llm_calls:0}` |

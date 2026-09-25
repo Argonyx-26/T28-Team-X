@@ -1,5 +1,6 @@
 """HTTP routes. One endpoint per agent action; IDs travel in the body or query string, never in the path."""
 
+import asyncio
 import secrets
 import time
 from collections import defaultdict, deque
@@ -188,6 +189,31 @@ async def diagnostician_photo(
     _limit(request, "photo", 20)
     data = await image.read(diagnostician.MAX_IMAGE_BYTES + 1)
     return await diagnostician.photo(student_id, question_id, data)
+
+
+@router.post("/agents/diagnostician/stack")
+async def diagnostician_stack(
+    request: Request,
+    question_id: str = Form(...),
+    student_ids: list[str] = Form(...),
+    images: list[UploadFile] = File(...),
+) -> dict:
+    """A pile of notebooks: one photo per student, read in parallel (at most 6 at a time)."""
+    _limit(request, "stack", 5)
+    if len(student_ids) != len(images) or not 1 <= len(images) <= 40:
+        raise ApiError(422, "stack_mismatch", "Send one student per photo, up to 40 photos.")
+    gate = asyncio.Semaphore(6)
+
+    async def one(student_id: str, image: UploadFile) -> dict:
+        async with gate:
+            try:
+                data = await image.read(diagnostician.MAX_IMAGE_BYTES + 1)
+                return await diagnostician.photo(student_id, question_id, data)
+            except ApiError as exc:
+                return {"student_id": student_id, "error": {"code": exc.code, "message": exc.message}}
+
+    results = await asyncio.gather(*(one(s, i) for s, i in zip(student_ids, images, strict=True)))
+    return {"results": results}
 
 
 @router.post("/agents/curator/lesson")
