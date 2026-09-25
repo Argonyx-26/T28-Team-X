@@ -8,7 +8,7 @@ from ..topic import get_topic
 from . import state
 
 
-def question_out(question, student_id: str) -> dict:
+def question_out(question, student_id: str, language: str = "en") -> dict:
     topic = get_topic()
     return {
         "id": question.id,
@@ -16,7 +16,7 @@ def question_out(question, student_id: str) -> dict:
         "stem": question.stem,
         "options": rules.shuffled_options(question, student_id) if question.kind == "mcq" else None,
         "concept_id": question.concept_id,
-        "concept_name": topic.concept(question.concept_id).name,
+        "concept_name": topic.concept(question.concept_id).name_in(language),
     }
 
 
@@ -57,7 +57,7 @@ def next_question(student_id: str) -> dict:
             "done": False,
             "index": done_count + 1,
             "total": total,
-            "question": question_out(question, student_id),
+            "question": question_out(question, student_id, student["language"]),
             "reason": reason,
         }
 

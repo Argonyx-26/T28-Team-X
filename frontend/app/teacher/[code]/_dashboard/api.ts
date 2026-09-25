@@ -175,6 +175,61 @@ export interface Topic {
   photo_questions: { id: string; stem: string; concept_id: string }[];
 }
 
+export interface QuestionOut {
+  id: string;
+  kind: "mcq" | "text";
+  stem: string;
+  options: string[] | null;
+  concept_id: string;
+  concept_name: string;
+}
+
+export interface NextResponse {
+  done: boolean;
+  index: number;
+  total: number;
+  question: QuestionOut | null;
+  reason: string;
+}
+
+export interface AnswerResponse {
+  correct: boolean;
+  misconception_tag: string | null;
+  label: string | null;
+  feedback: string;
+  correct_answer: string;
+  source: string;
+  concept_id: string;
+  mastery_after: number;
+  gap_opened: boolean;
+  gap_open: boolean;
+  telemetry: Telemetry[];
+}
+
+export interface LessonResponse {
+  status: "ready" | "generating" | "none";
+  lesson: {
+    language: Lang;
+    language_label: string;
+    lesson_md: string;
+    practice: { question: string; answer: string }[];
+    concept_id: string;
+    concept_name: string;
+    tag: string;
+    label: string;
+    translated: boolean;
+  } | null;
+  retry: QuestionOut[] | null;
+  telemetry: Telemetry[];
+}
+
+export interface RetryResponse {
+  gap_closed: boolean;
+  concept_id: string;
+  mastery_after: number;
+  results: { question_id: string; correct: boolean; correct_answer: string }[];
+}
+
 export type ReviewVerdict = "agree" | "change_tag" | "change_step" | "mark_correct";
 
 export class ApiError extends Error {
@@ -219,6 +274,17 @@ export const api = {
   approve: (recommendationId: string) => post<{ ok: true }>("/teacher/approve", { recommendation_id: recommendationId }),
   parentMessage: (studentId: string) => post<ParentMessage>("/agents/coach/parent-message", { student_id: studentId }),
   topic: () => call<Topic>("/topic"),
+  join: (code: string, nickname: string, language: Lang) =>
+    post<{ student_id: string; session_id: string; nickname: string; language: Lang; resumed: boolean }>(
+      "/students/join",
+      { code, nickname, language },
+    ),
+  next: (studentId: string) => post<NextResponse>("/agents/examiner/next", { student_id: studentId }),
+  answer: (studentId: string, questionId: string, answer: string) =>
+    post<AnswerResponse>("/agents/diagnostician/answer", { student_id: studentId, question_id: questionId, answer }),
+  lesson: (studentId: string) => post<LessonResponse>("/agents/curator/lesson", { student_id: studentId }),
+  retry: (studentId: string, answers: { question_id: string; answer: string }[]) =>
+    post<RetryResponse>("/agents/examiner/retry", { student_id: studentId, answers }),
   photo: (studentId: string, questionId: string, image: Blob) => {
     const form = new FormData();
     form.append("student_id", studentId);

@@ -140,7 +140,7 @@ async def lesson(student_id: str) -> dict:
     if not gap:
         return {"status": "none", "lesson": None, "retry": None, "telemetry": []}
     concept_id, tag, language = gap["concept_id"], gap["tag"] or "unclassified", student["language"]
-    retry = [question_out(q, student_id) for q in rules.pick_retry(topic, concept_id, tag, seen)]
+    retry = [question_out(q, student_id, student["language"]) for q in rules.pick_retry(topic, concept_id, tag, seen)]
     key = lesson_key(concept_id, tag, language)
 
     payload = _cached(key)
