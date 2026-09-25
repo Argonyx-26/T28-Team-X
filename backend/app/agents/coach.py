@@ -338,7 +338,7 @@ async def parent_message(student_id: str) -> dict:
         prompts.PARENT,
         json.dumps(facts, ensure_ascii=False),
         ParentMessageOut,
-        route=("vertex", "nebius") if language in ("kn", "hi") else ("nebius", "vertex"),
+        route=("vertex", "vertex_alt", "nebius") if language in ("kn", "hi") else ("nebius", "vertex", "vertex_alt"),
         validate=lambda m: rules.is_in_language(m.message, language),
     )
     if result:

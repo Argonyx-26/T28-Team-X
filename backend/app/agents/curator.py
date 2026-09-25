@@ -67,7 +67,7 @@ async def _generate(key: str, concept_id: str, tag: str, language: str) -> dict 
         f"A correct worked method: {_example_method(concept_id, tag)}\n"
         f"Target language: {prompts.LANGUAGE_NAMES.get(language, 'English')}. Set the language field to '{language}'."
     )
-    route = ("vertex", "nebius") if language in ("kn", "hi") else ("nebius", "vertex")
+    route = ("vertex", "vertex_alt", "nebius") if language in ("kn", "hi") else ("nebius", "vertex", "vertex_alt")
     result, telemetry = await generate(
         "Curator",
         "lesson",

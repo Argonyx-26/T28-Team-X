@@ -33,6 +33,8 @@ class Settings:
     vertex_model: str = field(default_factory=lambda: _env("VERTEX_MODEL", "gemini-2.5-flash"))
     vertex_vision_model: str = field(default_factory=lambda: _env("VERTEX_VISION_MODEL", "gemini-3-flash-preview"))
     vertex_hedge_model: str = field(default_factory=lambda: _env("VERTEX_HEDGE_MODEL", "gemini-2.5-flash"))
+    # a different Gemini model as the text fallback, so one model having a bad minute doesn't stop the agents
+    vertex_fallback_model: str = field(default_factory=lambda: _env("VERTEX_FALLBACK_MODEL", "gemini-2.5-flash-lite"))
     hedge_after_s: float = field(default_factory=lambda: float(_env("HEDGE_AFTER_S", "6")))
 
     text_timeout_s: float = field(default_factory=lambda: float(_env("TEXT_TIMEOUT_S", "15")))

@@ -100,7 +100,7 @@ Write down the mentor's answer word for word; we act on it.
 
 ## 9. 3:15 AM: the 2-minute video
 - **Script** (AI Studio):
-  > Write a 2:00 demo-video script with timestamps: a 10 s hook (Asha's notebook), a 60 s product loop (scan → red circle → dashboard → agents argue → Kannada lesson → gap closed), a 20 s "how it works" (AI vs rules; Nebius runs the agents; Raah watches them), 20 s on impact, and a 10 s close with the repo and site. Include on-screen caption text per shot.
+  > Write a 2:00 demo-video script with timestamps: a 10 s hook (Asha's notebook), a 60 s product loop (scan → red circle → dashboard → agents argue → Kannada lesson → gap closed), a 20 s "how it works" (AI vs rules; Gemini on Google Cloud reads the handwriting and writes the lessons; Raah watches every agent's speed from the teacher's browser), 20 s on impact, and a 10 s close with the repo and site. Include on-screen caption text per shot.
 - **Record:** screen-record the real app (Win+Alt+R, or OBS). Add a voice-over and captions in Clipchamp. Export at 1080p, upload to YouTube as **unlisted**, and keep a local copy.
 
 ## 10. Sat 8:30 → 10:30
@@ -108,3 +108,6 @@ Write down the mentor's answer word for word; we act on it.
 2. Rehearse ×3 with a timer.
 3. **Submit on the GitHub repo** as the organizers asked.
 4. LinkedIn post #2 with the video.
+
+---
+**Note (2 PM): we are not using Nebius.** Nebius needs a bank card to get an API key, so every AI call runs on Google Gemini, paid from our free Google Cloud credit. Never say "Nebius runs the agents". If asked, the honest answer is: "The code supports Nebius's API as a drop-in provider; for the event we ran on Gemini."

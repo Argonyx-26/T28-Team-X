@@ -29,6 +29,7 @@ INR_PER_USD = 88.0
 PRICES: dict[str, tuple[float, float]] = {
     "gemini-3-flash-preview": (0.50, 3.00),
     "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-2.5-flash-lite": (0.10, 0.40),
     "nebius": (0.20, 0.60),
     "vertex": (0.50, 3.00),
 }
@@ -128,8 +129,9 @@ async def _call_vertex(
 async def _call_vertex_alt(
     system: str, prompt: str, schema: type[BaseModel], image: bytes | None, mime: str, thinking: int = 0
 ):
-    """A second Gemini model, used to hedge slow calls."""
-    return await _vertex_generate(settings.vertex_hedge_model, system, prompt, schema, image, mime, thinking)
+    """A second Gemini model: hedges slow photo reads and backs up text calls."""
+    model = settings.vertex_hedge_model if image else settings.vertex_fallback_model
+    return await _vertex_generate(model, system, prompt, schema, image, mime, thinking)
 
 
 CALLERS: dict[str, Caller] = {"nebius": _call_nebius, "vertex": _call_vertex, "vertex_alt": _call_vertex_alt}
@@ -197,7 +199,7 @@ async def generate(
     *,
     image: bytes | None = None,
     image_mime: str = "image/jpeg",
-    route: tuple[str, ...] = ("nebius", "vertex"),
+    route: tuple[str, ...] = ("nebius", "vertex", "vertex_alt"),
     timeout: float | None = None,
     use_cache: bool = True,
     validate: Callable[[T], bool] | None = None,
@@ -229,7 +231,7 @@ async def generate(
         if provider == "vertex":
             model = settings.vertex_vision_model if image else settings.vertex_model
         elif provider == "vertex_alt":
-            model = settings.vertex_hedge_model
+            model = settings.vertex_hedge_model if image else settings.vertex_fallback_model
         else:
             model = settings.nebius_vision_model if image else settings.nebius_model
         try:
