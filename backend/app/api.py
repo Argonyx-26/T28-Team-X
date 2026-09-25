@@ -194,7 +194,7 @@ async def diagnostician_photo(
     question_id: str = Form(...),
     image: UploadFile = File(...),
 ) -> dict:
-    _limit(request, "photo", 20)
+    _limit(request, "photo", 60)
     data = await image.read(diagnostician.MAX_IMAGE_BYTES + 1)
     return await diagnostician.photo(student_id, question_id, data)
 

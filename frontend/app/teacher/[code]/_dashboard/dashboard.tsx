@@ -240,6 +240,9 @@ export function Dashboard({ code }: { code: string }) {
           <Link className={s.button} href={`/teacher/${encodeURIComponent(code)}/scan`}>
             Scan a notebook
           </Link>
+          <Link className={s.button} href={`/teacher/${encodeURIComponent(code)}/pile`}>
+            Read a pile
+          </Link>
           <button
             type="button"
             className={s.button}
