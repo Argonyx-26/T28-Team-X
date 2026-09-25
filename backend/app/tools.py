@@ -352,25 +352,27 @@ def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
         errs = 0
         calls = 0
 
-        def one(i: int) -> tuple[float, bool, int]:
+        def one(i: int) -> tuple[float, bool, int, int]:
             c = httpx.Client(base_url=base.rstrip("/"), timeout=120)
             f = files[i % len(files)]
             t = time.perf_counter()
             r = c.post(
                 "/agents/diagnostician/photo",
-                data={"student_id": ids[i % len(ids)], "question_id": "P1"},
+                data={"student_id": ids[i % len(ids)], "question_id": "AUTO"},
                 files={"image": (f.name, f.read_bytes(), "image/jpeg")},
             )
             n_calls = (
                 len([t for t in r.json().get("telemetry", []) if not t.get("cached")]) if r.status_code == 200 else 0
             )
-            return time.perf_counter() - t, r.status_code == 200, n_calls
+            return time.perf_counter() - t, r.status_code == 200, n_calls, r.status_code
 
+        page_statuses: dict[int, int] = {}
         with cf.ThreadPoolExecutor(max_workers=6) as pool:
-            for d, ok, n_calls in pool.map(one, range(n_pages)):
+            for d, ok, n_calls, status in pool.map(one, range(n_pages)):
                 durations.append(d)
                 errs += int(not ok)
                 calls += n_calls
+                page_statuses[status] = page_statuses.get(status, 0) + 1
         wall = time.perf_counter() - started
         ds = sorted(durations)
         out["pages"] = {
@@ -381,13 +383,14 @@ def load(base: str, n_students: int = 40, n_pages: int = 36) -> int:
             "p50_s": round(statistics.median(ds), 2),
             "p95_s": round(ds[int(0.95 * (len(ds) - 1))], 2),
             "errors": errs,
-            "status_codes": dict(sorted(statuses.items())),
+            "status_codes": dict(sorted(page_statuses.items())),
             "gemini_calls": calls,
         }
         print("pages", out["pages"])
     out["method"] = (
         f"{n_students} simulated students joining and answering 5 questions each at once through the rules path "
-        f"(no AI call), then {n_pages} notebook photos read 6 at a time through the vision model; run on its own "
+        f"(no AI call), then {n_pages} notebook photos read 6 at a time through the vision model as any-problem "
+        "pages (8 distinct photos, so repeats are served from the cache); run on its own "
         "class on a no-traffic tagged revision of the API with 1 instance, 1 worker"
     )
     path = settings.data_dir / "evals" / "load.json"

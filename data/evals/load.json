@@ -1,25 +1,32 @@
 {
  "api": "https://next---gurugraph-api-215071922486.asia-south1.run.app",
- "class": "0C3B",
+ "class": "6C31",
  "students": 40,
  "pages": {
   "pages": 36,
   "parallel": 6,
-  "wall_s": 15.9,
-  "pages_per_min": 135.7,
-  "p50_s": 0.19,
-  "p95_s": 6.19,
-  "errors": 4,
-  "gemini_calls": 9
+  "wall_s": 8.8,
+  "pages_per_min": 246.7,
+  "p50_s": 0.15,
+  "p95_s": 3.08,
+  "errors": 0,
+  "status_codes": {
+   "200": 36
+  },
+  "gemini_calls": 2
  },
  "answers": {
-  "requests": 340,
-  "wall_s": 6.1,
-  "rps": 55.5,
-  "p50_ms": 109,
-  "p95_ms": 192,
-  "errors": 40,
+  "requests": 240,
+  "wall_s": 6.3,
+  "rps": 38.2,
+  "p50_ms": 96,
+  "p95_ms": 164,
+  "errors": 20,
+  "status_codes": {
+   "200": 220,
+   "429": 20
+  },
   "gemini_calls": 0
  },
- "method": "40 simulated students joining and answering 5 questions each at once through the rules path (no AI call), then 36 notebook photos read 6 at a time through the vision model; run on its own class on a no-traffic tagged revision of the API with 1 instance, 1 worker"
+ "method": "40 simulated students joining and answering 5 questions each at once through the rules path (no AI call), then 36 notebook photos read 6 at a time through the vision model as any-problem pages (8 distinct photos, so repeats are served from the cache); run on its own class on a no-traffic tagged revision of the API with 1 instance, 1 worker"
 }
