@@ -9,7 +9,7 @@ export const SITE = {
   /** the 2-minute demo video; set it here (not on the API) so changing it never restarts the API */
   video: "",
   /** the public Raah status page (one component per agent endpoint) */
-  statusPage: "",
+  statusPage: "https://raah.dev/status/gurugraph",
   description:
     "Snap a photo of a student's notebook. GuruGraph circles the exact step that went wrong, tells the teacher what to re-teach tomorrow, and gives the child a short lesson in Kannada, Hindi or English.",
 } as const;
