@@ -29,6 +29,7 @@ def _fake_payload(schema_name: str, prompt: str) -> dict:
             "misconception_tag": "add_denominators",
             "confidence": 0.92,
             "feedback_student": "In line 2 you added the denominators. Keep the denominator 4.",
+            "boxes": ["120,80,200,520", "240,80,320,700", "360,80,440,420"],
         }
     if schema_name == "LessonOut":
         if "Kannada" in prompt:

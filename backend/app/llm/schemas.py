@@ -19,6 +19,7 @@ class PhotoDiagnosis(BaseModel):
     misconception_tag: str
     confidence: float = Field(ge=0, le=1)
     feedback_student: str
+    boxes: list[str] = []  # parallel to steps: "ymin,xmin,ymax,xmax" on a 0-1000 scale (kept flat on purpose)
 
 
 class PracticeItem(BaseModel):

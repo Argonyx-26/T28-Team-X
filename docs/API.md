@@ -89,6 +89,7 @@ export interface PhotoResponse {
     lines: { text: string; value: string | null; values: (string | null)[]; ok: boolean | null }[];
   } | null;
   problem: string;                    // the problem as posed: the bank stem, or the first line the student wrote (question_id AUTO)
+  line_boxes: [number, number, number, number][] | null; // F5: one box per transcribed line, [ymin, xmin, ymax, xmax] on 0–1000, validated (inside the image, top to bottom, sensible sizes); null = show the transcript view
 }
 
 // F2 snap mode and F3 homework check: one vision call reads a whole page (the header and every problem)

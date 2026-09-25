@@ -254,6 +254,29 @@ def check_steps(q: Question, steps: list[str]) -> verifier.Verdict:
     )
 
 
+def line_boxes(boxes: list[str], n_steps: int) -> list[list[int] | None] | None:
+    """The model's box per transcribed line, validated: inside the image, top to bottom, sensible sizes. None when the
+    set fails, so the UI falls back to the transcript view."""
+    if not boxes or len(boxes) < n_steps:
+        return None
+    out: list[list[int] | None] = []
+    last_y = -1
+    for raw in boxes[:n_steps]:
+        try:
+            ymin, xmin, ymax, xmax = (int(float(x)) for x in str(raw).replace(";", ",").split(",")[:4])
+        except (TypeError, ValueError):
+            return None
+        if not (0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000):
+            return None
+        if not (8 <= ymax - ymin <= 400 and 30 <= xmax - xmin <= 1000):
+            return None
+        if ymin < last_y - 40:  # lines run down the page; a little overlap is fine
+            return None
+        last_y = ymin
+        out.append([ymin, xmin, ymax, xmax])
+    return out
+
+
 def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
     """The model transcribes; arithmetic judges. The model's own step and tag are a second opinion.
 
@@ -329,6 +352,7 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         "source": source,
         "needs_typed_answer": not correct and tag == "unclassified" and verdict.status != "verified",
         "line_values": [x.value for x in verdict.lines],
+        "line_boxes": line_boxes(result.boxes, len(steps)),
         "reproduced_by": reproduced_by,
         "verifier": verdict.as_dict(),
         "problem": (steps[verdict.problem_line] if q.id == AUTO and steps else q.stem),
@@ -436,6 +460,7 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             "mastery_after": None,
             "gap_opened": False,
             "line_values": [],
+            "line_boxes": None,
             "reproduced_by": None,
             "verifier": None,
             "problem": q.stem,

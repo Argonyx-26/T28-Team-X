@@ -221,8 +221,8 @@ def test_model_and_verifier_disagreement_is_marked_for_the_teacher():
     q = get_topic().question("P1")
     # the arithmetic finds line 2 wrong with no known rule; the model circled line 3 with a different tag
     odd = PhotoDiagnosis(
-        steps=["3/4 + 1/4", "= 3/4 + 2/4", "= 7/4"],
-        final_answer_read="7/4",
+        steps=["3/4 + 1/4", "= 3/4 + 3/4", "= 6/4"],
+        final_answer_read="6/4",
         correct=False,
         error_step=3,
         misconception_tag="careless_arithmetic",
@@ -260,3 +260,31 @@ def test_header_lines_are_not_the_problem():
     assert v.correct and v.problem_line == 1
     v = verify(["Roll 3", "Asha", "12"])
     assert v.status == "unverified"
+
+
+def test_sums_over_and_under_one_bar_without_brackets():
+    assert parse_value("3+1 / 4+4") == F(1, 2)
+    assert parse_value("3+1 / 4") == F(1)
+    assert parse_value("2 + 3/4") == F(11, 4)  # a tight fraction after an operator is not a long bar
+    assert parse_value("3/4 + 1/4") == F(1)
+    v = verify(["3/4 + 1/4", "= 3+1 / 4+4", "= 4/8"], reference=F(1))
+    assert v.error_step == 2 and v.tag == "add_denominators"
+
+
+def test_careless_slip_on_the_built_fraction():
+    q = get_topic().question("P1")
+    v = diagnostician.check_steps(q, ["3/4 + 1/4", "= (3+1)/4", "= 5/4"])
+    assert v.error_step == 3 and v.tag == "careless_arithmetic"
+    v = diagnostician.check_steps(get_topic().question("P2"), ["2/3 + 1/6", "= 4/6 + 1/6", "= 4/6"])
+    assert v.error_step == 3 and v.tag == "careless_arithmetic"
+
+
+def test_line_boxes_are_validated():
+    ok = diagnostician.line_boxes(["100,50,180,600", "200,50,280,700", "300,50,380,500"], 3)
+    assert ok == [[100, 50, 180, 600], [200, 50, 280, 700], [300, 50, 380, 500]]
+    assert diagnostician.line_boxes([], 3) is None
+    assert diagnostician.line_boxes(["100,50,180,600"], 2) is None  # one per line
+    assert diagnostician.line_boxes(["100,50,180,600", "50,50,120,600"], 2) is None  # out of order
+    assert diagnostician.line_boxes(["100,50,1800,600", "200,50,280,700"], 2) is None  # outside the image
+    assert diagnostician.line_boxes(["100,50,101,600", "200,50,280,700"], 2) is None  # too thin
+    assert diagnostician.line_boxes(["a,b,c,d", "200,50,280,700"], 2) is None

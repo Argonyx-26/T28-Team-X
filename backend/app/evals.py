@@ -3,6 +3,7 @@
 python -m app.evals typed    30 wrong answers built by applying a known wrong procedure to new problems
 python -m app.evals photos   the handwriting cards in data/evidence/photos, against data/evidence/labels.csv
 python -m app.evals verifier the 12 labelled pages diagnosed from their transcribed lines by exact arithmetic alone
+python -m app.evals robust   every real photo rotated ±8°, JPEG quality 40, 640 px and darkened; accuracy per condition
 """
 
 import asyncio
@@ -268,6 +269,87 @@ async def run_photos() -> list[dict]:
     return numbers
 
 
+def _degrade(data: bytes, condition: str) -> bytes:
+    import io
+
+    from PIL import Image, ImageEnhance, ImageOps
+
+    img = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert("RGB")
+    quality = 90
+    if condition == "rotate+8":
+        img = img.rotate(8, expand=True, fillcolor=(245, 240, 230))
+    elif condition == "rotate-8":
+        img = img.rotate(-8, expand=True, fillcolor=(245, 240, 230))
+    elif condition == "jpeg40":
+        quality = 40
+    elif condition == "640px":
+        img.thumbnail((640, 640))
+    elif condition == "dark":
+        img = ImageEnhance.Brightness(img).enhance(0.45)
+    out = io.BytesIO()
+    img.save(out, format="JPEG", quality=quality)
+    return out.getvalue()
+
+
+CONDITIONS = ("original", "rotate+8", "rotate-8", "jpeg40", "640px", "dark")
+
+
+async def run_robust() -> list[dict]:
+    """The same real photos and labels as `photos`, under each degradation; one model call per photo per condition."""
+    init_db()
+    topic = get_topic()
+    folder = settings.data_dir / "evidence" / "photos"
+    labels = list(csv.DictReader(open(settings.data_dir / "evidence" / "labels.csv", encoding="utf-8")))
+    rows = []
+    for label in labels:
+        for photo in sorted(folder.glob(f"{label['card']}_*")):
+            q = topic.question(label["question_id"])
+            raw = photo.read_bytes()
+            for condition in CONDITIONS:
+                reading, telemetry = await read_photo(q, prepare_image(_degrade(raw, condition)), use_cache=False)
+                got = reading or {}
+                truth_correct = label["correct"] == "true"
+                truth_step = int(label["error_step"]) if label["error_step"] else None
+                row = {
+                    "photo": photo.name,
+                    "condition": condition,
+                    "truth_correct": truth_correct,
+                    "truth_tag": label["tag"] or None,
+                    "truth_step": truth_step,
+                    "correct": got.get("correct"),
+                    "tag": got.get("misconception_tag"),
+                    "step": got.get("error_step"),
+                    "ms": [t["ms"] for t in telemetry if t["ok"]],
+                }
+                row["ok"] = row["correct"] == truth_correct and (
+                    truth_correct or (row["tag"] == row["truth_tag"] and row["step"] == truth_step)
+                )
+                rows.append(row)
+                print(f"{'OK ' if row['ok'] else 'XX '} {photo.name:12} {condition:9} step {row['step']} {row['tag']}")
+    if not rows:
+        print("no photos")
+        return []
+    numbers = []
+    n_photos = len({r["photo"] for r in rows})
+    for condition in CONDITIONS:
+        sub = [r for r in rows if r["condition"] == condition]
+        ok = sum(1 for r in sub if r["ok"])
+        numbers.append(
+            {
+                "label": f"Wrong step and mistake both right, photo {condition}",
+                "value": f"{ok}/{len(sub)}",
+                "n": len(sub),
+                "method": f"the {n_photos} real phone photos, labelled before the run, each {condition}: rotated "
+                "±8°, JPEG quality 40, shrunk to 640 px or darkened to 45% brightness; a photo counts only when the "
+                "verdict, the wrong step and the mistake all match the label",
+            }
+        )
+    for x in numbers:
+        print(x)
+    _save("robust", numbers, rows)
+    return numbers
+
+
 def run_verifier() -> list[dict]:
     """No model: the labelled lines go straight to the verifier. The label was written before any model ran."""
     topic = get_topic()
@@ -346,5 +428,7 @@ if __name__ == "__main__":
         asyncio.run(run_photos())
     elif cmd == "verifier":
         run_verifier()
+    elif cmd == "robust":
+        asyncio.run(run_robust())
     else:
         print(__doc__)

@@ -192,10 +192,25 @@ class _Parser:
         return Written(Fraction(first))
 
 
+_SPACED_SLASH = re.compile(
+    r"^\s*([^/()\[\]]*[+\-−–][^/()\[\]]*)\s+/\s+([^/()\[\]]+)\s*$|^\s*([^/()\[\]]+)\s+/\s+([^/()\[\]]*[+\-−–][^/()\[\]]*)\s*$"
+)
+
+
+def _spaced_fraction(text: str) -> str:
+    """A student writes '3+1 / 4+4' with the sums over and under one long fraction bar; a transcription keeps the
+    spaces round the bar and drops the brackets. Read it as (3+1)/(4+4)."""
+    m = _SPACED_SLASH.match(text)
+    if not m or text.count("/") != 1:
+        return text
+    left, right = (m.group(1), m.group(2)) if m.group(1) is not None else (m.group(3), m.group(4))
+    return f"({left.strip()}) / ({right.strip()})"
+
+
 def parse_expression(text: str) -> Node | None:
     """One side of an '=' as an exact expression tree, or None when it isn't one (words, empty, unbalanced)."""
     try:
-        tokens = _strip_words(_tokens(text))
+        tokens = _strip_words(_tokens(_spaced_fraction(text)))
         if not tokens:
             return None
         return _Parser(tokens).parse()
@@ -401,12 +416,20 @@ def simplify_one_part(p: Problem) -> set[Fraction]:
 
 
 def careless_arithmetic(p: Problem) -> set[Fraction]:
-    """The right method with one slip: the right denominator, the numerator off by one (or the whole off by one)."""
+    """The right method with one slip: the numerator of the correctly built fraction off by one (3/4 + 1/4 = 5/4),
+    or the answer off by one in its own denominator."""
     r = p.reference
     out = {r + Fraction(1, r.denominator), r - Fraction(1, r.denominator)}
-    if p.op == "*" and p.b is not None:
+    if p.b is not None and p.op is not None:
         (na, da), (nb, db) = _nd(p.a), _nd(p.b)
-        out |= _frac(na * nb + 1, da * db) | _frac(na * nb - 1, da * db)
+        if p.op in ("+", "-"):
+            common = da * db // gcd(da, db)
+            n = na * (common // da) + (nb * (common // db) if p.op == "+" else -nb * (common // db))
+            out |= _frac(n + 1, common) | _frac(n - 1, common)
+        elif p.op == "*":
+            out |= _frac(na * nb + 1, da * db) | _frac(na * nb - 1, da * db)
+        else:
+            out |= _frac(na * db + 1, da * nb) | _frac(na * db - 1, da * nb)
     return out - {r}
 
 

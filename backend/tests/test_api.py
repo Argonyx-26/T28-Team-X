@@ -238,6 +238,7 @@ def test_photo_result_carries_rule_evidence(client):
         files={"image": ("a.png", _png(), "image/png")},
     ).json()
     assert r["rule_check"]["status"] == "verified" and "4/8" in r["rule_check"]["note"]
+    assert r["line_boxes"] == [[120, 80, 200, 520], [240, 80, 320, 700], [360, 80, 440, 420]]
 
 
 def test_teacher_review_agree_and_correct(client):
