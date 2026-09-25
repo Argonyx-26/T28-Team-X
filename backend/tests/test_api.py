@@ -259,3 +259,21 @@ def test_worksheet_for_the_reteach_group(client):
         ).status_code
         == 404
     )
+def test_photo_diagnosis_no_vision_provider_returns_clear_error(client, monkeypatch):
+    from app.config import settings
+
+    j = client.post("/students/join", json={"code": "7B", "nickname": "Test", "language": "en"}).json()
+    # Remove all provider config
+    monkeypatch.setattr(settings, "gcp_project", "")
+    monkeypatch.setattr(settings, "nebius_api_key", "")
+    monkeypatch.setattr(settings, "nebius_vision_model", "")
+    # demo_mode stays "live" so it tries to call providers
+
+    r = client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": j["student_id"], "question_id": "P1"},
+        files={"image": ("a.png", _png(), "image/png")},
+    )
+    assert r.status_code == 503
+    assert r.json()["error"]["code"] == "no_vision_provider"
+    assert "vision provider" in r.json()["error"]["message"].lower()

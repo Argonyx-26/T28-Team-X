@@ -195,19 +195,32 @@ async def read_photo(q: Question, jpeg: bytes, *, use_cache: bool = True) -> tup
     """The vision model reads the working; rules then check its verdict. No database access (evals use this too)."""
     topic = get_topic()
     prompt = f"{_question_block(q)}\n\nThe photo shows this student's working for the question above."
-    result, telemetry = await generate_hedged(
-        "Diagnostician",
-        "diagnose_photo",
-        prompts.DIAGNOSE_PHOTO,
-        prompt,
-        PhotoDiagnosis,
-        primary=("vertex",),
-        backup=("vertex_alt", "nebius"),
-        hedge_after=settings.hedge_after_s,
-        image=jpeg,
-        use_cache=use_cache,
-        validate=lambda r: len([s for s in r.steps if s.strip()]) > 0,
-    )
+    try:
+        result, telemetry = await generate_hedged(
+            "Diagnostician",
+            "diagnose_photo",
+            prompts.DIAGNOSE_PHOTO,
+            prompt,
+            PhotoDiagnosis,
+            primary=("vertex",),
+            backup=("vertex_alt", "nebius"),
+            hedge_after=settings.hedge_after_s,
+            image=jpeg,
+            use_cache=use_cache,
+            validate=lambda r: len([s for s in r.steps if s.strip()]) > 0,
+        )
+    except ApiError as exc:
+        if exc.code == "no_vision_provider":
+            return None, [
+                {
+                    "agent": "Diagnostician",
+                    "action": "diagnose_photo",
+                    "error": exc.code,
+                    "message": exc.message,
+                    "ok": False,
+                }
+            ]
+        raise
     if result is None:
         return None, telemetry
     steps = [s.strip() for s in result.steps if s.strip()][:12]
@@ -250,6 +263,14 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
     reading, telemetry = await read_photo(q, prepare_image(image))
     base = {"student_id": student_id, "question_id": q.id, "concept_id": q.concept_id, "telemetry": telemetry}
     if reading is None:
+        no_provider = any(t.get("error") == "no_vision_provider" for t in telemetry)
+        if no_provider:
+            raise ApiError(
+                503,
+                "no_vision_provider",
+                "No vision provider configured. Set GCP_PROJECT for Vertex AI "
+                "or NEBIUS_API_KEY with NEBIUS_VISION_MODEL for Nebius.",
+            )
         with get_conn() as conn, transaction(conn):
             log_event(
                 conn,

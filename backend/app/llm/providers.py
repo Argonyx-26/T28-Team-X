@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from ..config import settings
 from ..db import get_conn
+from ..errors import ApiError
 
 log = logging.getLogger("gurugraph.llm")
 
@@ -224,9 +225,11 @@ async def generate(
 
     timeout = timeout or (settings.photo_timeout_s if image else settings.text_timeout_s)
     telemetry: list[dict] = []
+    any_available = False
     for provider in route:
         if not available(provider, image is not None):
             continue
+        any_available = True
         start = time.perf_counter()
         if provider == "vertex":
             model = settings.vertex_vision_model if image else settings.vertex_model
@@ -265,6 +268,13 @@ async def generate(
         if use_cache:
             _cache_put(key, agent, provider, model, parsed.model_dump_json())
         return parsed, telemetry
+    if not any_available:
+        raise ApiError(
+            503,
+            "no_vision_provider",
+            "No vision provider configured. Set GCP_PROJECT for Vertex AI "
+            "or NEBIUS_API_KEY with NEBIUS_VISION_MODEL for Nebius.",
+        )
     return None, telemetry
 
 
