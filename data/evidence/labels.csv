@@ -1,0 +1,13 @@
+card,writer,name_on_card,question_id,correct,error_step,tag,final_answer,lines
+A_P1,Risheeth,Asha,P1,false,2,add_denominators,4/8,3/4 + 1/4 | = (3+1)/(4+4) | = 4/8
+A_P2,Risheeth,Asha,P2,false,2,unlike_denominators,3/6,2/3 + 1/6 | = (2+1)/6 | = 3/6
+A_P3,Risheeth,Asha,P3,false,2,divide_no_flip,9/50,3/5 ÷ 3/10 | = 3/5 × 3/10 | = 9/50
+A_P4,Risheeth,Asha,P4,true,,,1 1/2,2 cakes 3/4 cup each | 2 × 3/4 = 6/4 | = 1 1/2 cups
+B_P1,Samartha,Ravi,P1,true,,,1,3/4 + 1/4 | = (3+1)/4 | = 4/4 = 1
+B_P2,Samartha,Ravi,P2,false,2,add_denominators,3/9,2/3 + 1/6 | = (2+1)/(3+6) | = 3/9
+B_P3,Samartha,Ravi,P3,false,2,divide_flip_first,1/2,3/5 ÷ 3/10 | = 5/3 × 3/10 | = 15/30 = 1/2
+B_P4,Samartha,Ravi,P4,false,2,word_problem_operation,2 3/4,2 cakes 3/4 cup each | 2 + 3/4 | = 2 3/4 cups
+C_P1,Rishabh,Meena,P1,false,2,add_denominators,4/8,3/4 + 1/4 | = 4/8
+C_P2,Rishabh,Meena,P2,true,,,5/6,2/3 + 1/6 | = 4/6 + 1/6 | = 5/6
+C_P3,Rishabh,Meena,P3,true,,,2,3/5 ÷ 3/10 | = 3/5 × 10/3 | = 30/15 = 2
+C_P4,Rishabh,Meena,P4,false,2,whole_times_both,3/4,2 cakes 3/4 cup each | 2 × 3/4 = 6/8 | = 3/4 cup
