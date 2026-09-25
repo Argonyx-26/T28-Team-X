@@ -154,6 +154,8 @@ def test_analyst_vetoes_then_coach_revises_then_teacher_approves(client):
 def test_parent_message_in_kannada(client):
     r = client.post("/agents/coach/parent-message", json={"student_id": ASHA_ID}).json()
     assert r["language"] == "kn" and r["whatsapp_url"].startswith("https://wa.me/?text=")
+    audio = client.get(r["audio_url"])
+    assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
 
 
 def test_simulator_adds_students_without_llm(client):

@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from app import voice
 from app.config import settings
 from app.llm import providers
 
@@ -86,5 +87,10 @@ def offline(tmp_path, monkeypatch):
     monkeypatch.setitem(providers.CALLERS, "nebius", fake_caller)
     monkeypatch.setitem(providers.CALLERS, "vertex", fake_caller)
     monkeypatch.setitem(providers.CALLERS, "vertex_alt", fake_caller)
+
+    async def fake_voice(text, language):
+        return b"ID3-fake-mp3"
+
+    monkeypatch.setattr(voice, "synthesize", fake_voice)
     CALLS.clear()
     yield

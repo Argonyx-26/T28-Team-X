@@ -207,7 +207,7 @@ This is the screen the judges stare at. Make it the best thing you've ever built
 >
 >    Flagged plans show an amber "Needs your judgement" banner with the `analyst_note`.
 > 3. **After Approve:** a toast, the card shows "Approved ✓", and the bottom bar is unchanged.
-> 4. **Parent message** (in the student Sheet): call `parentMessage`. Show the message in the parent's language in a WhatsApp-style bubble, with "Open in WhatsApp" (`whatsapp_url`) and "Copy".
+> 4. **Parent message** (in the student Sheet): call `parentMessage`. Show the message in the parent's language in a WhatsApp-style bubble, with "Open in WhatsApp" (`whatsapp_url`) and "Copy". If `audio_url` is set, add a voice-note player styled like a WhatsApp voice message: a play button, a waveform made of bars, and the duration. Its src is `"/backend" + audio_url`. Show "Recording voice note…" until the audio can play.
 
 **Check:**
 1. Analyze plays out as draft → red challenge → revised → approve.

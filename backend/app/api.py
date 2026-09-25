@@ -5,10 +5,10 @@ import time
 from collections import defaultdict, deque
 from typing import Literal
 
-from fastapi import APIRouter, File, Form, Header, Request, UploadFile
+from fastapi import APIRouter, File, Form, Header, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
-from . import seed
+from . import seed, voice
 from .agents import analyst, coach, curator, diagnostician, examiner, simulator, state
 from .config import settings
 from .db import get_conn, log_event, new_id, now, transaction
@@ -241,6 +241,14 @@ def teacher_student(student_id: str) -> dict:
 async def coach_parent_message(body: StudentRef, request: Request) -> dict:
     _limit(request, "parent", 20)
     return await coach.parent_message(body.student_id)
+
+
+@router.get("/media/voice")
+async def media_voice(id: str) -> Response:
+    audio = await voice.clip(id)
+    if audio is None:
+        raise ApiError(404, "voice_note_expired", "That voice note has expired. Create it again.")
+    return Response(audio, media_type="audio/mpeg")
 
 
 @router.get("/judges/summary")

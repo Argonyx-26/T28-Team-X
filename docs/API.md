@@ -155,7 +155,11 @@ export interface StudentDetail {
   responses: { question_id: string; stem: string; answer: string; correct: boolean; tag: string | null; label: string | null; source: string; phase: string; created_at: string }[];
 }
 
-export interface ParentMessage { language: Lang; message: string; whatsapp_url: string; telemetry: Telemetry[] }
+export interface ParentMessage {
+  language: Lang; message: string; whatsapp_url: string;
+  audio_url: string | null;   // Kannada/Hindi/English voice note. Use <audio src={"/backend" + audio_url}>; the first play may take ~5 s
+  telemetry: Telemetry[];
+}
 export interface JudgesSummary {
   numbers: { label: string; value: string; n: number | null; method: string }[];
   links: { app: string; repo: string; video: string | null; status_page: string | null };
@@ -182,7 +186,8 @@ export interface JudgesSummary {
 | `GET /teacher/dashboard` | `?session_id=` | `Dashboard`. Poll every 2 s |
 | `GET /teacher/events` | `?session_id=&after=<last_seq>` | `EventsResponse`. Poll every 1.5 s |
 | `GET /teacher/student` | `?student_id=` | `StudentDetail` |
-| `POST /agents/coach/parent-message` | `{student_id}` | `ParentMessage` |
+| `POST /agents/coach/parent-message` | `{student_id}` | `ParentMessage` (text at once; the voice note is generated in the background) |
+| `GET /media/voice` | `?id=` | `audio/mpeg` (waits until the voice note is ready) |
 | `POST /admin/reset` | header `X-Admin-Token` | `{ok:true}`: reseeds 7B and a fresh Asha |
 | `GET /judges/summary` | – | `JudgesSummary` |
 

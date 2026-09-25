@@ -7,7 +7,7 @@ That difference is why a first draft often gets challenged.
 import json
 from urllib.parse import quote
 
-from .. import rules
+from .. import rules, voice
 from ..db import get_conn, log_event, new_id, now, row, transaction
 from ..errors import ApiError
 from ..i18n import PARENT_TEMPLATE
@@ -345,6 +345,16 @@ async def parent_message(student_id: str) -> dict:
             focus=concept.name_in(language),
             example=example,
         )
+    session_id, nickname = student["session_id"], student["nickname"]
+
+    def voice_done(tel: dict) -> None:
+        what = "ready" if tel["ok"] else "failed; the text message still works"
+        with get_conn() as conn, transaction(conn):
+            log_event(
+                conn, session_id, "Coach", "voice_note", f"Voice note for {nickname}'s parent {what}", student_id, [tel]
+            )
+
+    audio_url = voice.voice_note(message, language, voice_done)
     with get_conn() as conn, transaction(conn):
         log_event(
             conn,
@@ -359,5 +369,6 @@ async def parent_message(student_id: str) -> dict:
         "language": language,
         "message": message,
         "whatsapp_url": f"https://wa.me/?text={quote(message)}",
+        "audio_url": audio_url,
         "telemetry": telemetry,
     }
