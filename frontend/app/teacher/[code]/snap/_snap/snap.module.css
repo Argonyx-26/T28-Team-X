@@ -44,7 +44,9 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain, not cover: the preview shows exactly what the photo will hold, so a page that fits on screen fits in
+     the photo too */
+  object-fit: contain;
   background: #0f1320;
 }
 
@@ -457,4 +459,21 @@
   .shutter {
     transition: none;
   }
+}
+
+/* the last page's result, over the camera: on a phone the list of pages is below the fold */
+.latest {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 64px;
+  max-width: calc(100% - 24px);
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(15, 19, 32, 0.78);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95em;
+  text-align: center;
+  line-height: 1.3;
 }

@@ -59,7 +59,7 @@ test.describe.serial("golden path", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("why");
     await expect(page.getByRole("link", { name: /Scan a notebook/ }).first()).toBeVisible();
     // the numbers come from the API; the skeleton must resolve
-    await expect(page.getByText(/Wrong step circled correctly/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Fraction problems marked right or wrong correctly/).first()).toBeVisible({ timeout: 30_000 });
   });
 
   test("2. the scan screen circles line 2 of Asha's page and the teacher confirms", async ({ page }) => {

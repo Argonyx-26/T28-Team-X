@@ -62,6 +62,7 @@ const en = {
   hwBack: "Back to the quiz",
   hwDone: "Done",
   hwSaved: "Saved. Your teacher can see this.",
+  hwRepeat: "You sent this page already. It is counted once.",
   // F9 listen
   listen: "Listen",
   stop: "Stop",
@@ -159,6 +160,7 @@ const hi: Words = {
   hwBack: "क्विज़ पर वापस",
   hwDone: "हो गया",
   hwSaved: "सेव हो गया। तुम्हारे शिक्षक यह देख सकते हैं।",
+  hwRepeat: "यह पेज तुम पहले भेज चुके हो। इसे एक ही बार गिना गया है।",
   listen: "सुनो",
   stop: "रोको",
   listenError: "आवाज़ अभी काम नहीं कर रही। इसे पढ़ लो।",
@@ -247,6 +249,7 @@ const kn: Words = {
   hwBack: "ಕ್ವಿಜ್‌ಗೆ ಹಿಂತಿರುಗಿ",
   hwDone: "ಮುಗಿಯಿತು",
   hwSaved: "ಉಳಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ಶಿಕ್ಷಕರು ಇದನ್ನು ನೋಡಬಹುದು.",
+  hwRepeat: "ಈ ಪುಟವನ್ನು ನೀವು ಈಗಾಗಲೇ ಕಳುಹಿಸಿದ್ದೀರಿ. ಇದನ್ನು ಒಮ್ಮೆ ಮಾತ್ರ ಎಣಿಸಲಾಗಿದೆ.",
   listen: "ಕೇಳಿ",
   stop: "ನಿಲ್ಲಿಸಿ",
   listenError: "ಧ್ವನಿ ಈಗ ಕೆಲಸ ಮಾಡುತ್ತಿಲ್ಲ. ಇದನ್ನು ಓದಿ.",

@@ -634,6 +634,9 @@ export function Scan({ code }: { code: string }) {
                     {page.problems.length} problem{page.problems.length === 1 ? "" : "s"}, {wrongOnPage} to fix
                   </span>
                 </h2>
+                {page.repeat && (
+                  <p className={s.muted}>This page was scanned a moment ago, so it is counted once.</p>
+                )}
                 {FLAGS.PHOTO_PEN && preview && pageHasBoxes && (
                   <PhotoWithPen src={preview} marks={pageMarks} allRight={wrongOnPage === 0} />
                 )}

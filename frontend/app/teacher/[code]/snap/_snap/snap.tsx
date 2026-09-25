@@ -22,7 +22,7 @@ import k from "./snap.module.css";
 
 type Student = { id: string; nickname: string; roll: number | null; kind: string };
 
-type ItemState = "waiting" | "reading" | "filed" | "unassigned" | "unreadable" | "error";
+type ItemState = "waiting" | "reading" | "filed" | "repeat" | "unassigned" | "unreadable" | "error";
 
 type Item = {
   key: string;
@@ -243,7 +243,15 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
         try {
           const blob = item.source === "gallery" ? await shrink(item.blob) : item.blob;
           const result = await api.page(blob, { sessionId: sid }, "snap");
-          const state: ItemState = result.unreadable ? "unreadable" : result.saved ? "filed" : "unassigned";
+          const state: ItemState = result.unreadable
+            ? "unreadable"
+            : result.repeat
+              ? "repeat"
+              : result.saved
+                ? "filed"
+                : result.problems.length === 0
+                  ? "unreadable"
+                  : "unassigned";
           patch(item.key, { state, result, note: undefined });
           track("snap_read", {
             state,
@@ -302,7 +310,7 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
       const r = await api.pageFile(student.id, "snap", item.result.problems);
       patch(item.key, {
         filing: false,
-        state: "filed",
+        state: r.repeat ? "repeat" : "filed",
         result: {
           ...item.result,
           student_id: r.student_id,
@@ -329,6 +337,22 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
   };
 
   const filed = items.filter((i) => i.state === "filed" && i.result);
+  // what the last page came to, shown over the camera: on a phone the list is below the fold
+  const latest = [...items].reverse().find((i) => i.state !== "waiting" && i.state !== "reading");
+  const pending = items.filter((i) => i.state === "waiting" || i.state === "reading").length;
+  const latestText = !latest
+    ? pending
+      ? "Reading…"
+      : null
+    : latest.state === "filed" && latest.result
+      ? `${who(latest.result)}: ${latest.result.problems.length} ${latest.result.problems.length === 1 ? "problem" : "problems"}, ${latest.result.summary?.wrong ?? wrongCount(latest.result.problems)} wrong`
+      : latest.state === "repeat" && latest.result
+        ? `${who(latest.result)}: same page as before, counted once`
+        : latest.state === "unassigned"
+          ? "Whose page? Scroll down to pick the child"
+          : latest.state === "unreadable"
+            ? "Couldn't read that page. Hold it closer and snap again"
+            : latest.error ?? "That page didn't go through";
   const unassigned = items.filter((i) => i.state === "unassigned" && i.result);
   const totals = filed.reduce(
     (acc, i) => {
@@ -459,6 +483,12 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
             </div>
           )}
 
+          {latestText && (
+            <div className={k.latest} aria-live="polite">
+              {pending > 0 && latest ? `${latestText} · reading ${pending} more…` : latestText}
+            </div>
+          )}
+
           <div className={k.controls}>
             <div className={k.debug}>
               {camera.state === "on" && !camera.rear && <span>Webcam: hold the page up to it</span>}
@@ -466,7 +496,8 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
                 <span>
                   <br />
                   diff {readiness.diff.toFixed(1)} · sharp {readiness.sharpness.toFixed(0)} · still {Math.round(readiness.steadyFor)} ms
-                  {readiness.novelty && ` · new ${readiness.novelty.ink.toFixed(2)}/${readiness.novelty.hamming}`}
+                  {readiness.novelty &&
+                    ` · changed ${readiness.novelty.away.toFixed(1)} since the last photo${readiness.novelty.turned ? " · turned" : ""}`}
                 </span>
               )}
             </div>
@@ -534,6 +565,12 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
                               {r.problems.length} {r.problems.length === 1 ? "problem" : "problems"} ·{" "}
                               {r.summary?.wrong ?? wrongCount(r.problems)} wrong
                             </span>
+                          </>
+                        )}
+                        {it.state === "repeat" && r && (
+                          <>
+                            <span className={k.cardTitle}>{who(r)}</span>
+                            <span className={s.muted}>Same page as before, counted once</span>
                           </>
                         )}
                         {it.state === "unassigned" && <span className={k.amberText}>Whose page? Pick below.</span>}

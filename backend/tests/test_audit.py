@@ -344,3 +344,28 @@ def test_a_fill_in_the_blank_keeps_its_blank_in_the_title():
 
     out = diagnose_problem(["Q3) 2/3 = ?/6", "= (2+3)/(3+3)", "= 5/6"], None, None)
     assert out["problem"] == "2/3 = ?/6" and out["misconception_tag"] == "equivalence_additive"
+
+
+def test_the_same_page_snapped_twice_is_counted_once(client):
+    def snap(size):
+        return client.post(
+            "/agents/diagnostician/page",
+            data={"session_id": DEMO_SESSION_ID, "mode": "snap"},
+            files={"image": ("p.png", _png(size), "image/png")},
+        ).json()
+
+    first = snap((1600, 900))
+    again = snap((1200, 900))  # another photo of the same page: different bytes, same working
+    assert first["saved"] and not first.get("repeat")
+    assert again["repeat"] and not again["saved"] and again["student_id"] == ASHA_ID
+    assert [p["response_id"] for p in again["problems"]] == [p["response_id"] for p in first["problems"]]
+    events = client.get("/teacher/events", params={"session_id": DEMO_SESSION_ID}).json()["events"]
+    assert sum(1 for e in events if e["action"] == "snap_page") == 1
+    same_photo = snap((1600, 900))  # the very same photo sent again
+    assert same_photo["repeat"] and not same_photo["saved"]
+    # filing the same readings again by hand is a repeat too
+    filed = client.post(
+        "/agents/diagnostician/page/file",
+        json={"student_id": ASHA_ID, "mode": "snap", "problems": first["problems"]},
+    ).json()
+    assert filed["repeat"]

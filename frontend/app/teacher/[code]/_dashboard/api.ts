@@ -280,6 +280,8 @@ export interface PageResponse {
   saved: boolean;
   summary: { saved: number; wrong: number; gaps_opened: number } | null;
   unreadable: boolean;
+  /** the same page from the same child again within 10 minutes: shown, but counted once */
+  repeat?: boolean;
   telemetry: Telemetry[];
 }
 
@@ -508,7 +510,13 @@ export const api = {
     return call<PageResponse>("/agents/diagnostician/page", { method: "POST", body: form });
   },
   pageFile: (studentId: string, mode: PageMode, problems: PageProblem[]) =>
-    post<{ student_id: string; student_nickname: string; problems: PageProblem[]; summary: PageResponse["summary"] }>(
+    post<{
+      student_id: string;
+      student_nickname: string;
+      problems: PageProblem[];
+      summary: PageResponse["summary"];
+      repeat?: boolean;
+    }>(
       "/agents/diagnostician/page/file",
       { student_id: studentId, mode, problems },
     ),

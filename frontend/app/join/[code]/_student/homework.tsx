@@ -285,6 +285,7 @@ export function Homework({
         <ProblemCard key={i} p={p} n={i + 1} words={words} language={language} />
       ))}
       {r.saved && <p className={`${s.muted} text-[0.9em]`}>{words.hwSaved}</p>}
+      {r.repeat && <p className={`${s.muted} text-[0.9em]`}>{words.hwRepeat}</p>}
       <div className="flex flex-col gap-2">
         {needsFix && (
           <button type="button" className={`${s.button} ${s.primary} ${k.big}`} onClick={onFix}>

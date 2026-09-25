@@ -247,7 +247,7 @@ async def page(
     repeat_key = ("page", student_id or sid, mode, hashlib.sha256(jpeg).hexdigest())
     earlier = diagnostician.recent(repeat_key)
     if earlier is not None:
-        return earlier
+        return {**earlier, "saved": False}  # the very same photo again: shown, counted once
     result, telemetry = await read_page(jpeg)
     base = {"session_id": sid, "mode": mode, "telemetry": telemetry}
     if result is None:
@@ -274,6 +274,24 @@ async def page(
         lang = language or (student["language"] if student else "en")
         problems = [_localize(p, lang) for p in problems]
         filed = None
+        same_page = ("page-seen", student["id"], page_fingerprint(problems)) if student is not None else None
+        seen = diagnostician.recent(same_page) if same_page and problems else None
+        if seen is not None:
+            # the same page again from this child within 10 minutes (snapped twice, lifted and put back): shown, and
+            # counted once
+            return {
+                **base,
+                "student_id": student["id"],
+                "student_nickname": student["nickname"],
+                "matched_by": matched_by,
+                "roll_no": result.roll_no,
+                "name_on_page": result.name_on_page,
+                "problems": seen.get("problems") or problems,  # the filed readings, so a review still reaches them
+                "saved": False,
+                "repeat": True,
+                "summary": seen.get("summary"),
+                "unreadable": False,
+            }
         if student is not None and problems:
             with transaction(conn):
                 filed = file_problems(conn, student, problems, mode)
@@ -291,7 +309,23 @@ async def page(
     }
     if filed is not None:
         diagnostician.remember(repeat_key, out)
+        diagnostician.remember(same_page, out)
     return out
+
+
+def page_fingerprint(problems: list[dict]) -> tuple:
+    """What a page says, not how the photo looks: each problem's fractions as written and its verdict. Two photos of
+    the same page (a second snap, the phone lifted and put back) give the same fingerprint."""
+    return tuple(
+        sorted(
+            (
+                tuple(verifier.written_fractions(p.get("problem") or "")),
+                bool(p.get("correct")),
+                p.get("error_step") or 0,
+            )
+            for p in problems
+        )
+    )
 
 
 def file_page(student_id: str, problems: list[dict], mode: str) -> dict:
@@ -305,6 +339,13 @@ def file_page(student_id: str, problems: list[dict], mode: str) -> dict:
                 continue
             clean.append(diagnose_problem(lines, p.get("misconception_tag"), p.get("error_step")))
         clean = [_localize(p, student["language"]) for p in clean]
+        same_page = ("page-seen", student["id"], page_fingerprint(clean))
+        earlier = diagnostician.recent(same_page) if clean else None
+        if earlier is not None:
+            return {**earlier, "repeat": True}
         with transaction(conn):
             filed = file_problems(conn, student, clean, mode) if clean else {"saved": 0, "wrong": 0, "gaps_opened": 0}
-    return {"student_id": student["id"], "student_nickname": student["nickname"], "problems": clean, "summary": filed}
+    out = {"student_id": student["id"], "student_nickname": student["nickname"], "problems": clean, "summary": filed}
+    if clean:
+        diagnostician.remember(same_page, out)
+    return out

@@ -37,8 +37,10 @@ function sharedJson<T>(path: string, fresh = false): Promise<T> {
 export const fetchSummary = (fresh = false) => sharedJson<Summary>("/judges/summary", fresh);
 export const fetchHealth = (fresh = false) => sharedJson<Health>("/health", fresh);
 
-// The one result we lead with: handwriting beats typed answers, and the wrong step beats the label.
+// The one result we lead with: whole handwritten pages with right and wrong answers (round 2, 18 problems) beat the
+// six single photos, which are all wrong answers; handwriting beats typed answers.
 const KEY_ORDER = [
+  "Round 2: Fraction problems marked right or wrong correctly",
   "Wrong step circled correctly",
   "Misconception named correctly from a photo",
   "Handwritten work marked right or wrong correctly",
@@ -48,10 +50,13 @@ const KEY_ORDER = [
 // What the landing page shows first, in this order, when the number exists. Live counters since the last
 // reset (they include our own testing) stay on /judges, where their method says so.
 const LANDING_ORDER = [
+  "Round 2: Fraction problems marked right or wrong correctly",
+  "Round 2: Wrong step found on a problem",
+  "Round 2: Whole-page read time (median)",
+  "AI cost per student per month",
   "Wrong step circled correctly",
   "Misconception named correctly from a photo",
   "Photo diagnosis time (median / p95)",
-  "AI cost per student per month",
   "Mistake named correctly from a typed answer alone (LLM fallback)",
   "Questions in the verified bank",
 ];
