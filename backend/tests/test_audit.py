@@ -10,6 +10,7 @@ from PIL import Image
 from app import rules
 from app.agents import curator, diagnostician
 from app.config import settings
+from app.llm.schemas import PhotoDiagnosis
 from app.main import app
 from app.seed import ASHA_ID, DEMO_SESSION_ID
 from app.topic import get_topic
@@ -296,6 +297,20 @@ def test_every_way_the_model_writes_line_boxes_gives_a_circle():
     out = diagnose_problem(["Q1) 3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"], None, None, ["79,16,319,854"])
     assert out["line_boxes"] == [[79, 16, 159, 854], [159, 16, 239, 854], [239, 16, 319, 854]]
     assert diagnostician.split_block("79,16,90,854", 4) == []  # too thin to hold four lines
+    # one box that is really the first line's alone (the model stopped early) is never cut: no circle beats a wrong one
+    first_line_only = ["280,95,350, 531],    "]
+    assert diagnose_problem(["3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"], None, None, first_line_only)["line_boxes"] is None
+    photo = PhotoDiagnosis(
+        steps=["3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"],
+        final_answer_read="4/8",
+        correct=False,
+        error_step=2,
+        misconception_tag="add_denominators",
+        confidence=0.9,
+        feedback_student="",
+        boxes=first_line_only,
+    )
+    assert diagnostician.combine(get_topic().question("P1"), photo, photo.steps)["line_boxes"] is None
 
 
 def test_a_page_read_one_line_per_problem_is_put_back_together():

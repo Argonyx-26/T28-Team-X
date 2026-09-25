@@ -75,6 +75,10 @@ def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None, 
         # a story problem written over two lines ("A cake needs 3/4 cup of sugar." / "How much for 2 cakes?")
         bank = match_bank(f"{lines[0]} {lines[1]}")
     q = bank or diagnostician._PLACEHOLDER
+    groups = diagnostician.box_groups(boxes)
+    if len(groups) == 1 and len(lines) > 1:
+        # a page read often gives one box around the whole problem; cut it into ruled rows when it is tall enough
+        boxes = diagnostician.split_block(groups[0], len(lines)) or groups
     guess = PhotoDiagnosis(
         steps=lines,
         final_answer_read=lines[-1].split("=")[-1].strip() if lines else None,
