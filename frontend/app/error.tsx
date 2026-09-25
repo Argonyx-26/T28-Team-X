@@ -1,41 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
-export default function ErrorPage({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+import { ROUTES } from "@/lib/site";
+
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    if (typeof window !== "undefined" && "reportError" in window) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).reportError(error);
-    }
+    // lets Raah's error report (and the browser console) see what broke
+    window.reportError?.(error);
   }, [error]);
 
   return (
-    <div className="flex h-screen w-full items-center justify-center p-4">
-      <Card className="w-full max-w-md border-red-pen/20 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-red-pen">Something went wrong</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            We encountered an unexpected error. Our team has been notified.
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={reset} variant="default" className="w-full">
+    <main className="flex flex-1 items-center justify-center px-4 py-16">
+      <div className="gg-panel flex w-full max-w-md flex-col gap-4 border-l-4 border-l-red-pen p-6" role="alert">
+        <p className="font-hand text-[22px] text-red-pen">oops, a smudge</p>
+        <h1 className="text-[24px] font-bold leading-tight text-ink">This page hit a problem.</h1>
+        <p className="text-[15px] leading-relaxed text-graphite">
+          Your class data is safe. Try again, and if it keeps happening, open the class dashboard and carry on from there.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button type="button" onClick={reset} className="gg-btn gg-btn-primary">
             Try again
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+          </button>
+          <Link href={ROUTES.dashboard} className="gg-btn">
+            Class dashboard
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }

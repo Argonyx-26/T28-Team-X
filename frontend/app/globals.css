@@ -4,16 +4,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The teacher's notebook (GEMINI.md): squared paper, blue ink, one red pen, one highlighter. */
 @theme {
-  --color-ink: #1F2B5C;
-  --color-ink-2: #3E4C85;
+  --color-ink: #1f2b5c;
+  --color-ink-2: #3e4c85;
   --color-graphite: #616874;
-  --color-rule: #D6DDE9;
-  --color-red-pen: #C8372D;
-  --color-green: #2F8A57;
-  --color-amber: #D89B1D;
-  --color-red: #D2564A;
-  --color-highlighter: #F7E96B;
+  --color-rule: #d6dde9;
+  --color-grid: #e3e9f3;
+  --color-paper: #fcfdff;
+  --color-red-pen: #c8372d;
+  --color-green: #2f8a57;
+  --color-amber: #d89b1d;
+  --color-red: #d2564a;
+  --color-highlighter: #f7e96b;
+  --radius-card: 18px;
+  --radius-control: 10px;
 }
 
 @theme inline {
@@ -22,7 +27,7 @@
   --font-sans: var(--font-sans);
   --font-kn: var(--font-kn);
   --font-hand: var(--font-hand);
-  
+
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -32,53 +37,45 @@
   --color-primary: var(--primary);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-card: 18px;
 }
 
 :root {
-  /* GuruGraph custom tokens mapped to root for generic use if needed */
-  --ink: #1F2B5C;
-  --ink-2: #3E4C85;
-  --graphite: #616874;
-  --rule: #D6DDE9;
-  --red-pen: #C8372D;
-  --green: #2F8A57;
-  --amber: #D89B1D;
-  --red: #D2564A;
-  --highlighter: #F7E96B;
+  color-scheme: light;
 
-  /* shadcn base variables mapped to our tokens */
-  --background: #FCFDFF;
+  --ink: #1f2b5c;
+  --ink-2: #3e4c85;
+  --graphite: #616874;
+  --rule: #d6dde9;
+  --grid: #e3e9f3;
+  --red-pen: #c8372d;
+  --green: #2f8a57;
+  --amber: #d89b1d;
+  --red: #d2564a;
+  --highlighter: #f7e96b;
+
+  /* shadcn variables mapped to the notebook */
+  --background: #fcfdff;
   --foreground: var(--ink);
-  
-  --card: #FFFFFF;
+  --card: #ffffff;
   --card-foreground: var(--ink);
-  
-  --popover: #FFFFFF;
+  --popover: #ffffff;
   --popover-foreground: var(--ink);
-  
   --primary: var(--ink);
-  --primary-foreground: #FFFFFF;
-  
-  --secondary: #F3F4F6;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
   --secondary-foreground: var(--ink);
-  
-  --muted: #F3F4F6;
+  --muted: #f3f4f6;
   --muted-foreground: var(--graphite);
-  
-  --accent: #F3F4F6;
+  --accent: #f3f4f6;
   --accent-foreground: var(--ink);
-  
   --destructive: var(--red-pen);
-  
   --border: var(--rule);
   --input: var(--rule);
   --ring: var(--ink-2);
-  
   --radius: 10px;
 }
 
@@ -86,17 +83,194 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
-  body {
-    @apply bg-background text-foreground font-sans;
-    /* Faint 24px squared grid with #E3E9F3 lines */
-    background-image: 
-      linear-gradient(to right, #E3E9F3 1px, transparent 1px),
-      linear-gradient(to bottom, #E3E9F3 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-  
+
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    /* the squared paper: 24 px grid */
+    background-image:
+      linear-gradient(to right, var(--grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  ::selection {
+    background: var(--highlighter);
+    color: var(--ink);
+  }
+}
+
+/* Shared pieces for the landing page, /judges and the error pages. Prefixed so they never meet a CSS module. */
+@layer components {
+  .gg-panel {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    box-shadow:
+      0 1px 0 rgb(31 43 92 / 0.04),
+      0 14px 34px -22px rgb(31 43 92 / 0.22);
+  }
+
+  /* an exercise-book page: ruled lines and a red margin */
+  .gg-ruled {
+    background-color: #fffef8;
+    background-image:
+      linear-gradient(90deg, transparent 38px, #f0b4ae 38px, #f0b4ae 40px, transparent 40px),
+      linear-gradient(transparent 55px, #cfdbee 55px);
+    background-size:
+      100% 100%,
+      100% 56px;
+    background-position:
+      0 0,
+      0 12px;
+  }
+
+  .gg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 48px;
+    padding: 0 1.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--rule);
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    transition:
+      background-color 150ms,
+      border-color 150ms,
+      transform 150ms;
+  }
+  .gg-btn:hover {
+    border-color: var(--ink-2);
+  }
+  .gg-btn:active {
+    transform: translateY(1px);
+  }
+  .gg-btn-primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .gg-btn-primary:hover {
+    background: var(--ink-2);
+    border-color: var(--ink-2);
+  }
+
+  .gg-link {
+    color: var(--ink-2);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: rgb(62 76 133 / 0.35);
+    text-underline-offset: 3px;
+    border-radius: 4px;
+  }
+  .gg-link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .gg-btn:focus-visible,
+  .gg-link:focus-visible,
+  .gg-focus:focus-visible {
+    outline: 3px solid var(--ink-2);
+    outline-offset: 2px;
+  }
+
+  /* one highlighter stroke per screen, swept in from the left */
+  .gg-highlight {
+    background-image: linear-gradient(
+      transparent 58%,
+      var(--highlighter) 58%,
+      var(--highlighter) 94%,
+      transparent 94%
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    padding: 0 0.08em;
+    margin: 0 -0.08em;
+    animation: gg-sweep 700ms 250ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  /* the red pen draws itself; --len is its measured on-screen length (lib/use-pen-length.ts) */
+  .gg-pen {
+    fill: none;
+    stroke: var(--red-pen);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: var(--len, 2000);
+    stroke-dashoffset: var(--len, 2000);
+    animation: gg-pen 650ms var(--pen-delay, 900ms) ease-out forwards;
+  }
+
+  .gg-late {
+    opacity: 0;
+    animation: gg-appear 320ms var(--late-delay, 1500ms) ease-out forwards;
+  }
+
+  /* the "reading the photo" pass: a soft ink band sweeps down the page once */
+  .gg-scan {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 72px;
+    background: linear-gradient(to bottom, transparent, rgb(62 76 133 / 0.14), transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: gg-scan 800ms 80ms ease-in-out both;
+  }
+}
+
+@keyframes gg-scan {
+  0% {
+    opacity: 1;
+    transform: translateY(-72px);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(190px);
+  }
+}
+
+@keyframes gg-sweep {
+  from {
+    background-size: 0% 100%;
+  }
+}
+
+@keyframes gg-pen {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes gg-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gg-highlight,
+  .gg-pen,
+  .gg-late,
+  .gg-scan {
+    animation: none;
+  }
+  .gg-pen {
+    stroke-dashoffset: 0;
+  }
+  .gg-late {
+    opacity: 1;
   }
 }
