@@ -4,6 +4,8 @@ python -m app.evals typed    30 wrong answers built by applying a known wrong pr
 python -m app.evals photos   the handwriting cards in data/evidence/photos, against data/evidence/labels.csv
 python -m app.evals verifier the 12 labelled pages diagnosed from their transcribed lines by exact arithmetic alone
 python -m app.evals robust   every real photo rotated ±8°, JPEG quality 40, 640 px and darkened; accuracy per condition
+python -m app.evals pages    whole notebook pages (several problems each, none from the bank), against
+                             data/evidence/pages.csv; refuses to run until every row is checked by its writer
 """
 
 import asyncio
@@ -350,6 +352,149 @@ async def run_robust() -> list[dict]:
     return numbers
 
 
+PAGES_CSV = settings.data_dir / "evidence" / "pages.csv"
+PAGES_DIR = settings.data_dir / "evidence" / "incoming"
+
+
+def _page_labels() -> list[dict]:
+    rows = list(csv.DictReader(open(PAGES_CSV, encoding="utf-8")))
+    unchecked = [f"{r['photo']} {r['problem_no']}" for r in rows if r.get("checked", "").strip().lower() != "yes"]
+    if unchecked:
+        raise SystemExit(f"{len(unchecked)} label rows are not checked by their writer yet: {', '.join(unchecked)}")
+    return rows
+
+
+def _wrong_value(lines: list[str], answer: Fraction) -> Fraction | None:
+    """The first value in the working that differs from the right answer: what the wrong step says."""
+    from .verifier import split_chain
+
+    for line in lines:
+        for seg in split_chain(line):
+            if seg.value is not None and seg.value != answer:
+                return seg.value
+    return None
+
+
+async def run_pages() -> list[dict]:
+    """One vision call per page, then the verifier on every problem it found. Problems are matched to the labels by
+    the exact value of the problem line. The wrong step counts as found when the circled line's value is the value
+    of the labelled wrong step, so splitting one written line into two doesn't change the score."""
+    from .agents.pages import diagnose_problem, read_page
+    from .verifier import parse_value
+
+    init_db()
+    labels = _page_labels()
+    photos = sorted({r["photo"] for r in labels})
+    rows, ms, writers = [], [], set()
+    for photo in photos:
+        mine = [r for r in labels if r["photo"] == photo]
+        writers.add(mine[0]["writer"])
+        result, telemetry = await read_page(prepare_image((PAGES_DIR / photo).read_bytes()))
+        ms += [t["ms"] for t in telemetry if t["ok"]]
+        found = []
+        for text in result.problems if result else []:
+            lines = [x for x in text.split("|") if x.strip()]
+            try:
+                found.append(diagnose_problem(lines, None, None))
+            except Exception:  # an unparseable entry counts as not found
+                continue
+        used: set[int] = set()
+        for label in mine:
+            answer = parse_value(label["answer"])
+            label_lines = [x.strip() for x in label["lines"].split("|")]
+            truth_correct = label["correct"] == "true"
+            match = None
+            for i, f in enumerate(found):
+                if i in used:
+                    continue
+                value = parse_value(f.get("problem") or "")
+                if value is not None and value == answer:
+                    match = i
+                    break
+            got = found[match] if match is not None else None
+            if match is not None:
+                used.add(match)
+            truth_wrong = None if truth_correct else _wrong_value(label_lines, answer)
+            got_wrong = None
+            if got and got.get("error_step"):
+                got_wrong = _wrong_value(got["steps"][got["error_step"] - 1 :], answer)
+            row = {
+                "photo": photo,
+                "writer": label["writer"],
+                "problem": label["problem_no"],
+                "topic": label["topic"],
+                "found": got is not None,
+                "read": got["steps"] if got else None,
+                "truth_correct": truth_correct,
+                "correct": got["correct"] if got else None,
+                "truth_wrong_value": str(truth_wrong) if truth_wrong is not None else None,
+                "wrong_value": str(got_wrong) if got_wrong is not None else None,
+                "truth_tag": label["tag"] or None,
+                "tag": got.get("misconception_tag") if got else None,
+                "reproduced_by": got.get("reproduced_by") if got else None,
+            }
+            rows.append(row)
+            print(
+                f"{photo:20} {label['problem_no']:3} found {row['found']!s:5} verdict {row['correct']} (truth "
+                f"{truth_correct}) wrong {row['wrong_value']} (truth {row['truth_wrong_value']}) tag {row['tag']} "
+                f"(truth {row['truth_tag']})"
+            )
+    if not rows:
+        return []
+    fr = [r for r in rows if r["topic"] == "fractions"]
+    found_ok = sum(r["found"] for r in rows)
+    verdict_ok = sum(r["found"] and r["correct"] == r["truth_correct"] for r in fr)
+    wrong = [r for r in fr if not r["truth_correct"]]
+    step_ok = sum(r["found"] and r["wrong_value"] == r["truth_wrong_value"] for r in wrong)
+    tagged = [r for r in wrong if r["truth_tag"]]
+    tag_ok = sum(r["found"] and r["tag"] == r["truth_tag"] for r in tagged)
+    who = f"{len(writers)} writers"
+    method = (
+        f"{len(photos)} WhatsApp photos of whole notebook pages by {who}, {len(rows)} problems, none from our question "
+        "bank; labels drafted by our coding assistant from the photos and checked by each page's writer before any "
+        "GuruGraph run; one vision call per page, then exact arithmetic on every problem"
+    )
+    numbers = [
+        {
+            "label": "Problems found on a whole page",
+            "value": f"{found_ok}/{len(rows)}",
+            "n": len(rows),
+            "method": method,
+        },
+        {
+            "label": "Fraction problems (not in the bank) marked right or wrong correctly",
+            "value": f"{verdict_ok}/{len(fr)}",
+            "n": len(fr),
+            "method": method + "; fraction problems only",
+        },
+        {
+            "label": "Wrong step found on a problem not in the bank",
+            "value": f"{step_ok}/{len(wrong)}",
+            "n": len(wrong),
+            "method": method + "; wrong fraction problems only; the circled line must hold the labelled wrong value",
+        },
+        {
+            "label": "Mistake named on a problem not in the bank",
+            "value": f"{tag_ok}/{len(tagged)}",
+            "n": len(tagged),
+            "method": method + "; wrong fraction problems only",
+        },
+    ]
+    if ms:
+        numbers.append(
+            {
+                "label": "Whole-page read time (median)",
+                "value": f"{statistics.median(ms) / 1000:.1f} s",
+                "n": len(ms),
+                "method": "server-side model time per page during this evaluation",
+            }
+        )
+    for x in numbers:
+        print(x)
+    _save("pages", numbers, rows)
+    return numbers
+
+
 def run_verifier() -> list[dict]:
     """No model: the labelled lines go straight to the verifier. The label was written before any model ran."""
     topic = get_topic()
@@ -430,5 +575,7 @@ if __name__ == "__main__":
         run_verifier()
     elif cmd == "robust":
         asyncio.run(run_robust())
+    elif cmd == "pages":
+        asyncio.run(run_pages())
     else:
         print(__doc__)
