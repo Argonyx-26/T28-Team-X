@@ -144,6 +144,39 @@ export interface ParentMessage {
   telemetry: Telemetry[];
 }
 
+export interface RuleCheck {
+  status: "verified" | "consistent" | "mismatch" | "unverified";
+  note: string;
+}
+
+export interface PhotoResult {
+  student_id: string;
+  question_id: string;
+  concept_id: string;
+  steps: string[];
+  final_answer_read: string | null;
+  correct: boolean;
+  error_step: number | null;
+  misconception_tag: string | null;
+  label: string | null;
+  confidence: number;
+  feedback: string;
+  source: string;
+  needs_typed_answer: boolean;
+  rule_check: RuleCheck;
+  mastery_after: number | null;
+  gap_opened: boolean;
+  telemetry: Telemetry[];
+}
+
+export interface Topic {
+  concepts: { id: string; name: string; short: string }[];
+  tags: { tag: string; labels: Record<Lang, string> }[];
+  photo_questions: { id: string; stem: string; concept_id: string }[];
+}
+
+export type ReviewVerdict = "agree" | "change_tag" | "change_step" | "mark_correct";
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -185,4 +218,22 @@ export const api = {
   analyze: (sessionId: string) => post<AnalyzeResponse>("/agents/analyst/analyze", { session_id: sessionId }),
   approve: (recommendationId: string) => post<{ ok: true }>("/teacher/approve", { recommendation_id: recommendationId }),
   parentMessage: (studentId: string) => post<ParentMessage>("/agents/coach/parent-message", { student_id: studentId }),
+  topic: () => call<Topic>("/topic"),
+  photo: (studentId: string, questionId: string, image: Blob) => {
+    const form = new FormData();
+    form.append("student_id", studentId);
+    form.append("question_id", questionId);
+    form.append("image", image, "notebook.jpg");
+    return call<PhotoResult>("/agents/diagnostician/photo", { method: "POST", body: form });
+  },
+  typedAnswer: (studentId: string, questionId: string, answer: string) =>
+    post<{ correct: boolean; misconception_tag: string | null; label_en: string | null; correct_answer: string }>(
+      "/agents/diagnostician/answer",
+      { student_id: studentId, question_id: questionId, answer },
+    ),
+  review: (studentId: string, questionId: string, verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) =>
+    post<{ ok: true; correct: boolean; misconception_tag: string | null; error_step: number | null }>(
+      "/teacher/review",
+      { student_id: studentId, question_id: questionId, verdict, ...extra },
+    ),
 };

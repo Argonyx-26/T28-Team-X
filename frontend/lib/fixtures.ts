@@ -148,6 +148,7 @@ export const FIXTURES = {
     mastery_before: 0.5,
     mastery_after: 0.3,
     gap_opened: true,
+    gap_open: true,
     telemetry: mockTelemetry,
   }),
 
@@ -157,6 +158,7 @@ export const FIXTURES = {
     concept_id: "C4",
     steps: ["3/4 + 1/4", "= (3+1)/(4+4)", "= 4/8"],
     final_answer_read: "4/8",
+    rule_check: { status: "verified", note: "4/8 is exactly what you get if you added the denominators too." },
     correct: false,
     error_step: 2,
     misconception_tag: "add_denominators",

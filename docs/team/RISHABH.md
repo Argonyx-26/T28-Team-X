@@ -34,6 +34,16 @@ If a model says its quota is used up, switch to another model in the dropdown an
 
 > **Change at 1:30 PM: the teacher dashboard `/teacher/[code]` is DONE (built by Samartha's Claude; open `/teacher/7B`)** (the graph, heatmap, agent feed, debate panel, parent message and voice note). It lives only in `frontend/app/teacher/[code]/page.tsx` and `frontend/app/teacher/[code]/_dashboard/`. **Don't create or edit those files.** Skip F5 and F6, and skip the `/teacher/[code]` shell in F1. You still own everything else, including `/teacher/[code]/scan`, the shared design tokens and fonts in `globals.css`/`layout.tsx`, and `lib/`. The dashboard reads your CSS variables (`--ink`, `--red-pen`, …) when they exist. If a `git pull` ever conflicts on a dashboard file, keep Samartha's version: `git checkout --theirs <file> && git add <file>`.
 
+## Update 4 PM: ownership change (read first)
+- **Samartha's Claude has built `/teacher/[code]/scan`** (files in `app/teacher/[code]/scan/`) and is building **`/join/[code]`** (files in `app/join/[code]/`). **Don't edit those folders**, and skip F2, F3 and F5–F6.
+- **Your list now, in order:**
+  1. Deploy to Vercel **now**, with `API_URL=https://gurugraph-api-215071922486.asia-south1.run.app` and **without** `NEXT_PUBLIC_USE_FIXTURES`. Post the URL.
+  2. Build the landing page `/` (F7.1).
+  3. Build `/judges` (F7.2).
+  4. Add Raah (the script, the events and the badge; set `data-domain` to *our* Vercel domain).
+  5. Polish the whole app, and take screenshots for the deck.
+- I added `gap_open` and `rule_check` to `lib/types.ts` and `lib/fixtures.ts` so the build stays green.
+
 ## 0. Setup (10 min)
 1. Install Antigravity from antigravity.google and sign in with your personal Google account.
 2. Install the Antigravity browser extension when it asks. It lets the agent test pages.
