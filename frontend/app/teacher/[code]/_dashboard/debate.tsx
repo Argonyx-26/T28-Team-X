@@ -85,6 +85,11 @@ function Beat({ step }: { step: AnalyzeStep }) {
         <span className="font-semibold">
           {step.action === "propose" ? "Coach drafted a plan from the mark book" : "Coach revised the plan"}
         </span>
+        {step.source === "template" && (
+          <span className={s.chip} title="Gemini didn't answer in time, so the Coach used its built-in plan. The Analyst's checks still ran.">
+            built-in template
+          </span>
+        )}
       </div>
       {(step.recommendations ?? []).map((rec) => (
         <PlanCard key={rec.id} rec={rec} stage={step.action === "propose" ? "Draft" : "Revised"} />
@@ -110,6 +115,7 @@ export function DebatePanel({
   const [error, setError] = useState("");
   const [shown, setShown] = useState(0);
   const [approved, setApproved] = useState<Record<string, "saving" | "done">>({});
+  const [approveError, setApproveError] = useState("");
 
   async function run() {
     setStatus("loading");
@@ -145,6 +151,7 @@ export function DebatePanel({
   }, [result, reduce]);
 
   async function approve(rec: Recommendation) {
+    setApproveError("");
     setApproved((a) => ({ ...a, [rec.id]: "saving" }));
     try {
       await api.approve(rec.id);
@@ -157,6 +164,7 @@ export function DebatePanel({
         delete next[rec.id];
         return next;
       });
+      setApproveError("The approval didn't save. Check the connection and press Approve again.");
     }
   }
 
@@ -255,6 +263,11 @@ export function DebatePanel({
                       </button>
                     )}
                   </div>
+                  {approveError && !approved[rec.id] && (
+                    <p role="alert" className="text-[0.9em]" style={{ color: "var(--red-pen)" }}>
+                      {approveError}
+                    </p>
+                  )}
                 </div>
               ))}
               <div className="flex flex-wrap gap-1 pt-1">

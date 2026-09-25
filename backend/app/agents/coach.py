@@ -191,10 +191,12 @@ async def analyze(session_id: str) -> dict:
     )
     telemetry += tel
     recs = _normalize(plan.recommendations if plan else _template_draft(analysis), analysis, 0, "draft")
-    steps.append({"round": 0, "agent": "Coach", "action": "propose", "recommendations": recs})
+    source = "llm" if plan else "template"
+    steps.append({"round": 0, "agent": "Coach", "action": "propose", "recommendations": recs, "source": source})
     with get_conn() as conn, transaction(conn):
         for r in recs:
-            log_event(conn, session_id, "Coach", "propose", f"Draft: {r['headline']} ({r['group_label']})", None, tel)
+            kind = "Draft" if plan else "Draft (built-in template)"
+            log_event(conn, session_id, "Coach", "propose", f"{kind}: {r['headline']} ({r['group_label']})", None, tel)
 
     round_no = 0
     while True:
@@ -249,11 +251,15 @@ async def analyze(session_id: str) -> dict:
         telemetry += tel
         revised = plan.recommendations if plan else _template_revision(recs, critiques, analysis)
         recs = _normalize(revised, analysis, round_no, "revised")
-        steps.append({"round": round_no, "agent": "Coach", "action": "revise", "recommendations": recs})
+        source = "llm" if plan else "template"
+        steps.append(
+            {"round": round_no, "agent": "Coach", "action": "revise", "recommendations": recs, "source": source}
+        )
         with get_conn() as conn, transaction(conn):
             for r in recs:
+                kind = "Revised" if plan else "Revised (built-in template)"
                 log_event(
-                    conn, session_id, "Coach", "revise", f"Revised: {r['headline']} ({r['group_label']})", None, tel
+                    conn, session_id, "Coach", "revise", f"{kind}: {r['headline']} ({r['group_label']})", None, tel
                 )
 
     final = []

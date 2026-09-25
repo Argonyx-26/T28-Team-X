@@ -209,6 +209,17 @@
   overflow: hidden;
 }
 
+.pop {
+  display: inline-block;
+  animation: pop 900ms ease-out;
+}
+
+@keyframes pop {
+  30% {
+    transform: scale(1.35) rotate(-2deg);
+  }
+}
+
 .meterFill {
   height: 100%;
   border-radius: 999px;
@@ -224,5 +235,9 @@
 
   .meterFill {
     transition: none;
+  }
+
+  .pop {
+    animation: none;
   }
 }

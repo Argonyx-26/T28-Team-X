@@ -105,6 +105,8 @@ export interface AnalyzeStep {
   action: "propose" | "critique" | "revise";
   recommendations?: Recommendation[];
   critiques?: Critique[];
+  /** "template" when Gemini didn't answer and the Coach used its built-in plan */
+  source?: "llm" | "template";
 }
 
 export interface AnalyzeResponse {

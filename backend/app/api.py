@@ -235,8 +235,10 @@ def examiner_retry(body: Retry) -> dict:
 
 
 @router.post("/agents/simulator/run")
-def simulator_run(body: Simulate, request: Request) -> dict:
+def simulator_run(body: Simulate, request: Request, x_admin_token: str | None = Header(default=None)) -> dict:
     _limit(request, "simulate", 3)
+    if body.session_id == seed.DEMO_SESSION_ID:
+        _check_admin(x_admin_token)  # the judged class stays as seeded; any other class can simulate freely
     with get_conn() as conn:
         state.require_session(conn, body.session_id)
         start = conn.execute(

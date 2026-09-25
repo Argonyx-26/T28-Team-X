@@ -77,8 +77,10 @@ def smoke(base: str) -> int:
         return h["providers"]
 
     def join():
-        j = c.post("/students/join", json={"code": "7B", "nickname": "Smoke test", "language": "kn"}).json()
+        s = c.post("/sessions/create", json={"class_name": "Smoke test"}).json()
+        j = c.post("/students/join", json={"code": s["code"], "nickname": "Smoke test", "language": "kn"}).json()
         state["sid"] = j["student_id"]
+        return f"class {s['code']}"
 
     def quiz():
         wrong_given = False

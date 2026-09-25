@@ -104,9 +104,12 @@ function GapMeter({ data }: { data: DashboardData }) {
       <div className="flex min-w-0 flex-1 items-center gap-4">
         <div className="shrink-0 text-[1.05em]">
           Gaps closed this session:{" "}
-          <strong className={`${s.highlight} text-[1.2em]`}>
+          <strong key={closed} className={`${s.highlight} ${s.pop} text-[1.2em]`}>
             {closed} of {total}
           </strong>
+          <span className="sr-only" aria-live="polite">
+            {closed} gaps closed
+          </span>
         </div>
         <div
           className={`${s.meterTrack} min-w-[120px] flex-1`}
@@ -160,12 +163,28 @@ export function Dashboard({ code }: { code: string }) {
 
   useEffect(() => {
     let live = true;
-    api
-      .lookup(code)
-      .then((found) => live && setSession(found))
-      .catch((e) => live && setNotFound(e instanceof ApiError ? e.message : "Couldn't reach the server."));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // only a 404 means "no such class"; a dropped connection keeps retrying behind the "Reconnecting…" pill
+    const attempt = () =>
+      api.lookup(code).then(
+        (found) => {
+          if (!live) return;
+          setSession(found);
+          setReconnecting(false);
+        },
+        (e: unknown) => {
+          if (!live) return;
+          if (e instanceof ApiError && e.status === 404) setNotFound(e.message);
+          else {
+            setReconnecting(true);
+            timer = setTimeout(attempt, 3000);
+          }
+        },
+      );
+    void attempt();
     return () => {
       live = false;
+      clearTimeout(timer);
     };
   }, [code]);
 

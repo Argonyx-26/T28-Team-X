@@ -17,7 +17,7 @@ from .examiner import question_out
 
 log = logging.getLogger("gurugraph.curator")
 
-# the mistakes the demo and a typical class hit most; pre-generated in en/hi/kn and reviewed by a native reader
+# the mistakes the demo and a typical class hit most; pre-generated in en/hi/kn, script-checked, native review pending
 DEMO_PAIRS = [
     ("C4", "add_denominators"),
     ("C4", "unlike_denominators"),
@@ -162,7 +162,7 @@ async def lesson(student_id: str) -> dict:
     if (student_id, key) not in _announced:
         _announced.add((student_id, key))
         if not (key in _jobs and _jobs[key].done()):  # a fresh generation already logged its own event
-            what = "from the reviewed cache" if payload.get("translated") else "as the English fallback"
+            what = "pre-generated and script-checked" if payload.get("translated") else "as the English fallback"
             with get_conn() as conn, transaction(conn):
                 log_event(
                     conn,

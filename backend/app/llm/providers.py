@@ -268,7 +268,7 @@ async def generate(
         if use_cache:
             _cache_put(key, agent, provider, model, parsed.model_dump_json())
         return parsed, telemetry
-    if not any_available:
+    if not any_available and image is not None:
         raise ApiError(
             503,
             "no_vision_provider",
