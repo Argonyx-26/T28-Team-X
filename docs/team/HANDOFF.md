@@ -1,61 +1,45 @@
-# Handoff: state at 16:50, Fri 25 Sep
+# Handoff: state at 23:10, Fri 25 Sep
 
 ## Live
 | What | Where |
 |---|---|
 | App (Cloud Run `gurugraph-web`) | https://gurugraph-web-215071922486.asia-south1.run.app |
-| API (Cloud Run `gurugraph-api`) | https://gurugraph-api-215071922486.asia-south1.run.app (see `/docs`) |
+| API (Cloud Run `gurugraph-api`) | https://gurugraph-api-215071922486.asia-south1.run.app (see `/docs`; contract in `docs/API.md`) |
 
-**GCP project:** `project-b3549f11-8db5-4ca2-9e4`, region `asia-south1`. Everything is paid from the free $300 credit. There is no Nebius: it needs a card, so everything runs on Gemini.
+**GCP project:** `project-b3549f11-8db5-4ca2-9e4`, region `asia-south1`, paid from the $300 credit. Everything runs on Gemini on Vertex AI.
 
-**Admin token:** `PROD_ADMIN_TOKEN` in `backend/.env` on Samartha's laptop. It is never committed.
+**Deploys, checks and rules** are in [CLAUDE.md](../../CLAUDE.md). The admin token lives only in `backend/.env` (gitignored) and in the presenter's browser.
 
-**Deploy commands** (run from the repo root):
-```
-gcloud run deploy gurugraph-api --source . --region asia-south1 --project project-b3549f11-8db5-4ca2-9e4
-gcloud run deploy gurugraph-web --source frontend --region asia-south1 --project project-b3549f11-8db5-4ca2-9e4 --set-build-env-vars API_URL=https://gurugraph-api-215071922486.asia-south1.run.app
-```
-
-**Checks:**
-- Smoke test: `cd backend && .venv/Scripts/python -m app.tools smoke https://gurugraph-api-215071922486.asia-south1.run.app` (8 steps).
-- Reset the demo class: `POST /admin/reset` with the header `X-Admin-Token`.
-
-## Done (all tested on the live app)
-**Screens:**
-
+## Screens
 | Screen | Route | What it does |
 |---|---|---|
-| Teacher dashboard | `/teacher/7B` | Graph, heatmap, live agent feed. Coach vs Analyst debate → Approve → printable worksheet. Student sheet with a Kannada parent message and voice note. Projector view |
-| Scan screen | `/teacher/7B/scan` | Red-pen circle on the wrong line, an exact-arithmetic proof, one-tap teacher confirm or correct, sample notebooks |
-| Student flow | `/join/7B?as=asha` | Kannada quiz → "Fix this now" → lesson → 2 retries → gap closed |
-| Notebook pile | `/teacher/7B/pile` | Reads 6 photos at a time into a live grid, then a summary |
-| Worksheet | `/teacher/7B/worksheet?concept=C4&tag=add_denominators` | Printable sheet for the re-teach group |
-| Judges numbers | `GET /judges/summary` | See below |
+| Landing | `/` | the red-pen demo, the loop, the agents' debate, live numbers, a QR to join 7B |
+| For judges | `/judges` | a six-stop tour, every number with its n and method, how it's built |
+| Class dashboard | `/teacher/7B` | graph, heatmap, live agent feed, the morning digest, Coach vs Analyst plan, approve, worksheet, student sheet with a Kannada parent voice note, projector view (P) |
+| Scan one notebook | `/teacher/7B/scan` | the wrong line circled on the photo or the transcript, each line's exact value, the arithmetic proof, "any other fraction problem", teacher confirm or correct |
+| Snap notebooks | `/teacher/7B/snap` | the rear camera captures each page by itself; the roll number files it; unassigned tray; seconds per notebook |
+| Notebook pile | `/teacher/7B/pile` | reads 6 photos at a time (gallery) |
+| Student | `/join/7B?as=asha` | Kannada quiz → Fix this now → lesson → 2 retries → gap closed; **Check my homework** (red pen in the child's language, Listen, Send to my parent) |
+| School view | `/school/demo` | 7A, 7B, 7C: classes × concepts, top mistakes, which class needs which re-teach (7A and 7C simulated) |
+| Create a class | `/teacher/new` | a name gives a join code, a QR and a teacher link; paste a roll list |
+| Presenter | `/present` | reset, warm every demo beat, health, the demo tabs, notes (needs the admin token) |
 
-**The `/judges` numbers:**
-- 37 verified questions.
-- Typed-answer eval: 27/30.
-- AI cost ₹3.64 per student per month (measured, `data/evals/unit_costs.json`).
-- Teacher agreement.
-- Live photo time.
+## Checks (last run 23:10)
+- Backend: 217 tests, ruff clean. Frontend: tsc, lint and build clean.
+- Browser tests (`e2e/`): golden path, homework check and snap mode (Chrome's fake camera), 7 of 7 passing on the live URL three times in a row.
+- Lighthouse on the live URL, mobile: performance 99 (`/`), 98 (`/judges`), 90 (`/join/7B`), 90 (scan); accessibility 100 on all nine pages checked.
 
-**Backend:** 114 tests, CI green. Photo reads are hedged across two Gemini models. There are 24 pre-generated lessons (en/hi/kn), and `docs/research/LESSONS_REVIEW.md` is waiting for a native reader.
+## Numbers (all on `/judges` with n and method)
+Real phone photos 6/6 wrong step and 6/6 mistake, still 6/6 rotated, compressed, shrunk or darkened; the verifier alone 12/12, 8/8, 8/8 on 12 labelled pages by 3 writers; typed-answer fallback 27/30; load: 440 requests, 0 errors, p95 180 ms; ₹3.64 per student per month.
 
-**Docs:**
-- `README.md` (the full story, evals, runbook).
-- `docs/research/EVIDENCE.md` (sourced statistics).
-- `docs/API.md` (the API contract).
-- Team roles and tools: `docs/team/TEAM.md`.
+## Waiting on the team (data, not code)
+1. **Handwritten pages from all three writers**, with "Roll n" at the top, 1–3 problems per page, some planted mistakes, and the right answers and mistakes written down before any model run. Each page photographed twice as files (not WhatsApp photos). They go in `data/evidence/photos/` with rows in `data/evidence/labels.csv`.
+2. **A stopwatch time for marking 10 notebooks by hand**, and the same 10 in snap mode on a phone, to compare seconds per notebook (an internal test, labelled so).
+3. **A native-speaker check** of the Kannada and Hindi lessons (`docs/research/LESSONS_REVIEW.md`) and of the new homework strings.
+4. The Raah project id, and the deck format.
 
-## Left, in priority order
-1. **Real handwriting.** Risheeth uploads the 24 card photos to `data/evidence/photos/` (names like `A_P1_1.jpg`, labels in `data/evidence/labels.csv`). Then run `cd backend && .venv/Scripts/python -m app.evals photos` and put the results in the README and on `/judges`. So far only generated samples have been tested: 10 of 10 correct.
-2. **Mentor round at 18:30.** Run the demo once at about 18:10 on the live link to warm the saved AI answers: scan Asha → dashboard → "Plan tomorrow's lesson" → Asha on a phone. Reset right before.
-3. **Rishabh:** the landing page `/`, `/judges`, Raah (script, events, badge, status page; `data-domain` must be our domain), polish, and screenshots for the deck. He shouldn't edit `app/teacher/[code]/**` or `app/join/**`, which Samartha's AI owns.
-4. **Risheeth:**
-   - the 60-second mentor script;
-   - check the Kannada and Hindi lessons and labels;
-   - verify the top evidence items;
-   - the deck (the organizers send the ~8-slide format tonight), the 5:00 script and Q&A;
-   - the video at 3:15 AM.
-5. **Evening (optional):** drop the live "median photo time" from `/judges` once the photo eval exists (our own testing inflates it). Then hardening, and the 12:30 AM freeze. At 3 AM the full path must pass 3 times in a row.
-
+## Pitch
+- `docs/pitch/DEMO_SCRIPT.md`: 5 minutes, all three speak, with a Wi-Fi fallback.
+- `docs/pitch/QA.md`: hard questions with honest answers, the mentors' objection first.
+- `docs/pitch/screens/`: screenshots of every new flow.
+- `docs/SCALE.md`: class to district, cost at scale, privacy by design.
