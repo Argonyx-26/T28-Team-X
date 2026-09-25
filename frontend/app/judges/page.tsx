@@ -35,11 +35,26 @@ const TOUR = [
     lookFor: "A short lesson in Kannada, two retry questions and “Gap closed”. The class meter on the dashboard moves.",
   },
   {
+    title: "Any problem from the textbook",
+    href: ROUTES.scan,
+    cta: "Open the scan screen",
+    doThis: "Pick “Any other fraction problem”, then photograph your own working for any fraction sum, with a planted mistake if you like.",
+    lookFor:
+      "The AI only transcribes. Exact arithmetic finds the first wrong line, a mal-rule recomputes it to name the mistake (“adding the denominators too gives exactly 3/8”), and a ledger shows every line's exact value.",
+  },
+  {
     title: "Read a pile of notebooks",
     href: ROUTES.pile,
     cta: "Open the notebook pile",
     doThis: "Tap “Use 6 sample notebooks”.",
     lookFor: "Six photos read six at a time into a live grid, then a summary of who got what wrong and the most common mistakes.",
+  },
+  {
+    title: "The whole school",
+    href: ROUTES.school,
+    cta: "Open the school view",
+    doThis: "Look across 7A, 7B and 7C (7A and 7C are simulated).",
+    lookFor: "Classes × concepts, the top mistakes across the school, and which class needs which re-teach, from the same rules as the class dashboard.",
   },
 ];
 
@@ -59,7 +74,7 @@ const STACK = [
 ];
 
 const ENGINES = [
-  { title: "Rules engine", lines: ["Exact fraction arithmetic", "Mastery, gaps, the Analyst's veto"] },
+  { title: "Rules engine", lines: ["The exact step verifier: a safe parser and a mal-rule per mistake", "Mastery, gaps, the Analyst's veto"] },
   {
     title: "Gemini on Vertex AI",
     lines: ["3 Flash reads photos (2.5 Flash hedges after 6 s)", "2.5 Flash writes; 2.5 Flash-Lite backs it up", "Chirp 3 HD speaks Kannada, Hindi, English"],
@@ -68,6 +83,7 @@ const ENGINES = [
 ];
 
 const RESILIENCE = [
+  "The AI only transcribes. Exact arithmetic decides right or wrong and finds the wrong line; when the model and the arithmetic disagree and no rule explains the line, the teacher sees “please check”.",
   "Photo reads are hedged: if the first model takes more than 6 s, a second one starts and the first valid answer wins.",
   "If a photo can't be read, the teacher types the final answer and the rules take over.",
   "Every AI call in the teacher's feed shows the model, time and cost in ₹. Repeats are served from a cache and marked “cached”.",
@@ -119,7 +135,7 @@ export default function JudgesPage() {
         <section aria-labelledby="tour" className="border-y border-rule bg-white/70">
           <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8">
             <h2 id="tour" className="mb-8 text-[clamp(26px,3.6vw,34px)] font-bold tracking-tight text-ink">
-              The tour: four stops, about 20 seconds each
+              The tour: six stops, about 20 seconds each
             </h2>
             <ol className="grid gap-4 md:grid-cols-2">
               {TOUR.map((t, i) => (

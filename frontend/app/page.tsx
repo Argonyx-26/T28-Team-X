@@ -30,7 +30,7 @@ const PROBLEM = [
 const LOOP = [
   {
     title: "Scan the notebook",
-    text: "The teacher photographs a page. Gemini reads the handwriting; exact fraction arithmetic checks which step went wrong and names the mistake.",
+    text: "A child, a parent or the teacher photographs a page. Gemini only transcribes; exact fraction arithmetic finds the first wrong line and a mal-rule recomputes it to name the mistake, for any fraction problem in the textbook.",
     href: ROUTES.scan,
     cta: "Scan a notebook",
   },

@@ -18,6 +18,9 @@ export const ROUTES = {
   join: `/join/${SITE.classCode}`,
   asha: `/join/${SITE.classCode}?as=asha`,
   judges: "/judges",
+  school: "/school/demo",
+  newClass: "/teacher/new",
+  present: "/present",
 } as const;
 
 export const repoFile = (path: string) => `${SITE.repo}/blob/main/${path}`;

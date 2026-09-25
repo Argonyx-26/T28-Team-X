@@ -18,8 +18,10 @@ const TABS = [
   { n: 2, label: "Scan a notebook", href: ROUTES.scan, note: "Asha's page (real photo) → step 2 circled → Yes, that's the mistake" },
   { n: 3, label: "Class dashboard", href: ROUTES.dashboard, note: "Asha's C4 cell is red → Plan tomorrow's lesson → Approve → worksheet" },
   { n: 4, label: "Be Asha (phone)", href: ROUTES.asha, note: "wrong answer → Fix this now → Kannada lesson → 2 retries → Gap closed" },
-  { n: 5, label: "Notebook pile", href: ROUTES.pile, note: "6 sample notebooks read six at a time" },
-  { n: 6, label: "For judges", href: ROUTES.judges, note: "every number with its n and method" },
+  { n: 5, label: "Any problem (scan)", href: ROUTES.scan, note: "“Any other fraction problem” → photograph 2/5 + 1/3 = 3/8 → the ledger and the mal-rule evidence" },
+  { n: 6, label: "School view", href: ROUTES.school, note: "7A, 7B, 7C: classes × concepts, top mistakes, which class needs which re-teach" },
+  { n: 7, label: "Notebook pile", href: ROUTES.pile, note: "6 sample notebooks read six at a time" },
+  { n: 8, label: "For judges", href: ROUTES.judges, note: "every number with its n and method" },
 ];
 
 const NOTES = [

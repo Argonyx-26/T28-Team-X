@@ -64,6 +64,8 @@ export function SiteFooter() {
             { href: ROUTES.scan, label: "Scan a notebook" },
             { href: ROUTES.dashboard, label: "Class 7B dashboard" },
             { href: ROUTES.asha, label: "Be Asha, the demo student" },
+            { href: ROUTES.school, label: "The school view" },
+            { href: ROUTES.newClass, label: "Create your own class" },
             { href: ROUTES.judges, label: "For judges" },
           ]}
         />
