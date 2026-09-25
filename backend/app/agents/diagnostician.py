@@ -353,6 +353,9 @@ def _no_working(q: Question, steps: list[str], result: PhotoDiagnosis) -> dict:
 def _problem_text(line: str) -> str:
     """The problem as posed on a line of working: "1) 3/8 + 1/8 = 4/16" -> "3/8 + 1/8"."""
     segs = verifier.split_chain(line)
+    if len(segs) > 1 and verifier._BLANK.search(segs[1].text):
+        # "2/3 = ?/6": the blank is part of the question
+        return verifier.strip_enumerator(f"{segs[0].text} = {segs[1].text}").strip()
     return verifier.strip_enumerator(segs[0].text if segs else line).strip()
 
 

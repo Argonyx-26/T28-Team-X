@@ -322,3 +322,10 @@ def test_a_page_read_one_line_per_problem_is_put_back_together():
     out = diagnose_problem(lines, tag, step, boxes)
     assert out["error_step"] == 3 and out["line_boxes"][2] == [560, 460, 640, 590]
     assert diagnose_problem(*joined[0])["correct"]
+
+
+def test_a_fill_in_the_blank_keeps_its_blank_in_the_title():
+    from app.agents.pages import diagnose_problem
+
+    out = diagnose_problem(["Q3) 2/3 = ?/6", "= (2+3)/(3+3)", "= 5/6"], None, None)
+    assert out["problem"] == "2/3 = ?/6" and out["misconception_tag"] == "equivalence_additive"
