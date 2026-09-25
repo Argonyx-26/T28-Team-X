@@ -62,7 +62,7 @@ export function Heatmap({
                   ) : (
                     <span className={student.kind === "simulated" ? s.muted : "font-medium"}>{student.nickname}</span>
                   )}
-                  {student.kind === "simulated" && <span className="ml-1 text-[0.72em] text-[#9aa3b2]">sim</span>}
+                  {student.kind === "simulated" && <span className="ml-1 text-[0.72em] text-[#616874]">sim</span>}
                 </th>
                 {cells.map((value, j) => {
                   const b = band(value);
@@ -76,6 +76,7 @@ export function Heatmap({
                         className={`${s.cell} ${b === "none" ? s.cellEmpty : ""}`}
                         style={{ background: b === "none" ? undefined : BAND_COLOR[b], transition: "background 500ms" }}
                         title={label}
+                        role="img"
                         aria-label={label}
                       >
                         {projector ? BAND_ICON[b] : ""}

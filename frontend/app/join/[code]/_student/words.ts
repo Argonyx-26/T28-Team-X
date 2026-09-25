@@ -38,6 +38,7 @@ const en = {
   translationMissing: "English (translation unavailable)",
   noClass: "No class has this code. Ask your teacher for the class code.",
   offline: "Can't reach the class. Check your internet and try again.",
+  slow: "Your lesson is taking longer than usual. Try again.",
   tryAgain: "Try again",
 };
 
@@ -74,6 +75,7 @@ const hi: Words = {
   translationMissing: "English (अनुवाद उपलब्ध नहीं)",
   noClass: "इस कोड की कोई कक्षा नहीं है। अपने शिक्षक से कोड पूछो।",
   offline: "कक्षा से जुड़ नहीं पा रहे। इंटरनेट जाँचो और फिर से कोशिश करो।",
+  slow: "तुम्हारा पाठ बनने में सामान्य से ज़्यादा समय लग रहा है। फिर से कोशिश करो।",
   tryAgain: "फिर से कोशिश करो",
 };
 
@@ -108,6 +110,7 @@ const kn: Words = {
   translationMissing: "English (ಅನುವಾದ ಲಭ್ಯವಿಲ್ಲ)",
   noClass: "ಈ ಕೋಡ್‌ನ ತರಗತಿ ಇಲ್ಲ. ನಿಮ್ಮ ಶಿಕ್ಷಕರಿಂದ ಕೋಡ್ ಕೇಳಿ.",
   offline: "ತರಗತಿಗೆ ಸಂಪರ್ಕವಾಗುತ್ತಿಲ್ಲ. ಇಂಟರ್ನೆಟ್ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  slow: "ನಿಮ್ಮ ಪಾಠ ಸಿದ್ಧವಾಗಲು ಸಾಮಾನ್ಯಕ್ಕಿಂತ ಹೆಚ್ಚು ಸಮಯ ಹಿಡಿಯುತ್ತಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   tryAgain: "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
 };
 

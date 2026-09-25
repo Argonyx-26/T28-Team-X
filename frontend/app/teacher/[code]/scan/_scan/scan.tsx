@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { track } from "@/lib/raah";
+import { usePenLength } from "@/lib/use-pen-length";
+
 import { ApiError, type PhotoResult, type ReviewVerdict, type Topic, api } from "../../_dashboard/api";
 import s from "../../_dashboard/dashboard.module.css";
 import { fontVars } from "../../_dashboard/fonts";
@@ -39,13 +42,26 @@ async function shrink(file: Blob): Promise<Blob> {
   }
 }
 
+function trackPhoto(r: PhotoResult, source: "camera" | "sample") {
+  const t = r.telemetry.find((x) => x.ok) ?? r.telemetry[0];
+  track("photo_diagnosed", {
+    source,
+    correct: r.correct,
+    tag: r.misconception_tag ?? "none",
+    ms: t?.ms,
+    model: t?.model,
+    cached: t?.cached,
+  });
+}
+
 /** A hand-drawn ellipse around one line of working, drawn like a teacher's red pen. */
 function RedPenCircle() {
+  const pen = usePenLength<SVGPathElement>();
   return (
     <svg className={k.circle} viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden>
       <path
+        ref={pen}
         className={k.circlePath}
-        pathLength={1}
         d="M8,22 C6,9 32,3 55,4 C80,5 97,11 95,21 C93,32 70,37 48,36 C24,35 5,31 7,19 C8,13 16,9 26,7"
       />
     </svg>
@@ -153,6 +169,7 @@ export function Scan({ code }: { code: string }) {
       const r = await api.photo(studentId, questionId, await shrink(image));
       setResult(r);
       setStatus("done");
+      trackPhoto(r, "camera");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Try again.");
       setStatus("error");
@@ -178,6 +195,7 @@ export function Scan({ code }: { code: string }) {
       const r = await api.photo(match?.id ?? studentId, sample.question, blob);
       setResult(r);
       setStatus("done");
+      trackPhoto(r, "sample");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Try again.");
       setStatus("error");
@@ -251,7 +269,7 @@ export function Scan({ code }: { code: string }) {
           <label className="flex flex-col gap-1">
             <span className="font-semibold">Student</span>
             <select
-              className={`${s.button} ${s.focusable} w-full justify-between`}
+              className={`${s.button} ${s.focusable} w-full justify-between text-base`}
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
               disabled={!students.length}
@@ -288,6 +306,7 @@ export function Scan({ code }: { code: string }) {
             type="file"
             accept="image/*"
             capture="environment"
+            aria-label="Photograph the notebook page"
             className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -337,7 +356,7 @@ export function Scan({ code }: { code: string }) {
                 <p className={s.muted}>Type the final answer from the notebook instead:</p>
                 <div className="flex gap-2">
                   <input
-                    className={`${s.button} ${s.focusable} flex-1`}
+                    className={`${s.button} ${s.focusable} flex-1 text-base`}
                     inputMode="text"
                     placeholder="e.g. 4/8"
                     value={typed}

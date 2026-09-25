@@ -95,7 +95,7 @@ export function KnowledgeGraph({
               key={c.id}
               tabIndex={0}
               role="button"
-              aria-label={`${c.name}: ${c.avg === null ? "not assessed yet" : `class average ${Math.round(c.avg * 100)}`}, ${c.open_gaps} open gaps`}
+              aria-label={`${c.avg === null ? "–" : Math.round(c.avg * 100)} ${c.short}: ${c.name}, ${c.avg === null ? "not assessed yet" : `class average ${Math.round(c.avg * 100)}`}, ${c.open_gaps} open gaps`}
               className={s.focusable}
               style={{ cursor: "pointer", outline: "none" }}
               onMouseEnter={() => setSelected(c.id)}

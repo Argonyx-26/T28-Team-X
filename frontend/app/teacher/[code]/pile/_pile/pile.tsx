@@ -176,6 +176,7 @@ export function Pile({ code }: { code: string }) {
               type="file"
               accept="image/*"
               multiple
+              aria-label="Add notebook photos"
               className="sr-only"
               onChange={(e) => {
                 void addFiles(e.target.files);

@@ -3,6 +3,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
+import { track } from "@/lib/raah";
+
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 import { type AnalyzeResponse, type AnalyzeStep, ApiError, type Recommendation, api } from "./api";
@@ -147,6 +149,7 @@ export function DebatePanel({
     try {
       await api.approve(rec.id);
       setApproved((a) => ({ ...a, [rec.id]: "done" }));
+      track("plan_approved", { flagged: rec.flagged, audience: rec.audience, students: rec.n_students, tag: rec.misconception_tag });
       onChanged();
     } catch {
       setApproved((a) => {

@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { track } from "@/lib/raah";
+
 import {
   type AnswerResponse,
   ApiError,
@@ -103,6 +105,7 @@ export function Student({ code }: { code: string }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [retryLesson, setRetryLesson] = useState(false);
   const [name, setName] = useState("");
   const [lang, setLang] = useState<Lang>("en");
   const [retryAnswers, setRetryAnswers] = useState<Record<string, string>>({});
@@ -110,24 +113,36 @@ export function Student({ code }: { code: string }) {
   const quizDone = useRef(false);
   const words = WORDS[me?.language ?? lang];
 
-  const fail = useCallback((e: unknown) => {
-    setError(e instanceof ApiError ? e.message : WORDS.en.offline);
+  const fail = useCallback((e: unknown, language: Lang = "en") => {
+    setError(e instanceof ApiError ? e.message : WORDS[language].offline);
+    setRetryLesson(false);
     setBusy(false);
   }, []);
 
   const openLesson = useCallback(
     async (who: Me) => {
+      setError("");
+      setRetryLesson(false);
       setPhase({ name: "lesson", data: null });
-      for (let attempt = 0; attempt < 30; attempt++) {
-        const r = await api.lesson(who.studentId);
-        if (r.status !== "generating") {
-          if (r.status === "none") setPhase({ name: "done", caughtUp: true });
-          else setPhase({ name: "lesson", data: r });
-          return;
+      try {
+        for (let attempt = 0; attempt < 30; attempt++) {
+          const r = await api.lesson(who.studentId);
+          if (r.status !== "generating") {
+            if (r.status === "none") setPhase({ name: "done", caughtUp: true });
+            else {
+              setPhase({ name: "lesson", data: r });
+              track("lesson_viewed", { lang: r.lesson?.language, translated: r.lesson?.translated });
+            }
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1500));
         }
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        // still being written after 45 s: say so and offer a retry instead of leaving a spinner up
+        setError(WORDS[who.language].slow);
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : WORDS[who.language].offline);
       }
-      setPhase({ name: "done", caughtUp: false });
+      setRetryLesson(true);
     },
     [],
   );
@@ -146,7 +161,7 @@ export function Student({ code }: { code: string }) {
         }
         setBusy(false);
       } catch (e) {
-        fail(e);
+        fail(e, who.language);
       }
     },
     [fail, openLesson],
@@ -161,9 +176,10 @@ export function Student({ code }: { code: string }) {
         const who = { studentId: j.student_id, nickname: j.nickname, language: j.language };
         save(code, who);
         setMe(who);
+        track("joined", { lang: who.language });
         await nextQuestion(who);
       } catch (e) {
-        fail(e);
+        fail(e, language);
         setPhase({ name: "join" });
       }
     },
@@ -208,8 +224,9 @@ export function Student({ code }: { code: string }) {
       const result = await api.answer(me.studentId, q.id, chosen);
       setPhase({ name: "feedback", q, index, total, chosen, result });
       setBusy(false);
+      track("diagnosed", { source: result.source, correct: result.correct, gap_open: result.gap_open });
     } catch (e) {
-      fail(e);
+      fail(e, me.language);
     }
   }
 
@@ -223,8 +240,9 @@ export function Student({ code }: { code: string }) {
       );
       setPhase({ name: "result", result });
       setBusy(false);
+      track(result.gap_closed ? "gap_closed" : "gap_still_open", { concept: result.concept_id });
     } catch (e) {
-      fail(e);
+      fail(e, me.language);
     }
   }
 
@@ -245,7 +263,11 @@ export function Student({ code }: { code: string }) {
           <div className={`${s.feedItem} ${s.challenge}`} role="alert">
             {error}
             {me && (
-              <button type="button" className={`${s.button} mt-2`} onClick={() => void nextQuestion(me)}>
+              <button
+                type="button"
+                className={`${s.button} mt-2`}
+                onClick={() => void (retryLesson ? openLesson(me) : nextQuestion(me))}
+              >
                 {words.tryAgain}
               </button>
             )}
@@ -365,7 +387,7 @@ export function Student({ code }: { code: string }) {
           </section>
         )}
 
-        {phase.name === "lesson" && !phase.data && (
+        {phase.name === "lesson" && !phase.data && !error && (
           <div className={`${s.sheet} flex flex-col gap-3 p-5`} role="status">
             <p className="font-medium">{words.writing}</p>
             <div className="h-4 w-3/4 animate-pulse rounded bg-[#eef1f6]" />

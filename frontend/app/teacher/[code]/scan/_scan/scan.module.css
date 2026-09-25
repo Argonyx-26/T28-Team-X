@@ -96,8 +96,9 @@
   stroke-width: 3;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  /* --len is the measured on-screen length (lib/use-pen-length.ts); pathLength mis-draws with non-scaling-stroke */
+  stroke-dasharray: var(--len, 2000);
+  stroke-dashoffset: var(--len, 2000);
   animation: pen 650ms 250ms ease-out forwards;
 }
 
