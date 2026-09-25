@@ -54,13 +54,21 @@ def _audience_size(analysis, rec: dict) -> int:
 
 
 def _names(text: str) -> str:
-    """A teacher reads "Adding fractions", never "C5": concept ids the model copied from the summary become names."""
+    """A teacher reads "Adding fractions", never "C5": concept ids the model copied from the summary become names.
+
+    The model often writes the id and the name together ("C4 'Adding fractions'", "Adding fractions (C4)"); the name
+    then appears once, not twice.
+    """
     topic = get_topic()
-    return re.sub(
+    out = re.sub(
         r"\b(C\d{1,2})\b",
         lambda m: topic.concept(m.group(1)).name if topic.has_concept(m.group(1)) else m.group(1),
         text,
     )
+    for cid in topic.concept_ids:
+        name = re.escape(topic.concept(cid).name)
+        out = re.sub(rf"({name})\s*[(\[:,–—-]?\s*[\"'“‘]?{name}[\"'”’]?(?:\s*[)\]])?", r"\1", out, flags=re.IGNORECASE)
+    return out
 
 
 def _normalize(recs: list[RecommendationOut] | list[dict], analysis, round_no: int, stage: str) -> list[dict]:

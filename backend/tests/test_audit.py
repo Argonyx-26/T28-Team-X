@@ -263,7 +263,12 @@ def test_a_thumbnail_is_refused_instead_of_guessed(client):
 def test_the_coach_writes_concept_names_not_ids():
     from app.agents.coach import _names
 
-    assert _names("Raise C4 mastery") == f"Raise {get_topic().concept('C4').name} mastery"
+    name = get_topic().concept("C4").name
+    assert _names("Raise C4 mastery") == f"Raise {name} mastery"
+    # the id written next to its name gives the name once
+    assert _names(f"C4 '{name}' has the lowest mastery") == f"{name} has the lowest mastery"
+    assert _names(f"Focus on {name} (C4) first") == f"Focus on {name} first"
+    assert _names(f"C4: {name.lower()} needs work") == f"{name} needs work"
 
 
 def test_the_answer_mark_and_an_unreadable_last_line():
