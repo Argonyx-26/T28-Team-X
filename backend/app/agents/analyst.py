@@ -3,8 +3,10 @@
 import json
 import statistics
 
+from .. import costs
 from ..config import settings
 from ..db import get_conn, row, rows
+from ..errors import ApiError
 from ..topic import get_topic
 from . import review, state
 
@@ -186,6 +188,21 @@ def judges_summary() -> dict:
                 "method": "measured tokens x published per-token price, ₹88 per USD",
             }
         )
+    units = costs.load_units()
+    if units:
+        u = units["unit_paise"]
+        numbers.append(
+            {
+                "label": "AI cost per student per month",
+                "value": f"₹{units['per_student_month_inr']:.2f}",
+                "n": sum(units["n"].values()),
+                "method": (
+                    f"measured calls: photo ₹{u['diagnose_photo'] / 100:.2f}, lesson ₹{u['lesson'] / 100:.2f}, parent "
+                    f"message ₹{u['parent_message'] / 100:.2f}, Kannada voice note ₹{u['voice_note'] / 100:.2f}, class "
+                    f"plan ₹{u['plan'] / 100:.2f} shared by 30; one of each per student per week, 4 weeks"
+                ),
+            }
+        )
     agreed = review.agreement()
     if agreed:
         numbers.append(
@@ -207,4 +224,35 @@ def judges_summary() -> dict:
             "video": settings.video_url or None,
             "status_page": settings.status_page_url or None,
         },
+    }
+
+
+def worksheet(session_id: str, concept_id: str, tag: str) -> dict:
+    """A printable sheet for the re-teach group: who, one worked example, practice, and a spot-the-mistake item."""
+    topic = get_topic()
+    if not topic.has_concept(concept_id) or tag not in topic.tags:
+        raise ApiError(404, "worksheet_not_found", "Pick a concept and a mistake from this topic.")
+    with get_conn() as conn:
+        session = state.require_session(conn, session_id)
+        students, _, _, _, analysis = state.analyse_class(conn, session_id)
+    names = {s["id"]: s["nickname"] for s in students}
+    who = sorted(names[s] for s in analysis.students_by_tag.get(concept_id, {}).get(tag, []) if s in names)
+    concept, t = topic.concept(concept_id), topic.tag(tag)
+    pool = topic.questions_for(concept_id, ("mcq", "text", "photo"))
+    targeted = [q for q in pool if tag in q.distractor_tags or tag in q.wrong_answers.values()]
+    items = (targeted + [q for q in pool if q not in targeted])[:6]
+    example = next((q for q in targeted if q.kind == "photo"), targeted[0] if targeted else pool[0])
+    wrong = next(
+        (w for w, wt in example.wrong_answers.items() if wt == tag),
+        next((o.text for o in example.options if o.tag == tag), None),
+    )
+    return {
+        "class_name": session["class_name"],
+        "concept_name": concept.name,
+        "label": t.label(),
+        "definition": t.definition,
+        "students": who,
+        "worked_example": example.method,
+        "spot_the_mistake": {"question": example.stem, "student_answer": wrong} if wrong else None,
+        "items": [{"question": q.stem, "answer": q.answer} for q in items],
     }

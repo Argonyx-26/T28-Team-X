@@ -26,7 +26,8 @@ Sources, each checked on its source page: [docs/research/EVIDENCE.md](docs/resea
 2. **The class dashboard updates live:** a knowledge graph of 8 fraction concepts, a student-by-concept heatmap, and the agents' activity feed.
 3. **The teacher presses Analyze.** The **Coach** drafts a plan from what a mark book shows. The **Analyst** checks it against every child's actual answers and vetoes it with numbers. The Coach revises, and the teacher approves.
 4. **Asha gets a micro-lesson in Kannada** and two retry questions from a verified bank. Both right means **gap closed**, and the class meter moves.
-5. **Her parent gets a WhatsApp message** in the family's language.
+5. **Her parent gets a WhatsApp message** in the family's language, with a voice note.
+6. **The teacher has the last word:** one tap confirms or corrects any diagnosis, a whole pile of notebooks can be read at once, and each approved plan prints as a worksheet for that group.
 
 ## How it works
 
@@ -84,6 +85,7 @@ Every number carries *n* and the method. The raw rows are in [data/evals/results
 |---|---|---|
 | Question bank verified | 37 of 37 | every answer and every distractor is checked by exact fraction arithmetic in the test suite (part of the 113-test suite) |
 | Mistake named from a typed answer alone (the LLM fallback) | **27/30** | new problems, answered by applying a known wrong procedure (the label comes from how the answer was built); final answer only, no working |
+| AI cost per student per month | **₹3.64** | measured calls (3 per action) × published per-token prices, for one photo diagnosis, lesson, parent message and Kannada voice note per student per week plus a shared class plan; the voice note is ₹2.56 of it ([unit_costs.json](data/evals/unit_costs.json)) |
 | Handwritten work: wrong step circled, mistake named | *running on the 24 card photos* | 12 cards by 3 writers, labelled before running the model ([labels](data/evidence/labels.csv)) |
 
 What we don't claim: we ran no classroom trial, have no users and no learning-gain data. The 30 students in class 7B are simulated, and Asha is a demo student.

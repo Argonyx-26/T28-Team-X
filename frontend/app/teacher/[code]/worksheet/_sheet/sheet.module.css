@@ -1,0 +1,41 @@
+.page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 28px 32px 40px;
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+}
+
+.line {
+  display: block;
+  height: 34px;
+  border-bottom: 1.5px solid #c9d3e3;
+}
+
+.cut {
+  margin: 28px 0 14px;
+  border-top: 2px dashed #9aa3b2;
+  padding-top: 6px;
+  font-size: 0.85em;
+  color: #616874;
+}
+
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+
+  .page {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    max-width: none;
+  }
+
+  .printRoot {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+}

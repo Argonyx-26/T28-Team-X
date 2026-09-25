@@ -1,0 +1,30 @@
+{
+ "unit_paise": {
+  "diagnose_photo": 16.465,
+  "lesson": 7.318,
+  "parent_message": 2.537,
+  "voice_note": 64.064,
+  "plan": 22.222
+ },
+ "n": {
+  "diagnose_photo": 3,
+  "lesson": 3,
+  "parent_message": 3,
+  "voice_note": 3,
+  "plan": 1
+ },
+ "per_student_month_inr": 3.64,
+ "usage": {
+  "per_student_per_week": {
+   "diagnose_photo": 1,
+   "lesson": 1,
+   "parent_message": 1,
+   "voice_note": 1
+  },
+  "per_class_per_week": {
+   "plan": 1
+  },
+  "class_size": 30
+ },
+ "method": "real calls on 25 Sep 2026; measured tokens x published price per token (Gemini on Vertex AI, Chirp 3 HD at $30 per million characters), ₹88 per USD"
+}

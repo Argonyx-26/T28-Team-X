@@ -245,3 +245,17 @@ def test_teacher_review_agree_and_correct(client):
     assert any(n["label"].startswith("Photo diagnoses the teacher kept") and n["value"] == "1 of 3" for n in numbers)
     r = client.post("/teacher/review", json={**body, "verdict": "change_tag", "tag": "nope"})
     assert r.status_code == 422
+
+
+def test_worksheet_for_the_reteach_group(client):
+    r = client.get(
+        "/teacher/worksheet", params={"session_id": DEMO_SESSION_ID, "concept_id": "C4", "tag": "add_denominators"}
+    ).json()
+    assert r["students"] and r["label"] == "added the denominators too" and len(r["items"]) == 6
+    assert r["spot_the_mistake"]["student_answer"]
+    assert (
+        client.get(
+            "/teacher/worksheet", params={"session_id": DEMO_SESSION_ID, "concept_id": "C9", "tag": "x"}
+        ).status_code
+        == 404
+    )

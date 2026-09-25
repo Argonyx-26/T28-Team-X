@@ -226,9 +226,21 @@ export function DebatePanel({
                   <PlanCard rec={rec} stage="Final" />
                   <div className="flex items-center gap-2">
                     {approved[rec.id] === "done" ? (
-                      <span className="font-semibold" style={{ color: "var(--green)" }}>
-                        ✓ Approved for tomorrow
-                      </span>
+                      <>
+                        <span className="font-semibold" style={{ color: "var(--green)" }}>
+                          ✓ Approved for tomorrow
+                        </span>
+                        {rec.audience !== "practice_group" && rec.audience !== "extend_group" && (
+                          <a
+                            className={s.button}
+                            href={`${window.location.pathname}/worksheet?concept=${encodeURIComponent(rec.concept_id)}&tag=${encodeURIComponent(rec.misconception_tag)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Print the group&apos;s worksheet
+                          </a>
+                        )}
+                      </>
                     ) : (
                       <button
                         type="button"

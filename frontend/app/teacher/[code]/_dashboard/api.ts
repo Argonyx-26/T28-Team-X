@@ -230,6 +230,17 @@ export interface RetryResponse {
   results: { question_id: string; correct: boolean; correct_answer: string }[];
 }
 
+export interface Worksheet {
+  class_name: string;
+  concept_name: string;
+  label: string;
+  definition: string;
+  students: string[];
+  worked_example: string;
+  spot_the_mistake: { question: string; student_answer: string } | null;
+  items: { question: string; answer: string }[];
+}
+
 export type ReviewVerdict = "agree" | "change_tag" | "change_step" | "mark_correct";
 
 export class ApiError extends Error {
@@ -274,6 +285,10 @@ export const api = {
   approve: (recommendationId: string) => post<{ ok: true }>("/teacher/approve", { recommendation_id: recommendationId }),
   parentMessage: (studentId: string) => post<ParentMessage>("/agents/coach/parent-message", { student_id: studentId }),
   topic: () => call<Topic>("/topic"),
+  worksheet: (sessionId: string, conceptId: string, tag: string) =>
+    call<Worksheet>(
+      `/teacher/worksheet?session_id=${encodeURIComponent(sessionId)}&concept_id=${encodeURIComponent(conceptId)}&tag=${encodeURIComponent(tag)}`,
+    ),
   join: (code: string, nickname: string, language: Lang) =>
     post<{ student_id: string; session_id: string; nickname: string; language: Lang; resumed: boolean }>(
       "/students/join",

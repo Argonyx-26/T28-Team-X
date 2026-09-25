@@ -268,6 +268,11 @@ def teacher_dashboard(session_id: str) -> dict:
     return analyst.dashboard(session_id)
 
 
+@router.get("/teacher/worksheet")
+def teacher_worksheet(session_id: str, concept_id: str, tag: str) -> dict:
+    return analyst.worksheet(session_id, concept_id, tag)
+
+
 @router.get("/teacher/events")
 def teacher_events(session_id: str, after: int = 0) -> dict:
     return analyst.events(session_id, after)
