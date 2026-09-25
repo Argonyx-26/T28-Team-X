@@ -76,7 +76,9 @@ export function SiteFooter() {
             { href: `${SITE.repo}#evaluation`, label: "How we evaluate", external: true },
             { href: repoFile("docs/research/EVIDENCE.md"), label: "Sourced evidence brief", external: true },
             { href: SITE.apiDocs, label: "Live API reference", external: true },
-            ...(RAAH.statusPage ? [{ href: RAAH.statusPage, label: "Status page", external: true }] : []),
+            ...(SITE.statusPage || RAAH.statusPage
+              ? [{ href: SITE.statusPage || RAAH.statusPage, label: "Status page (Raah)", external: true }]
+              : []),
           ]}
         />
       </div>

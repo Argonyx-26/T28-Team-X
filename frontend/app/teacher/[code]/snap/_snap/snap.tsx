@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { track } from "@/lib/raah";
 import { DEFAULT_THRESHOLDS, REASON_TEXT, type Readiness, ReadinessTracker, retryDelay, summarise } from "@/lib/camera";
 import {
   type CameraFailure,
@@ -159,6 +160,7 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
         if (lastGray.current) tracker.current.markCaptured(lastGray.current, performance.now());
         shutterFeedback();
         addCapture(blob, "camera");
+        track("snap_captured", { how });
         if (how === "manual") setReadiness((r) => (r ? { ...r, reason: "cooldown", capture: false } : r));
       } finally {
         capturing.current = false;
@@ -243,6 +245,12 @@ export function Snap({ code, enabled }: { code: string; enabled: boolean }) {
           const result = await api.page(blob, { sessionId: sid }, "snap");
           const state: ItemState = result.unreadable ? "unreadable" : result.saved ? "filed" : "unassigned";
           patch(item.key, { state, result, note: undefined });
+          track("snap_read", {
+            state,
+            matched_by: result.matched_by ?? "none",
+            problems: result.problems.length,
+            wrong: result.problems.filter((p) => !p.correct).length,
+          });
           return;
         } catch (e) {
           const status = e instanceof ApiError ? e.status : 0;

@@ -1,10 +1,16 @@
+"use client";
+
 import Script from "next/script";
+import { useSyncExternalStore } from "react";
 
-import { RAAH, raahOn } from "@/lib/raah";
+import { RAAH, raahActive, raahOn } from "@/lib/raah";
 
-/** The Raah beacon, loaded once in the root layout (Raah's SPA guidance). Off until a project id is set. */
+const noop = () => () => {};
+
+/** The Raah beacon, once in the root layout. It loads only on the production domain and never in automated tests. */
 export function RaahBeacon() {
-  if (!raahOn()) return null;
+  const active = useSyncExternalStore(noop, raahActive, () => false);
+  if (!active) return null;
   return (
     <Script
       id="raah-beacon"
@@ -16,7 +22,7 @@ export function RaahBeacon() {
   );
 }
 
-/** Raah's public badge: live visitors and site stats, rendered inline. */
+/** Raah's public badge: live visitors and site stats for the production domain (turned on in the project's Public badge tab). */
 export function RaahBadge() {
   if (!raahOn()) return null;
   return (

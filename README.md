@@ -116,7 +116,7 @@ How this scales from a class to a district, the architecture at scale, the cost 
 
 ## Sponsor technology
 - **Nebius Token Factory:** built in as an OpenAI-compatible provider for the text agents, with token usage and ₹ cost shown per call. When `NEBIUS_API_KEY` is set it goes first and Gemini becomes the fallback. The demo currently runs on Gemini.
-- **Raah:** browser-side analytics, wired into the app in `frontend/lib/raah.ts` and `frontend/components/site/raah.tsx`: the beacon in the root layout (per-endpoint latency of each agent, since there is one endpoint per agent action), custom events (`joined`, `diagnosed`, `photo_diagnosed`, `homework_checked`, `lesson_viewed`, `gap_closed`, `plan_approved`), never carrying a nickname or an id, and the public badge in the footer. It switches on when `NEXT_PUBLIC_RAAH_PID` is set at build time.
+- **Raah (Studio1):** browser-side analytics, live on the production domain ([frontend/lib/raah.ts](frontend/lib/raah.ts), [frontend/components/site/raah.tsx](frontend/components/site/raah.tsx)). The beacon in the root layout reports page views and the latency of every API call; since there is one endpoint per agent action, Raah's endpoint report is a per-agent latency and error report. Custom events: `joined`, `diagnosed`, `photo_diagnosed`, `homework_checked`, `snap_captured`, `snap_read`, `lesson_viewed`, `gap_closed`, `plan_approved`, `class_created`, `roster_imported`. Events never carry a nickname, a roll number or an id (identifying property names are dropped in the browser), the beacon loads only on the production domain, and our automated browser tests never count as visitors. The public badge sits in the footer.
 
 ## Run it locally
 ```bash

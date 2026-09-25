@@ -4,7 +4,8 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
-import { ROUTES } from "@/lib/site";
+import { RAAH } from "@/lib/raah";
+import { ROUTES, SITE } from "@/lib/site";
 import {
   type Health,
   type Summary,
@@ -145,8 +146,9 @@ export function AllNumbers() {
 /** Demo video and status page links, shown only once they exist. */
 export function ProjectLinks() {
   const [load] = useSummary();
-  if (load.state !== "ready") return null;
-  const { video, status_page } = load.data.links;
+  const api = load.state === "ready" ? load.data.links : null;
+  const video = SITE.video || api?.video || null;
+  const status_page = SITE.statusPage || RAAH.statusPage || api?.status_page || null;
   if (!video && !status_page) return null;
   return (
     <div className="flex flex-wrap gap-3">
