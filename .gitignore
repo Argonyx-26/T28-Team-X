@@ -1,0 +1,19 @@
+# secrets
+.env*
+!.env.example
+
+# never commit real student data or photos
+data/private/
+
+# local state
+*.db
+*.db-*
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# frontend
+node_modules/
+.next/
+.vercel/
