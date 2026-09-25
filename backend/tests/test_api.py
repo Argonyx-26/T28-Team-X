@@ -128,6 +128,19 @@ def test_photo_diagnosis_circles_the_wrong_step(client):
     assert d["heatmap"]["cells"][asha][3] == 0.3  # C4 turned red
 
 
+def test_photo_of_a_different_problem_is_caught_and_not_saved(client):
+    # the fake model reads 3/4 + 1/4 (P1); the teacher picked 2/3 + 1/6 (P2)
+    before = client.get("/teacher/student", params={"student_id": ASHA_ID}).json()
+    r = client.post(
+        "/agents/diagnostician/photo",
+        data={"student_id": ASHA_ID, "question_id": "P2"},
+        files={"image": ("a.png", _png(), "image/png")},
+    )
+    assert r.status_code == 409 and r.json()["error"]["code"] == "wrong_problem"
+    assert "3/4 + 1/4 = ?" in r.json()["error"]["message"]
+    assert client.get("/teacher/student", params={"student_id": ASHA_ID}).json() == before
+
+
 def test_bad_photo_is_a_friendly_error(client):
     r = client.post(
         "/agents/diagnostician/photo",
@@ -159,7 +172,9 @@ def test_parent_message_in_kannada(client):
 
 
 def test_simulator_adds_students_without_llm(client):
-    r = client.post("/agents/simulator/run", json={"session_id": DEMO_SESSION_ID, "n": 5}).json()
+    body = {"session_id": DEMO_SESSION_ID, "n": 5}
+    assert client.post("/agents/simulator/run", json=body).status_code == 401
+    r = client.post("/agents/simulator/run", json=body, headers={"X-Admin-Token": "secret"}).json()
     assert r["students_added"] == 5 and r["llm_calls"] == 0
     assert CALLS == []
 
@@ -259,6 +274,8 @@ def test_worksheet_for_the_reteach_group(client):
         ).status_code
         == 404
     )
+
+
 def test_photo_diagnosis_no_vision_provider_returns_clear_error(client, monkeypatch):
     from app.config import settings
 

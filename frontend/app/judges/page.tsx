@@ -15,7 +15,7 @@ const TOUR = [
     title: "Scan a notebook",
     href: ROUTES.scan,
     cta: "Open the scan screen",
-    doThis: "Tap the sample “Asha, 3/4 + 1/4”, or photograph your own working for one of the four problems.",
+    doThis: "Pick a problem and tap “Asha's page (real photo)”, or photograph your own working for any of the four problems.",
     lookFor:
       "Step 2 circled in red, the mistake named in plain words, and the arithmetic proof under it. One tap lets the teacher agree or correct it.",
   },

@@ -1,6 +1,8 @@
 """The Diagnostician: answer key and rules first; the LLM only for unfamiliar typed answers and handwriting."""
 
 import io
+import re
+from fractions import Fraction
 
 from PIL import Image, ImageOps
 
@@ -151,6 +153,31 @@ def prepare_image(data: bytes) -> bytes:
     return out.getvalue()
 
 
+_FRACTION = re.compile(r"(\d+)\s*/\s*(\d+)")
+
+
+def _fractions(text: str) -> set[Fraction]:
+    return {Fraction(int(a), int(b)) for a, b in _FRACTION.findall(text) if int(b)}
+
+
+def looks_like_other_problem(q: Question, steps: list[str]) -> Question | None:
+    """The teacher picked one problem but photographed another. Compares the fractions in the first line of working
+    with each photo problem's; only a clear match to a different problem counts (exact arithmetic, no AI)."""
+    seen = _fractions(steps[0]) if steps else set()
+    if len(seen) < 2:
+        return None
+
+    def score(other: Question) -> int:
+        stem = _fractions(other.stem)
+        return len(stem & seen) - len(seen - stem)
+
+    others = [x for x in get_topic().questions if x.kind == "photo" and x.id != q.id]
+    best = max(others, key=score, default=None)
+    if best is not None and score(best) >= 2 and score(best) > score(q):
+        return best
+    return None
+
+
 def _known_wrong_tag(q: Question, final_answer: str | None) -> str | None:
     parsed = parse_answer(final_answer)
     if not parsed:
@@ -297,6 +324,16 @@ async def photo(student_id: str, question_id: str, image: bytes) -> dict:
             "mastery_after": None,
             "gap_opened": False,
         }
+
+    other = looks_like_other_problem(q, reading["steps"])
+    if other is not None:
+        # nothing is saved: a diagnosis against the wrong problem would put a false gap on the heatmap
+        raise ApiError(
+            409,
+            "wrong_problem",
+            f"This page looks like “{other.stem}”, not “{q.stem}”. Nothing was saved. "
+            "Pick the matching problem and scan again.",
+        )
 
     outcome = {"mastery_after": None, "gap_opened": False}
     tag, error_step, steps = reading["misconception_tag"], reading["error_step"], reading["steps"]

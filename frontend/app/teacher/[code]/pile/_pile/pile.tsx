@@ -192,7 +192,7 @@ export function Pile({ code }: { code: string }) {
               Add notebook photos
             </button>
             <button type="button" className={s.button} disabled={running || !students.length} onClick={() => void loadSamplePile()}>
-              Use 6 sample notebooks
+              Use 6 sample notebooks (3/4 + 1/4)
             </button>
             <span className={`${s.muted} text-[0.88em]`}>Each photo is matched to a student in class-list order. Change any of them below.</span>
           </div>

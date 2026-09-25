@@ -14,10 +14,16 @@ import k from "./scan.module.css";
 
 type Student = { id: string; nickname: string; kind: string };
 
-const SAMPLES: Record<string, { src: string; question: string; student: string }> = {
-  asha: { src: "/samples/asha-p1.jpg", question: "P1", student: "Asha" },
-  second: { src: "/samples/ravi-p3.jpg", question: "P3", student: "" },
-};
+type Sample = { src: string; question: string; student: string; note: string };
+
+// At least one page for every problem. Asha's are real phone photos of real handwriting (data/evidence/photos).
+const SAMPLES: Sample[] = [
+  { src: "/samples/asha-p1-photo.jpg", question: "P1", student: "Asha", note: "real photo" },
+  { src: "/samples/asha-p2-photo.jpg", question: "P2", student: "Asha", note: "real photo" },
+  { src: "/samples/asha-p3-photo.jpg", question: "P3", student: "Asha", note: "real photo" },
+  { src: "/samples/rahul-p3.jpg", question: "P3", student: "Rahul", note: "sample page" },
+  { src: "/samples/meera-p4.jpg", question: "P4", student: "Meera", note: "sample page" },
+];
 
 const EVIDENCE: Record<string, { title: string; tone: string }> = {
   verified: { title: "Checked by exact arithmetic", tone: "var(--green)" },
@@ -128,7 +134,10 @@ export function Scan({ code }: { code: string }) {
   });
   const [picking, setPicking] = useState<"none" | "tag" | "step">("none");
   const [typed, setTyped] = useState("");
+  const [wrongProblem, setWrongProblem] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  // the last photo and whose it was, so "read it as the other problem" doesn't need a new photo
+  const lastPhoto = useRef<{ blob: Blob; studentId: string; source: "camera" | "sample" } | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -154,53 +163,63 @@ export function Scan({ code }: { code: string }) {
   const question = topic?.photo_questions.find((q) => q.id === questionId);
   const student = students.find((x) => x.id === studentId);
 
+  /** Sends one photo for one student and problem. Every argument is explicit, so it never reads stale state. */
+  async function diagnose(blob: Blob, who: string, qid: string, source: "camera" | "sample") {
+    lastPhoto.current = { blob, studentId: who, source };
+    setStatus("reading");
+    setResult(null);
+    setReview({ state: "none" });
+    setPicking("none");
+    setError("");
+    setWrongProblem(null);
+    try {
+      const r = await api.photo(who, qid, blob);
+      setResult(r);
+      setStatus("done");
+      trackPhoto(r, source);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "wrong_problem") {
+        // the message quotes the problem the page shows; offer to read it as that one
+        setWrongProblem(topic?.photo_questions.find((q) => q.id !== qid && e.message.includes(q.stem))?.id ?? null);
+      }
+      setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Check the connection and try again.");
+      setStatus("error");
+    }
+  }
+
   async function read(image: Blob) {
     if (!studentId) return;
     setPreview((old) => {
       if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
       return URL.createObjectURL(image);
     });
-    setStatus("reading");
-    setResult(null);
-    setReview({ state: "none" });
-    setPicking("none");
-    setError("");
+    await diagnose(await shrink(image), studentId, questionId, "camera");
+  }
+
+  async function trySample(sample: Sample) {
+    // a sample belongs to the student who wrote it; in another class, it goes to whoever is selected
+    const who = students.find((x) => x.nickname.toLowerCase() === sample.student.toLowerCase())?.id ?? studentId;
+    if (!who) return;
+    setStudentId(who);
+    setQuestionId(sample.question);
+    setPreview(sample.src);
     try {
-      const r = await api.photo(studentId, questionId, await shrink(image));
-      setResult(r);
-      setStatus("done");
-      trackPhoto(r, "camera");
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Try again.");
+      const blob = await (await fetch(sample.src)).blob();
+      await diagnose(blob, who, sample.question, "sample");
+    } catch {
+      setError("The sample page didn't load. Check the connection and try again.");
       setStatus("error");
     }
   }
 
-  async function trySample(key: string) {
-    const sample = SAMPLES[key];
-    const match = sample.student
-      ? students.find((x) => x.nickname.toLowerCase() === sample.student.toLowerCase())
-      : undefined;
-    if (match) setStudentId(match.id);
-    setQuestionId(sample.question);
-    const blob = await (await fetch(sample.src)).blob();
-    // state updates above apply on the next render; read with the sample's own student and question
-    if (!match && !studentId) return;
-    setStatus("reading");
-    setPreview(sample.src);
-    setResult(null);
-    setReview({ state: "none" });
-    setError("");
-    try {
-      const r = await api.photo(match?.id ?? studentId, sample.question, blob);
-      setResult(r);
-      setStatus("done");
-      trackPhoto(r, "sample");
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "The photo couldn't be read. Try again.");
-      setStatus("error");
-    }
+  async function readAsOtherProblem(qid: string) {
+    const last = lastPhoto.current;
+    if (!last) return;
+    setQuestionId(qid);
+    await diagnose(last.blob, last.studentId, qid, last.source);
   }
+
+  const samples = SAMPLES.filter((x) => x.question === questionId);
 
   async function sendReview(verdict: ReviewVerdict, extra: { tag?: string; step?: number } = {}) {
     if (!result) return;
@@ -322,20 +341,36 @@ export function Scan({ code }: { code: string }) {
           >
             {status === "reading" ? "Reading the working…" : `Photograph ${student?.nickname ?? "the"}'s notebook`}
           </button>
-          <div className="flex flex-wrap items-center gap-2 text-[0.9em]">
-            <span className={s.muted}>No notebook handy? Try a sample:</span>
-            <button type="button" className={s.button} disabled={status === "reading"} onClick={() => void trySample("asha")}>
-              Asha, 3/4 + 1/4
-            </button>
-            <button type="button" className={s.button} disabled={status === "reading"} onClick={() => void trySample("second")}>
-              3/5 ÷ 3/10
-            </button>
-          </div>
+          {samples.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-[0.9em]">
+              <span className={s.muted}>No notebook handy? Try a page for this problem:</span>
+              {samples.map((x) => (
+                <button
+                  key={x.src}
+                  type="button"
+                  className={s.button}
+                  disabled={status === "reading" || !students.length}
+                  onClick={() => void trySample(x)}
+                >
+                  {x.student}&apos;s page <span className={s.muted}>({x.note})</span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {error && (
           <div className={`${s.feedItem} ${s.challenge}`} role="alert">
             {error}
+            {wrongProblem && (
+              <button
+                type="button"
+                className={`${s.button} ${s.primary} mt-2`}
+                onClick={() => void readAsOtherProblem(wrongProblem)}
+              >
+                Read it as {topic?.photo_questions.find((q) => q.id === wrongProblem)?.stem}
+              </button>
+            )}
           </div>
         )}
 
