@@ -62,12 +62,14 @@ Even where the model reads a photo, the rules check it. If the final answer the 
 ### Why the agents argue
 The Coach sees what a mark book shows: averages and open gaps per concept. The Analyst sees which child made which mistake. Here is a real run on class 7B:
 
-> **Coach (draft):** Review adding fractions with different denominators, for the 7 students struggling with C4.
-> **Analyst:** *No student shows 'added without making the denominators the same' on Adding and subtracting fractions; target a mistake the class actually makes.*
-> **Coach (revised):** Re-teach adding fractions to the 14 students who added the denominators too.
-> **Analyst:** *Matches the data: 14 of 31 students show 'added the denominators too' on Adding and subtracting fractions.*
+> **Coach (draft):** two plans. First, for the whole class: fix "adding without making the denominators the same". Second, for a re-teach group of 13: "Stop adding the denominators too".
+> **Analyst:** *Plan 1: No student shows 'added without making the denominators the same' on Adding and subtracting fractions; target a mistake the class actually makes.* Plan 2 accepted: *13 of 31 students show 'added the denominators too'.*
+> **Coach (revised):** two re-teach plans for the same 13 students.
+> **Analyst:** *Plan 2 repeats plan 1 for the same students; give the other 18 students practice instead.*
+> **Coach (revised again):** Group A (13) re-learns adding with the same denominator; Group B practises.
+> **Analyst:** accepts both. The teacher approves.
 
-The Analyst also vetoes whole-class plans when fewer than half the class shows the mistake ("re-teaching everyone wastes the period"). It sends back plans longer than 5 steps and plans without a worked example. A plan that still fails after 2 rounds is flagged to the teacher, never hidden.
+The Analyst also vetoes whole-class plans when fewer than half the class shows the mistake ("re-teaching everyone wastes the period"). It sends back duplicate plans, plans longer than 5 steps and plans without a worked example. A plan that still fails after 2 rounds is flagged to the teacher, never hidden.
 
 ### Every AI call is measured
 Every agent response carries telemetry (`provider · model · ms · tokens · ₹`), and the teacher's feed shows it. Successful calls are cached, and `DEMO_MODE=cached` replays the whole demo with no network.
