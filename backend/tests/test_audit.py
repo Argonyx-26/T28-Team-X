@@ -263,3 +263,24 @@ def test_the_coach_writes_concept_names_not_ids():
     from app.agents.coach import _names
 
     assert _names("Raise C4 mastery") == f"Raise {get_topic().concept('C4').name} mastery"
+
+
+def test_the_answer_mark_and_an_unreadable_last_line():
+    from app.agents.pages import diagnose_problem
+
+    # "//" after a final answer is a classroom mark, not part of the number
+    out = diagnose_problem(["Q2) 3/5 + 1/5", "⇒ (3+1)/5", "⇒ 5/5 //"], None, None)
+    assert not out["correct"] and out["error_step"] == 3 and out["misconception_tag"] == "careless_arithmetic"
+    assert diagnose_problem(["Q2) 3/4 ÷ 1/2", "⇒ 3/4 × 2/1 ⇒ 6/4 ⇒ 3/2 //"], None, None)["correct"]
+    # a last line we can't read is never taken as a right answer by the arithmetic
+    v = verify(["3/5 + 1/5", "= 4/5", "⇒ (3+1) 15"])
+    assert v.status == "unverified" and v.correct is None
+
+
+def test_a_story_written_over_two_lines_is_still_the_bank_problem():
+    from app.agents.pages import diagnose_problem
+
+    out = diagnose_problem(
+        ["Q1) A cake needs 3/4 cup of sugar.", "How much sugar for 2 cakes?", "= 2 + 3/4 = 2 3/4 cups"], None, None
+    )
+    assert out["question_id"] == "P4" and out["misconception_tag"] == "word_problem_operation"

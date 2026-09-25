@@ -377,7 +377,7 @@ ROUNDS = {
     "pages2": {
         "csv": "pages_round2.csv",
         "what": "bank and textbook problems with planted mistakes",
-        "photos": "phone photos",
+        "photos": "WhatsApp photos (one per page)",
         "labels": "the working, including every planted mistake, was written down before the pages were written, then "
         "copied by hand; each writer confirmed their pages match",
         "note": "",
@@ -444,7 +444,10 @@ async def run_pages(kind: str = "pages") -> list[dict]:
 
     init_db()
     cfg = ROUNDS[kind]
-    labels = _page_labels(cfg["csv"])
+    planned = _page_labels(cfg["csv"])
+    # a planned photo that was never taken (round 2 planned a second, angled photo of each page) is left out, and said
+    labels = [r for r in planned if (PAGES_DIR / r["photo"]).exists()]
+    not_taken = sorted({r["photo"] for r in planned} - {r["photo"] for r in labels})
     photos = sorted({r["photo"] for r in labels})
     rows, ms, writers, rolls = [], [], set(), []
     for photo in photos:
@@ -509,6 +512,7 @@ async def run_pages(kind: str = "pages") -> list[dict]:
         f"{len(photos)} {cfg['photos']} of whole notebook pages by {who}, {len(rows)} problem readings, {cfg['what']}; "
         f"{cfg['labels']}; one vision call per page, then exact arithmetic on every problem"
         + (f". {cfg['note']}" if cfg["note"] else "")
+        + (f". {len(not_taken)} planned photos were not taken and are left out" if not_taken else "")
     )
     pre, suf = cfg["prefix"], cfg["suffix"]
     numbers = [

@@ -483,10 +483,8 @@ def combine(q: Question, result: PhotoDiagnosis, steps: list[str]) -> dict:
         source = "vision+rule"
         rule_check = {"status": "consistent", "note": verdict.evidence}
     elif q.id == AUTO:
-        rule_check = {
-            "status": "unverified",
-            "note": "No line could be read as arithmetic, so only the model checked this.",
-        }
+        unread = verdict.evidence if verdict.evidence.startswith("Line ") else "No line could be read as arithmetic."
+        rule_check = {"status": "unverified", "note": f"{unread[:-1]}, so only the model checked this."}
     else:
         # nothing to compute (a word problem written in words): fall back to the final-answer rules
         final = parse_answer(result.final_answer_read)

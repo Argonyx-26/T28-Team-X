@@ -71,6 +71,9 @@ def diagnose_problem(lines: list[str], tag: str | None, error_step: int | None, 
     if not verifier.looks_like_working(lines):
         raise ApiError(422, "no_working", "No fraction working in this problem.")
     bank = match_bank(lines[0])
+    if bank is None and len(lines) > 1 and re.search(r"[A-Za-z]{3,}", lines[0]):
+        # a story problem written over two lines ("A cake needs 3/4 cup of sugar." / "How much for 2 cakes?")
+        bank = match_bank(f"{lines[0]} {lines[1]}")
     q = bank or diagnostician._PLACEHOLDER
     guess = PhotoDiagnosis(
         steps=lines,

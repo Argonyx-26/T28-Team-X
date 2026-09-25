@@ -98,11 +98,16 @@ _SCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆
 
 
 def normalize(text: str) -> str:
-    """Handwriting as a transcription may carry it: '1½' is 1 1/2, '¾' is 3/4, '3⁄4' and '³/₄' are 3/4."""
+    """Handwriting as a transcription may carry it: '1½' is 1 1/2, '¾' is 3/4, '3⁄4' and '³/₄' are 3/4, and the
+    answer mark many Indian classrooms put after a final answer ('4/8 //', '3/2 ||') is not part of the number."""
     for ch, frac in _VULGAR.items():
         if ch in text:
             text = text.replace(ch, f" {frac}")
+    text = _ANSWER_MARK.sub("", text)
     return text.replace("⁄", "/").replace("∕", "/").translate(_SCRIPT_DIGITS)
+
+
+_ANSWER_MARK = re.compile(r"\s*(?:/{2,}|\{2,}|\|{2,}|‖)\s*$")
 
 
 def _tokens(text: str) -> list[tuple[str, str]]:
@@ -964,6 +969,16 @@ def verify(
     if not answered:
         # the problem copied out and left ("5/6 - 1/6 =", "= ?", "= 4/"): not right, and not a mistake either
         return verdict("unanswered", None, None, None, None, "No answer is written after the problem.")
+    last_digits = max((i for i, line in enumerate(lines) if re.search(r"\d", line)), default=-1)
+    if (
+        error_step is None
+        and last_digits > problem_line
+        and kinds[last_digits] in ("note", "chain")
+        and not any(x.value is not None or x.zero for x in rows[last_digits])
+        and not _WORD.search(lines[last_digits])
+    ):
+        # the last line holds numbers we can't read ('(3+1) 15'): never call the work right without its answer
+        return verdict("unverified", None, None, None, None, f"Line {last_digits + 1} couldn't be read as arithmetic.")
     if reference is None:
         return verdict(
             "checked",
