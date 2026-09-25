@@ -32,6 +32,8 @@ If a model says its quota is used up, switch to another model in the dropdown an
   ```
   The same prompts work there.
 
+> **Change at 1:30 PM: Samartha's Claude is building the teacher dashboard `/teacher/[code]`** (the graph, heatmap, agent feed, debate panel, parent message and voice note). It lives only in `frontend/app/teacher/[code]/page.tsx` and `frontend/app/teacher/[code]/_dashboard/`. **Don't create or edit those files.** Skip F5 and F6, and skip the `/teacher/[code]` shell in F1. You still own everything else, including `/teacher/[code]/scan`, the shared design tokens and fonts in `globals.css`/`layout.tsx`, and `lib/`. The dashboard reads your CSS variables (`--ink`, `--red-pen`, …) when they exist. If a `git pull` ever conflicts on a dashboard file, keep Samartha's version: `git checkout --theirs <file> && git add <file>`.
+
 ## 0. Setup (10 min)
 1. Install Antigravity from antigravity.google and sign in with your personal Google account.
 2. Install the Antigravity browser extension when it asks. It lets the agent test pages.
