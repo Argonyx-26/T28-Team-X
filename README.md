@@ -126,7 +126,7 @@ How this scales from a class to a district, the architecture at scale, the cost 
 ## What's where
 | Path | What |
 |---|---|
-| [backend/](backend/) | FastAPI + SQLite: the agents, the rules engine and exact step verifier ([verifier.py](backend/app/verifier.py)), the LLM layer, evaluations (`app/evals`) and tools (`app/tools`); 275 offline tests |
+| [backend/](backend/) | FastAPI + SQLite: the agents, the rules engine and exact step verifier ([verifier.py](backend/app/verifier.py)), the LLM layer, evaluations (`app/evals.py`) and tools (`app/tools.py`); 275 offline tests |
 | [frontend/](frontend/) | Next.js 16: the landing page, `/judges`, the teacher dashboard, scan, snap and pile, the student screens, the school view |
 | [e2e/](e2e/) | Playwright browser tests: the judged demo, homework check, a whole notebook page, snap mode with a fake camera |
 | [data/](data/) | The question bank ([fractions.json](data/fractions.json)), labelled handwriting evidence and the evaluation results |
