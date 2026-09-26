@@ -73,6 +73,7 @@ export function SiteFooter() {
           title="Check our work"
           links={[
             { href: SITE.repo, label: "Source code on GitHub", external: true },
+            ...(SITE.video ? [{ href: SITE.video, label: "Demo video (4 min)", external: true }] : []),
             { href: `${SITE.repo}#evaluation`, label: "How we evaluate", external: true },
             { href: repoFile("docs/research/EVIDENCE.md"), label: "Sourced evidence brief", external: true },
             { href: SITE.apiDocs, label: "Live API reference", external: true },

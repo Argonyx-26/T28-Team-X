@@ -6,6 +6,7 @@ Built by Team X (T28) at ARGONYX '26, RV University, 25–26 Sep 2026. Everythin
 
 [![ci](https://github.com/Argonyx-26/T28-Team-X/actions/workflows/ci.yml/badge.svg)](https://github.com/Argonyx-26/T28-Team-X/actions/workflows/ci.yml)
 
+- **Demo video (4 min):** https://github.com/Argonyx-26/T28-Team-X/releases/tag/demo-video
 - **Live API:** https://gurugraph-api-215071922486.asia-south1.run.app/docs
 - **App:** https://gurugraph-web-215071922486.asia-south1.run.app
   - For judges (a 90-second tour and every number with its n and method): [/judges](https://gurugraph-web-215071922486.asia-south1.run.app/judges)

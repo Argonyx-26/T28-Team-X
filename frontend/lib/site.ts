@@ -6,8 +6,8 @@ export const SITE = {
   apiDocs: "https://gurugraph-api-215071922486.asia-south1.run.app/docs",
   classCode: "7B",
   tagline: "See why they got it wrong.",
-  /** the 2-minute demo video; set it here (not on the API) so changing it never restarts the API */
-  video: "",
+  /** the demo video (a GitHub release on the repo); set it here (not on the API) so changing it never restarts the API */
+  video: "https://github.com/Argonyx-26/T28-Team-X/releases/tag/demo-video",
   /** the public Raah status page (one component per agent endpoint) */
   statusPage: "https://raah.dev/status/gurugraph",
   description:

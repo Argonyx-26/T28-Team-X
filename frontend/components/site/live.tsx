@@ -154,7 +154,7 @@ export function ProjectLinks() {
     <div className="flex flex-wrap gap-3">
       {video && (
         <a href={video} target="_blank" rel="noreferrer" className="gg-btn">
-          Watch the 2-minute demo video<span className="sr-only"> (opens in a new tab)</span>
+          Watch the demo video (4 min)<span className="sr-only"> (opens in a new tab)</span>
         </a>
       )}
       {status_page && (

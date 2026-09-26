@@ -134,7 +134,7 @@ export default function Home() {
         <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-16 pt-4 sm:px-8 md:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <div className="flex flex-col gap-6">
             <p className="w-fit rounded-full border border-rule bg-white px-3.5 py-1.5 text-[14px] text-graphite">
-              For Class 7 maths teachers · <span lang="kn" className="font-kn">ಕನ್ನಡ</span> ·{" "}
+              For middle-school maths teachers · <span lang="kn" className="font-kn">ಕನ್ನಡ</span> ·{" "}
               <span lang="hi">हिन्दी</span> · English
             </p>
             <h1 className="text-[clamp(42px,7.4vw,72px)] font-bold leading-[1.02] tracking-tight text-ink">
