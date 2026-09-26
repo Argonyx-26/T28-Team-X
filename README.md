@@ -14,10 +14,10 @@ Built by Team X (T28) at ARGONYX '26, RV University, 25–26 Sep 2026. Everythin
   - Live status (Raah): [raah.dev/status/gurugraph](https://raah.dev/status/gurugraph)
   - Teacher dashboard: [/teacher/7B](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B)
   - Scan a notebook: [/teacher/7B/scan](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B/scan)
-  - Try it as Asha: [/join/7B?as=asha](https://gurugraph-web-215071922486.asia-south1.run.app/join/7B?as=asha) (then "Check my homework")
-  - Snap a stack of notebooks: [/teacher/7B/snap](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B/snap)
-  - The whole school: [/school/demo](https://gurugraph-web-215071922486.asia-south1.run.app/school/demo) · create your own class: [/teacher/new](https://gurugraph-web-215071922486.asia-south1.run.app/teacher/new)
-
+- Try it as Asha: [/join/7B?as=asha]([https://gurugraph-web-215071922486.asia-south1.run.app/join/7B?as=asha](https://gurugraph-web-215071922486.asia-south1.run.app/join/7B?as=asha)) (then "Check my homework")
+- Snap a stack of notebooks: [/teacher/7B/snap]([https://gurugraph-web-215071922486.asia-south1.run.app/teacher/7B/snap](https://gurugraph-web-215071922486.asia.run.app/teacher/7B/snap))
+- The whole school: [/school/demo]([https://gurugraph-web-215071922486.asia-south1.run.app/school/demo](https://gurugraph-web-215071922486.asia-south1.run.app/school/demo)) · create your own class: [/teacher/new]([https://gurugraph-web-215071922486.asia-south1.run.app/teacher/new](https://gurugraph-web-215071922486.asia-south1.run/teacher/new))
+- **Demo video:** [Watch on YouTube](https://youtu.be/eoTHfkTS6zg?si=KEx0m-NMk_ydEDSC)
 ---
 
 ## The problem
