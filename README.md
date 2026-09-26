@@ -6,7 +6,8 @@ Built by Team X (T28) at ARGONYX '26, RV University, 25–26 Sep 2026. Everythin
 
 [![ci](https://github.com/Argonyx-26/T28-Team-X/actions/workflows/ci.yml/badge.svg)](https://github.com/Argonyx-26/T28-Team-X/actions/workflows/ci.yml)
 
-- **Demo video (4 min):** https://github.com/Argonyx-26/T28-Team-X/releases/tag/demo-video
+- **Demo video:** https://github.com/Argonyx-26/T28-Team-X/releases/tag/demo-video (a 2:41 cut and the full 4:08 version)
+- **Pitch deck:** [docs/pitch/GuruGraph_TeamX_T28_Round2.pdf](docs/pitch/GuruGraph_TeamX_T28_Round2.pdf) ([.pptx](docs/pitch/GuruGraph_TeamX_T28_Round2.pptx))
 - **Live API:** https://gurugraph-api-215071922486.asia-south1.run.app/docs
 - **App:** https://gurugraph-web-215071922486.asia-south1.run.app
   - For judges (a 90-second tour and every number with its n and method): [/judges](https://gurugraph-web-215071922486.asia-south1.run.app/judges)
@@ -121,6 +122,15 @@ How this scales from a class to a district, the architecture at scale, the cost 
 ## Sponsor technology
 - **Nebius Token Factory:** built in as an OpenAI-compatible provider for the text agents, with token usage and ₹ cost shown per call. When `NEBIUS_API_KEY` is set it goes first and Gemini becomes the fallback. The demo currently runs on Gemini.
 - **Raah (Studio1):** browser-side analytics, live on the production domain ([frontend/lib/raah.ts](frontend/lib/raah.ts), [frontend/components/site/raah.tsx](frontend/components/site/raah.tsx)). The beacon in the root layout reports page views and the latency of every API call; since there is one endpoint per agent action, Raah's endpoint report is a per-agent latency and error report. Custom events: `joined`, `diagnosed`, `photo_diagnosed`, `homework_checked`, `snap_captured`, `snap_read`, `lesson_viewed`, `gap_closed`, `plan_approved`, `class_created`, `roster_imported`. Events never carry a nickname, a roll number or an id (identifying property names are dropped in the browser), the beacon loads only on the production domain, and our automated browser tests never count as visitors. The public badge sits in the footer, and the public status page is [raah.dev/status/gurugraph](https://raah.dev/status/gurugraph): one component for the agents API, its health driven by two Raah alerts (p95 latency above 10 s, error rate above 5%), plus live requests, latency and errors.
+
+## What's where
+| Path | What |
+|---|---|
+| [backend/](backend/) | FastAPI + SQLite: the agents, the rules engine and exact step verifier ([verifier.py](backend/app/verifier.py)), the LLM layer, evaluations (`app/evals`) and tools (`app/tools`); 275 offline tests |
+| [frontend/](frontend/) | Next.js 16: the landing page, `/judges`, the teacher dashboard, scan, snap and pile, the student screens, the school view |
+| [e2e/](e2e/) | Playwright browser tests: the judged demo, homework check, a whole notebook page, snap mode with a fake camera |
+| [data/](data/) | The question bank ([fractions.json](data/fractions.json)), labelled handwriting evidence and the evaluation results |
+| [docs/](docs/) | The API contract ([API.md](docs/API.md)), scaling and cost ([SCALE.md](docs/SCALE.md)), the sourced evidence brief, the pitch deck, demo script and Q&A, and the team |
 
 ## Run it locally
 ```bash
