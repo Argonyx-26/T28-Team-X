@@ -1,4 +1,4 @@
-# Handoff: state at 23:10, Fri 25 Sep
+# Handoff: state at 08:40, Sat 26 Sep
 
 ## Live
 | What | Where |
@@ -24,21 +24,22 @@
 | Create a class | `/teacher/new` | a name gives a join code, a QR and a teacher link; paste a roll list |
 | Presenter | `/present` | reset, warm every demo beat, health, the demo tabs, notes (needs the admin token) |
 
-## Checks (last run 23:10)
-- Backend: 217 tests, ruff clean. Frontend: tsc, lint and build clean.
-- Browser tests (`e2e/`): golden path, homework check and snap mode (Chrome's fake camera), 7 of 7 passing on the live URL three times in a row.
-- Lighthouse on the live URL, mobile: performance 99 (`/`), 98 (`/judges`), 90 (`/join/7B`), 90 (scan); accessibility 100 on all nine pages checked.
+## Checks (last run 08:30, Sat)
+- Backend: 275 tests, ruff clean. Frontend: tsc, lint and build clean.
+- Browser tests (`e2e/`): golden path, homework check, a whole notebook page and snap mode (Chrome's fake camera), 8 of 8 passing on the live URL (web revision 00027, API revision 00045).
+- Lighthouse (last run 23:10, Fri): on the live URL, mobile: performance 99 (`/`), 98 (`/judges`), 90 (`/join/7B`), 90 (scan); accessibility 100 on all nine pages checked.
 
 ## Numbers (all on `/judges` with n and method)
 Real phone photos 6/6 wrong step and 6/6 mistake, still 6/6 rotated, compressed, shrunk or darkened; the verifier alone 12/12, 8/8, 8/8 on 12 labelled pages by 3 writers; typed-answer fallback 27/30; load: 440 requests, 0 errors, p95 180 ms; ₹3.64 per student per month.
 
 ## Waiting on the team (data, not code)
-1. **Handwritten pages from all three writers**, with "Roll n" at the top, 1–3 problems per page, some planted mistakes, and the right answers and mistakes written down before any model run. Each page photographed twice as files (not WhatsApp photos). They go in `data/evidence/photos/` with rows in `data/evidence/labels.csv`.
+1. Done: the round 2 pages (6 photos by 3 writers, 18/18, 13/13, 13/13, 6/6; `data/evidence/ROUND2.md`). Still open: a second, angled photo of each page.
 2. **A stopwatch time for marking 10 notebooks by hand**, and the same 10 in snap mode on a phone, to compare seconds per notebook (an internal test, labelled so).
 3. **A native-speaker check** of the Kannada and Hindi lessons (`docs/research/LESSONS_REVIEW.md`) and of the new homework strings.
-4. The Raah project id, and the deck format.
+4. Done: Raah is live, and the deck is `docs/pitch/GuruGraph_TeamX_T28_Round2.pptx` (and `.pdf`).
 
 ## Pitch
+- Demo video (4:08): https://github.com/Argonyx-26/T28-Team-X/releases/tag/demo-video (linked from the deck, the README and `/judges`).
 - `docs/pitch/DEMO_SCRIPT.md`: 5 minutes, all three speak, with a Wi-Fi fallback.
 - `docs/pitch/QA.md`: hard questions with honest answers, the mentors' objection first.
 - `docs/pitch/screens/`: screenshots of every new flow.

@@ -1,4 +1,6 @@
-# The 2-minute demo video: shot list
+# Recording a 2-minute demo video by hand: shot list
+
+The produced demo video (4:08) is at https://github.com/Argonyx-26/T28-Team-X/releases/tag/demo-video. This shot list is for recording a shorter version by hand.
 
 Every beat below replays a saved answer or runs on rules, so nothing in it depends on a live model call or the Wi-Fi.
 Record on the live app: https://gurugraph-web-215071922486.asia-south1.run.app

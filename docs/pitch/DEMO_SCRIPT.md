@@ -67,7 +67,7 @@ Answers in [QA.md](QA.md). Lead with the mentors' objection if it comes up again
 ## If the Wi-Fi dies
 1. Switch the laptop and the phone to the hotspot (already paired).
 2. Every demo answer is cached on the API, so a slow link still gets the beats in under two seconds.
-3. If the API itself is unreachable: play the 2-minute video (link on `/judges`) and narrate over it; the screenshots in
+3. If the API itself is unreachable: play the demo video (link on `/judges` and in the deck) and narrate over it; the screenshots in
    `docs/pitch/screens/` are on the laptop.
 4. Photographing a new page needs a live model call; if the link is bad, use the sample "Asha's page: 3/4 + 1/4" (cached) instead.
 

@@ -128,7 +128,7 @@ cd backend && python -m venv .venv && .venv/Scripts/pip install -r requirements-
 cp .env.example .env    # add NEBIUS_API_KEY and GCP_PROJECT (Vertex uses your gcloud login), or set DEMO_MODE=cached
 .venv/Scripts/python -m uvicorn app.main:app --port 8010    # then open http://localhost:8010/docs
 ```
-Class 7B (30 simulated students plus Asha), and 7A and 7C for the school view, seed themselves on first start. Tests run offline: `pytest -q` (217 tests).
+Class 7B (30 simulated students plus Asha), and 7A and 7C for the school view, seed themselves on first start. Tests run offline: `pytest -q` (275 tests).
 
 ## Runbook
 | Task | How |
@@ -150,4 +150,4 @@ Class 7B (30 simulated students plus Asha), and 7A and 7C for the school view, s
 ## Built during the event
 - **The code, the question bank, the prompts and the docs were all made here**, between 11:00 on 25 Sep and 11:00 on 26 Sep. The commit history is the record. The idea was the one selected in Round 1.
 - **The team:** Samartha Puthraya K (lead engineer: agents, API, web app, evaluations), Rishabh Arun (early UI, handwriting data, pitch), Risheeth S (research, evidence, labels, pitch). Roles and tools in [docs/team/TEAM.md](docs/team/TEAM.md).
-- **AI coding assistants:** we used Claude Code, Google Antigravity and Gemini; Claude Code wrote most of the code from our prompts and reviews. Every change was tested before it was pushed.
+- **AI coding assistants:** we used Claude Code, Google Antigravity and Gemini; Claude Code wrote most of the code from our prompts and reviews. Every change was tested before it was pushed. The demo video's narration is an AI voice (Gemini text-to-speech) and its music is AI-generated (Lyria); the app footage in it is recorded from the live app.
